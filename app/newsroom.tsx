@@ -318,7 +318,7 @@ export function Newsroom() {
       <header className="site-header">
         <button className="brand" type="button" onClick={() => switchView("news")} aria-label="GOG Newsroom home">
           <span className="brand-logo" aria-hidden="true" />
-          <span><b>GOG</b> NEWSROOM<small>GENIUS ON THE GROUND</small></span>
+          <span><b>GOG</b> NEWSROOM<small>GENIUS ON THE GROUND · DM ENGINE™</small></span>
         </button>
         <nav aria-label="เมนูหลัก">
           <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}>ข่าวล่าสุด</button>
@@ -337,7 +337,7 @@ export function Newsroom() {
       <main id="top">
         <section className="hero">
           <div className="hero-copy">
-            <div className="hero-kicker"><span /> ข่าวปีศาจแดง • คัดกรองโดยระบบข่าวกรอง</div>
+            <div className="hero-kicker"><span /> ข่าวปีศาจแดง • ระบบโดย DM ENGINE™</div>
             <h1>รู้จริงก่อนใคร<br /><em>เชื่อเฉพาะที่ยืนยันได้</em></h1>
             <p>รวมทุกความเคลื่อนไหวของแมนเชสเตอร์ ยูไนเต็ด<br />กลั่นจากแหล่งข่าวต้นฉบับ เพื่อแฟนผีแดงชาวไทย</p>
             <div className="hero-stats">
@@ -357,9 +357,9 @@ export function Newsroom() {
         </section>
 
         <nav className="workspace-tabs" aria-label="ส่วนหลักของเว็บไซต์">
-          <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}><span>01</span><b>ข่าวล่าสุด</b><small>NEWS INTELLIGENCE</small></button>
-          <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}><span>02</span><b>โปรแกรมพรีเมียร์ลีก</b><small>2026/27 · THAI TIME</small></button>
-          <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}><span>03</span><b>ทีม GOG</b><small>CREATORS · ANALYTICS</small></button>
+          <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}><span className="tab-icon tab-icon-news" aria-hidden="true" /><b>ข่าวล่าสุด</b><small>NEWS INTELLIGENCE</small></button>
+          <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}><span className="tab-icon tab-icon-calendar" aria-hidden="true" /><b>โปรแกรมพรีเมียร์ลีก</b><small>2026/27 · THAI TIME</small></button>
+          <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}><span className="tab-icon tab-icon-team" aria-hidden="true" /><b>ทีม GOG</b><small>CREATORS · ANALYTICS</small></button>
         </nav>
 
         {activeView === "news" ? <>
@@ -553,7 +553,7 @@ export function Newsroom() {
 
       <footer>
         <div className="footer-brand"><span className="brand-logo" aria-hidden="true" /><div><b>GOG NEWSROOM</b><small>GENIUS ON THE GROUND | ภารกิจบุกถิ่นผี</small></div></div>
-        <p>นำเสนอเฉพาะพาดหัวและสรุปสั้นเพื่อการติดตามข่าว · ลิขสิทธิ์บทความเป็นของแหล่งข่าวต้นฉบับ</p>
+        <p>นำเสนอเฉพาะพาดหัวและสรุปสั้นเพื่อการติดตามข่าว · ลิขสิทธิ์บทความเป็นของแหล่งข่าวต้นฉบับ<strong>ระบบโดย DM ENGINE™</strong></p>
         <div><span><i /> ระบบออนไลน์</span><a href="#top">กลับด้านบน ↑</a></div>
       </footer>
     </div>

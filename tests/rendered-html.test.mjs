@@ -26,6 +26,10 @@ test("server-renders the GOG Newsroom product shell", async () => {
   assert.match(html, /โปรแกรมพรีเมียร์ลีก/);
   assert.match(html, /ทีม GOG/);
   assert.match(html, /GENIUS ON THE GROUND/);
+  assert.match(html, /ระบบโดย DM ENGINE™/);
+  assert.match(html, /tab-icon-news/);
+  assert.match(html, /tab-icon-calendar/);
+  assert.match(html, /tab-icon-team/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
