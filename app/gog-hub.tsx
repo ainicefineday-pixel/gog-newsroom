@@ -167,7 +167,7 @@ export function GogTeamPanel() {
         <div className="mission-copy">
           <span className="eyebrow">THE PEOPLE BEHIND GOG</span>
           <h2 id="gog-team-heading">GENIUS ON THE GROUND<br /><em>| ภารกิจบุกถิ่นผี</em></h2>
-          <p>สองมุมมอง หนึ่งภารกิจ—เปลี่ยนข่าวแมนเชสเตอร์ ยูไนเต็ดให้เป็นคอนเทนต์ที่แฟนบอลไทยเข้าใจ สนุก และตรวจสอบที่มาได้</p>
+          <p>สามแรง หนึ่งภารกิจ—เปลี่ยนข่าวแมนเชสเตอร์ ยูไนเต็ดให้เป็นคอนเทนต์ที่แฟนบอลไทยเข้าใจ สนุก และตรวจสอบที่มาได้</p>
         </div>
       </div>
 
@@ -187,6 +187,13 @@ export function GogTeamPanel() {
             <a href="https://www.youtube.com/@FootballGeniusAG" target="_blank" rel="noreferrer"><span>YT</span>YouTube @FootballGeniusAG<b>↗</b></a>
             <a href="https://www.facebook.com/footballgeniusth/" target="_blank" rel="noreferrer"><span>FB</span>Facebook Football Genius<b>↗</b></a>
             <a href="https://www.tiktok.com/@footballgenius_official" target="_blank" rel="noreferrer"><span>TT</span>TikTok @footballgenius_official<b>↗</b></a>
+          </div>
+        </article>
+        <article className="creator-card creator-duke">
+          <span className="creator-number">03</span>
+          <div><span className="eyebrow">AI ENGINEERING &amp; PROJECT LEAD</span><h3>อ.ดุ๊ก</h3><strong>อ.ธาริน กุลชล</strong></div>
+          <div className="creator-role-note">
+            <p>ออกแบบและคุมระบบเบื้องหลังทั้งหมดของ GOG NEWSROOM ตั้งแต่สายข่าวอัตโนมัติ การตรวจแหล่งที่มา ไปจนถึงการนำ AI มาเรียบเรียงเป็นภาษาไทย</p>
           </div>
         </article>
       </div>
