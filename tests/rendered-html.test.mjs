@@ -153,7 +153,7 @@ test("maps all 20 fixture grounds with an accessible OpenStreetMap layer", async
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
   ]);
   assert.equal((locations.match(/^\s*\{ club:/gm) ?? []).length, 20);
-  assert.equal((travel.match(/^    stadium:/gm) ?? []).length, 20);
+  assert.equal((travel.match(/^ {4}stadium:/gm) ?? []).length, 20);
   for (const stadium of ["Old Trafford", "Anfield", "Emirates Stadium", "St James' Park", "Stadium of Light"]) {
     assert.match(locations, new RegExp(stadium.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.match(fixtures, new RegExp(stadium.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));

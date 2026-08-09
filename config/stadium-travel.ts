@@ -1,7 +1,8 @@
 export type StadiumTravelPlan = {
   stadium: string;
   distanceKm: number;
-  typicalMinutes: number;
+  railMinutes: number;
+  lastMileMinutes: number;
   mode: "train" | "tram";
   origin: string;
   destination: string;
@@ -15,26 +16,33 @@ export const NATIONAL_RAIL_JOURNEY_PLANNER = "https://www.nationalrail.co.uk/jou
 export const NATIONAL_RAIL_TIMETABLE_GUIDANCE = "https://www.nationalrail.co.uk/travel-information/timetable-information/";
 export const TFGM_TRAM_PLANNER = "https://tfgm.com/plan-a-journey";
 
-// Planning baselines from central Manchester to the ground. Distances and
-// durations are approximate route-planning values, not live rail timetables.
-// Match-specific target times are calculated in the UI from each kick-off.
+// Planning baselines from central Manchester to the turnstile, split so each
+// number can be checked on its own:
+//   distanceKm      approximate rail route distance, not straight-line
+//   railMinutes     origin station -> destination station, typical off-peak service
+//   lastMileMinutes destination station -> ground, including any local metro/tube
+// They are typical off-peak averages, not live rail timetables. Match-specific
+// target times are calculated in the UI from each kick-off, and the journey
+// planner links remain the only authority on real departures.
 export const STADIUM_TRAVEL_PLANS: readonly StadiumTravelPlan[] = [
   {
     stadium: "Old Trafford",
     distanceKm: 6,
-    typicalMinutes: 35,
+    railMinutes: 20,
+    lastMileMinutes: 10,
     mode: "tram",
     origin: "Manchester Piccadilly",
     destination: "Old Trafford Metrolink",
-    via: ["Piccadilly Metrolink", "Old Trafford Metrolink"],
+    via: ["Piccadilly Metrolink", "Cornbrook (เปลี่ยนสาย)", "Old Trafford Metrolink"],
     lastMile: "เดินจากป้าย Old Trafford ประมาณ 8–10 นาที",
     note: "วันแข่งรถรางแน่น ควรเผื่อเวลาต่อคิวหลังจบเกม",
     plannerUrl: TFGM_TRAM_PLANNER,
   },
   {
     stadium: "MKM Stadium",
-    distanceKm: 155,
-    typicalMinutes: 145,
+    distanceKm: 150,
+    railMinutes: 135,
+    lastMileMinutes: 30,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Hull Paragon Interchange",
@@ -44,20 +52,22 @@ export const STADIUM_TRAVEL_PLANS: readonly StadiumTravelPlan[] = [
   },
   {
     stadium: "Portman Road",
-    distanceKm: 335,
-    typicalMinutes: 275,
+    distanceKm: 400,
+    railMinutes: 260,
+    lastMileMinutes: 10,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Ipswich",
     via: ["Manchester Piccadilly", "London Euston", "London Liverpool Street", "Ipswich"],
     lastMile: "เดินจากสถานี Ipswich ประมาณ 5–10 นาที",
-    note: "ต้องข้ามลอนดอนจาก Euston ไป Liverpool Street เผื่อเวลา Underground",
+    note: "เวลารถไฟรวมช่วงข้ามลอนดอนจาก Euston ไป Liverpool Street ด้วย Underground แล้ว",
     plannerUrl: NATIONAL_RAIL_JOURNEY_PLANNER,
   },
   {
     stadium: "Hill Dickinson Stadium",
-    distanceKm: 58,
-    typicalMinutes: 100,
+    distanceKm: 57,
+    railMinutes: 55,
+    lastMileMinutes: 25,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Sandhills",
@@ -67,8 +77,9 @@ export const STADIUM_TRAVEL_PLANS: readonly StadiumTravelPlan[] = [
   },
   {
     stadium: "Etihad Stadium",
-    distanceKm: 5,
-    typicalMinutes: 25,
+    distanceKm: 4,
+    railMinutes: 13,
+    lastMileMinutes: 5,
     mode: "tram",
     origin: "Manchester Piccadilly",
     destination: "Etihad Campus Metrolink",
@@ -79,30 +90,33 @@ export const STADIUM_TRAVEL_PLANS: readonly StadiumTravelPlan[] = [
   },
   {
     stadium: "Craven Cottage",
-    distanceKm: 340,
-    typicalMinutes: 200,
+    distanceKm: 305,
+    railMinutes: 130,
+    lastMileMinutes: 40,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Putney Bridge Underground",
     via: ["Manchester Piccadilly", "London Euston", "Victoria / District line", "Putney Bridge"],
-    lastMile: "เดินเลียบ Bishop's Park ไปสนามประมาณ 15–20 นาที",
+    lastMile: "District line ต่อจาก Euston แล้วเดินเลียบ Bishop's Park อีก 15–20 นาที",
     plannerUrl: NATIONAL_RAIL_JOURNEY_PLANNER,
   },
   {
     stadium: "Tottenham Hotspur Stadium",
-    distanceKm: 335,
-    typicalMinutes: 185,
+    distanceKm: 305,
+    railMinutes: 130,
+    lastMileMinutes: 35,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "White Hart Lane",
     via: ["Manchester Piccadilly", "London Euston", "Seven Sisters", "White Hart Lane"],
-    lastMile: "เดินจาก White Hart Lane ประมาณ 5 นาที",
+    lastMile: "Victoria line ไป Seven Sisters ต่อรถไฟถึง White Hart Lane แล้วเดินอีก 5 นาที",
     plannerUrl: NATIONAL_RAIL_JOURNEY_PLANNER,
   },
   {
     stadium: "Elland Road",
-    distanceKm: 72,
-    typicalMinutes: 105,
+    distanceKm: 70,
+    railMinutes: 60,
+    lastMileMinutes: 20,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Leeds",
@@ -112,8 +126,9 @@ export const STADIUM_TRAVEL_PLANS: readonly StadiumTravelPlan[] = [
   },
   {
     stadium: "Vitality Stadium",
-    distanceKm: 410,
-    typicalMinutes: 300,
+    distanceKm: 400,
+    railMinutes: 290,
+    lastMileMinutes: 15,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Pokesdown",
@@ -123,30 +138,33 @@ export const STADIUM_TRAVEL_PLANS: readonly StadiumTravelPlan[] = [
   },
   {
     stadium: "Stamford Bridge",
-    distanceKm: 340,
-    typicalMinutes: 185,
+    distanceKm: 305,
+    railMinutes: 130,
+    lastMileMinutes: 30,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Fulham Broadway Underground",
     via: ["Manchester Piccadilly", "London Euston", "Victoria / District line", "Fulham Broadway"],
-    lastMile: "เดินจาก Fulham Broadway ประมาณ 5 นาที",
+    lastMile: "District line ต่อจาก Euston แล้วเดินจาก Fulham Broadway อีก 5 นาที",
     plannerUrl: NATIONAL_RAIL_JOURNEY_PLANNER,
   },
   {
     stadium: "Villa Park",
-    distanceKm: 145,
-    typicalMinutes: 120,
+    distanceKm: 130,
+    railMinutes: 90,
+    lastMileMinutes: 15,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Witton",
     via: ["Manchester Piccadilly", "Birmingham New Street", "Witton"],
-    lastMile: "เดินจาก Witton ประมาณ 5 นาที",
+    lastMile: "ต่อรถไฟท้องถิ่นไป Witton แล้วเดินอีกประมาณ 5 นาที",
     plannerUrl: NATIONAL_RAIL_JOURNEY_PLANNER,
   },
   {
     stadium: "Anfield",
-    distanceKm: 58,
-    typicalMinutes: 105,
+    distanceKm: 55,
+    railMinutes: 50,
+    lastMileMinutes: 25,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Liverpool Lime Street",
@@ -156,19 +174,21 @@ export const STADIUM_TRAVEL_PLANS: readonly StadiumTravelPlan[] = [
   },
   {
     stadium: "Gtech Community Stadium",
-    distanceKm: 335,
-    typicalMinutes: 190,
+    distanceKm: 305,
+    railMinutes: 130,
+    lastMileMinutes: 35,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Kew Bridge",
     via: ["Manchester Piccadilly", "London Euston", "London Underground", "Kew Bridge"],
-    lastMile: "เดินจาก Kew Bridge ประมาณ 5 นาที (Gunnersbury เป็นทางเลือก)",
+    lastMile: "ต่อ Underground/Overground ถึง Kew Bridge แล้วเดินอีก 5 นาที (Gunnersbury เป็นทางเลือก)",
     plannerUrl: NATIONAL_RAIL_JOURNEY_PLANNER,
   },
   {
     stadium: "St James' Park",
-    distanceKm: 235,
-    typicalMinutes: 190,
+    distanceKm: 220,
+    railMinutes: 150,
+    lastMileMinutes: 15,
     mode: "train",
     origin: "Manchester Victoria",
     destination: "Newcastle",
@@ -178,8 +198,9 @@ export const STADIUM_TRAVEL_PLANS: readonly StadiumTravelPlan[] = [
   },
   {
     stadium: "Coventry Building Society Arena",
-    distanceKm: 170,
-    typicalMinutes: 165,
+    distanceKm: 160,
+    railMinutes: 115,
+    lastMileMinutes: 5,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Coventry Arena",
@@ -190,30 +211,33 @@ export const STADIUM_TRAVEL_PLANS: readonly StadiumTravelPlan[] = [
   },
   {
     stadium: "Selhurst Park",
-    distanceKm: 350,
-    typicalMinutes: 210,
+    distanceKm: 315,
+    railMinutes: 130,
+    lastMileMinutes: 50,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Selhurst",
     via: ["Manchester Piccadilly", "London Euston", "London Victoria", "Selhurst / Norwood Junction"],
-    lastMile: "เดินจาก Selhurst ราว 10–15 นาที; Norwood Junction เป็นทางเลือก",
+    lastMile: "ข้ามไป Victoria แล้วต่อรถไฟลงใต้ จากนั้นเดินอีก 10–15 นาที",
     plannerUrl: NATIONAL_RAIL_JOURNEY_PLANNER,
   },
   {
     stadium: "Emirates Stadium",
-    distanceKm: 335,
-    typicalMinutes: 180,
+    distanceKm: 300,
+    railMinutes: 130,
+    lastMileMinutes: 25,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Arsenal Underground",
     via: ["Manchester Piccadilly", "London Euston", "King's Cross St Pancras", "Arsenal"],
-    lastMile: "เดินจาก Arsenal Underground ประมาณ 5 นาที",
+    lastMile: "Piccadilly line จาก King's Cross แล้วเดินจาก Arsenal อีก 5 นาที",
     plannerUrl: NATIONAL_RAIL_JOURNEY_PLANNER,
   },
   {
     stadium: "City Ground",
-    distanceKm: 135,
-    typicalMinutes: 170,
+    distanceKm: 110,
+    railMinutes: 110,
+    lastMileMinutes: 20,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Nottingham",
@@ -223,19 +247,22 @@ export const STADIUM_TRAVEL_PLANS: readonly StadiumTravelPlan[] = [
   },
   {
     stadium: "Stadium of Light",
-    distanceKm: 225,
-    typicalMinutes: 215,
+    distanceKm: 235,
+    railMinutes: 175,
+    lastMileMinutes: 5,
     mode: "train",
     origin: "Manchester Victoria",
     destination: "Stadium of Light Metro",
     via: ["Manchester Victoria", "Newcastle", "Tyne and Wear Metro", "Stadium of Light"],
     lastMile: "เดินจาก Metro ประมาณ 5 นาที",
+    note: "เวลารถไฟรวมช่วงต่อ Tyne and Wear Metro จาก Newcastle แล้ว",
     plannerUrl: NATIONAL_RAIL_JOURNEY_PLANNER,
   },
   {
     stadium: "American Express Stadium",
     distanceKm: 420,
-    typicalMinutes: 300,
+    railMinutes: 275,
+    lastMileMinutes: 5,
     mode: "train",
     origin: "Manchester Piccadilly",
     destination: "Falmer",
@@ -248,4 +275,9 @@ export const STADIUM_TRAVEL_PLANS: readonly StadiumTravelPlan[] = [
 
 export function getStadiumTravelPlan(stadium: string) {
   return STADIUM_TRAVEL_PLANS.find((plan) => plan.stadium === stadium);
+}
+
+/** Door-to-door planning total: station-to-station plus the local leg. */
+export function totalTravelMinutes(plan: StadiumTravelPlan) {
+  return plan.railMinutes + plan.lastMileMinutes;
 }

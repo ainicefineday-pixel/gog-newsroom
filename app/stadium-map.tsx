@@ -6,8 +6,16 @@ import { STADIUM_LOCATIONS, type StadiumLocation } from "@/config/stadium-locati
 import {
   getStadiumTravelPlan,
   NATIONAL_RAIL_TIMETABLE_GUIDANCE,
+  totalTravelMinutes,
   type StadiumTravelPlan,
 } from "@/config/stadium-travel";
+
+// England fits six grounds inside Greater London, so at country zoom their pins
+// collapse into one unreadable stack. Below SPREAD_MAX_ZOOM any pins that would
+// overlap are fanned onto a small ring; zooming in restores exact positions.
+const SPREAD_MAX_ZOOM = 9;
+const COLLIDE_PX = 44;
+const SPREAD_RADIUS_PX = 34;
 
 function formatMapFixture(fixture: MuFixture) {
   const date = new Intl.DateTimeFormat("th-TH", {
@@ -59,11 +67,12 @@ function ukDateKey(value: Date) {
 }
 
 function travelWindow(fixture: MuFixture, plan: StadiumTravelPlan) {
+  const doorToDoor = totalTravelMinutes(plan);
   const kickoff = new Date(fixture.kickoffUtc);
   const arriveGround = new Date(kickoff.getTime() - 120 * 60_000);
-  const leaveManchester = new Date(arriveGround.getTime() - plan.typicalMinutes * 60_000);
+  const leaveManchester = new Date(arriveGround.getTime() - doorToDoor * 60_000);
   const boardReturn = new Date(kickoff.getTime() + 150 * 60_000);
-  const arriveManchester = new Date(boardReturn.getTime() + plan.typicalMinutes * 60_000);
+  const arriveManchester = new Date(boardReturn.getTime() + doorToDoor * 60_000);
   return {
     kickoff,
     arriveGround,
@@ -72,6 +81,51 @@ function travelWindow(fixture: MuFixture, plan: StadiumTravelPlan) {
     arriveManchester,
     overnight: ukDateKey(kickoff) !== ukDateKey(arriveManchester),
   };
+}
+
+// Fans out pins that would otherwise stack, so every ground stays clickable.
+function layoutMarkers(
+  Leaflet: typeof import("leaflet"),
+  map: import("leaflet").Map,
+  markers: Map<string, import("leaflet").Marker>,
+) {
+  const zoom = map.getZoom();
+  const settle = (location: StadiumLocation) =>
+    markers.get(location.club)?.setLatLng([location.latitude, location.longitude]);
+
+  if (zoom >= SPREAD_MAX_ZOOM) {
+    STADIUM_LOCATIONS.forEach(settle);
+    return;
+  }
+
+  const placed = STADIUM_LOCATIONS.map((location) => ({
+    location,
+    point: map.project([location.latitude, location.longitude], zoom),
+  }));
+
+  const clusters: Array<typeof placed> = [];
+  for (const entry of placed) {
+    const cluster = clusters.find((candidate) =>
+      candidate.some((member) => member.point.distanceTo(entry.point) < COLLIDE_PX),
+    );
+    if (cluster) cluster.push(entry);
+    else clusters.push([entry]);
+  }
+
+  for (const cluster of clusters) {
+    if (cluster.length === 1) {
+      settle(cluster[0].location);
+      continue;
+    }
+    const centreX = cluster.reduce((sum, member) => sum + member.point.x, 0) / cluster.length;
+    const centreY = cluster.reduce((sum, member) => sum + member.point.y, 0) / cluster.length;
+    const radius = cluster.length > 4 ? SPREAD_RADIUS_PX * 1.4 : SPREAD_RADIUS_PX;
+    cluster.forEach((member, index) => {
+      const angle = (index / cluster.length) * Math.PI * 2 - Math.PI / 2;
+      const ring = Leaflet.point(centreX + Math.cos(angle) * radius, centreY + Math.sin(angle) * radius);
+      markers.get(member.location.club)?.setLatLng(map.unproject(ring, zoom));
+    });
+  }
 }
 
 function markerIcon(Leaflet: typeof import("leaflet"), location: StadiumLocation, selected: boolean) {
@@ -87,6 +141,9 @@ function markerIcon(Leaflet: typeof import("leaflet"), location: StadiumLocation
 export function StadiumMapPanel() {
   const [selectedClub, setSelectedClub] = useState("Manchester United");
   const [selectedTravelMatchday, setSelectedTravelMatchday] = useState<number | null>(null);
+  // On phones the map starts locked so a finger drag scrolls the page, not the map.
+  const [touchDevice, setTouchDevice] = useState(false);
+  const [mapUnlocked, setMapUnlocked] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
@@ -105,6 +162,8 @@ export function StadiumMapPanel() {
       const Leaflet = await import("leaflet");
       if (!active || !mapContainerRef.current) return;
       leafletRef.current = Leaflet;
+      const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
+      setTouchDevice(coarsePointer);
       const map = Leaflet.map(mapContainerRef.current, {
         center: [53.25, -1.35],
         zoom: 6,
@@ -112,6 +171,8 @@ export function StadiumMapPanel() {
         maxZoom: 17,
         zoomControl: false,
         scrollWheelZoom: false,
+        // A locked map lets the page scroll past it on touch screens.
+        dragging: !coarsePointer,
       });
       Leaflet.control.zoom({ position: "topright" }).addTo(map);
       Leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -137,8 +198,13 @@ export function StadiumMapPanel() {
         markers.set(location.club, marker);
       }
       map.fitBounds(bounds, { padding: [38, 38] });
+      map.on("zoomend", () => layoutMarkers(Leaflet, map, markers));
+      layoutMarkers(Leaflet, map, markers);
       mapRef.current = map;
-      window.setTimeout(() => map.invalidateSize(), 80);
+      window.setTimeout(() => {
+        map.invalidateSize();
+        layoutMarkers(Leaflet, map, markers);
+      }, 80);
     }
     void createMap();
     return () => {
@@ -159,6 +225,11 @@ export function StadiumMapPanel() {
     }
     map.flyTo([selected.latitude, selected.longitude], selected.city === "London" ? 11 : 10, { duration: 0.7 });
   }, [selected, selectedClub]);
+
+  useEffect(() => {
+    if (!mapUnlocked) return;
+    mapRef.current?.dragging.enable();
+  }, [mapUnlocked]);
 
   const chooseStadium = (location: StadiumLocation) => {
     setSelectedClub(location.club);
@@ -183,8 +254,14 @@ export function StadiumMapPanel() {
       <div className="stadium-map-layout">
         <div className="map-stage">
           <div ref={mapContainerRef} className="leaflet-stadium-map" role="application" aria-label="แผนที่สนามพรีเมียร์ลีกในอังกฤษ" />
-          <div className="map-key" aria-hidden="true"><span><i className="home" /> Old Trafford</span><span><i /> สนามเยือน</span></div>
-          <span className="map-watermark">GOG<br /><small>ROAD TO GLORY</small></span>
+          {touchDevice && !mapUnlocked && (
+            <button type="button" className="map-unlock" onClick={() => setMapUnlocked(true)}>
+              แตะเพื่อเลื่อนแผนที่
+              <small>ล็อกไว้เพื่อให้เลื่อนหน้าเว็บผ่านได้</small>
+            </button>
+          )}
+          <div className="map-key"><span><i className="home" /> Old Trafford</span><span><i /> สนามเยือน</span><small>หมุดที่ซ้อนกันถูกกางออกให้กดได้ · ซูมเข้าเพื่อดูตำแหน่งจริง</small></div>
+          <span className="map-watermark" aria-hidden="true">GOG<br /><small>ROAD TO GLORY</small></span>
         </div>
 
         <aside className="stadium-map-sidebar">
@@ -221,8 +298,10 @@ export function StadiumMapPanel() {
               </div>
 
               <div className="rail-travel-metrics">
-                <span><small>ระยะจาก Manchester</small><b>≈ {travelPlan.distanceKm} กม.</b></span>
-                <span><small>เวลาเดินทางรวม</small><b>≈ {formatDuration(travelPlan.typicalMinutes)}</b></span>
+                <span><small>ระยะทางตามเส้นทาง{travelPlan.mode === "tram" ? "รถราง" : "รถไฟ"}</small><b>≈ {travelPlan.distanceKm} กม.</b></span>
+                <span><small>{travelPlan.mode === "tram" ? "นั่งรถราง" : "นั่งรถไฟ"} · สถานีถึงสถานี</small><b>≈ {formatDuration(travelPlan.railMinutes)}</b></span>
+                <span><small>จากสถานีปลายทางถึงสนาม</small><b>≈ {formatDuration(travelPlan.lastMileMinutes)}</b></span>
+                <span className="metric-total"><small>รวมประตูถึงประตู</small><b>≈ {formatDuration(totalTravelMinutes(travelPlan))}</b></span>
               </div>
 
               {fixtures.length > 1 && (
@@ -277,7 +356,7 @@ export function StadiumMapPanel() {
                 <a href={travelPlan.plannerUrl} target="_blank" rel="noreferrer">ตรวจเที่ยวจริง ↗</a>
                 <a href={NATIONAL_RAIL_TIMETABLE_GUIDANCE} target="_blank" rel="noreferrer">เกณฑ์ยืนยันตารางรถไฟ ↗</a>
               </div>
-              <small className="travel-disclaimer">เวลาเหล่านี้เป็นกรอบวางแผน ไม่ใช่เวลาเที่ยวรถที่ยืนยัน · ตารางรถไฟปกติยืนยันราว 12 สัปดาห์ก่อนเดินทาง</small>
+              <small className="travel-disclaimer">ตัวเลขทั้งหมดเป็นค่าเฉลี่ยนอกชั่วโมงเร่งด่วนสำหรับวางแผนคร่าวๆ ไม่ใช่เวลาเที่ยวรถที่ยืนยัน · กดปุ่มตรวจเที่ยวจริงทุกครั้งก่อนเดินทาง · ตารางรถไฟปกติยืนยันราว 12 สัปดาห์ล่วงหน้า</small>
             </section>
           )}
 
