@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase: new URL(origin),
     title,
     description,
-    icons: { icon: "/og.png", shortcut: "/og.png" },
+    icons: { icon: "/gog-logo-dark.png", shortcut: "/gog-logo-dark.png" },
     openGraph: {
       title,
       description,
@@ -22,13 +22,13 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: "th_TH",
       type: "website",
       url: origin,
-      images: [{ url: `${origin}/og.png`, width: 1732, height: 910, alt: "GOG Newsroom — Manchester United News Intelligence" }],
+      images: [{ url: `${origin}/gog-team.jpg`, width: 2048, height: 1152, alt: "GOG — Genius on the Ground" }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [`${origin}/og.png`],
+      images: [`${origin}/gog-team.jpg`],
     },
   };
 }

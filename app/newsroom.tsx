@@ -281,7 +281,7 @@ export function Newsroom() {
     <div className="newsroom-shell">
       <header className="site-header">
         <a className="brand" href="#top" aria-label="GOG Newsroom home">
-          <span className="brand-mark">G</span>
+          <span className="brand-logo" aria-hidden="true" />
           <span><b>GOG</b> NEWSROOM<small>MU NEWS INTELLIGENCE</small></span>
         </a>
         <nav aria-label="เมนูหลัก">
@@ -312,9 +312,7 @@ export function Newsroom() {
             </div>
           </div>
           <div className="hero-insignia" aria-hidden="true">
-            <div className="hero-orbit orbit-one" />
-            <div className="hero-orbit orbit-two" />
-            <div className="hero-monogram">GOG<span>MU / TH</span></div>
+            <span className="hero-brand-stamp">GENIUS ON THE GROUND</span>
           </div>
           <div className="hero-update">
             <span>LAST SYNCED</span>
@@ -479,7 +477,7 @@ export function Newsroom() {
       </main>
 
       <footer>
-        <div className="footer-brand"><span className="brand-mark">G</span><div><b>GOG NEWSROOM</b><small>FACTS FIRST. UNITED ALWAYS.</small></div></div>
+        <div className="footer-brand"><span className="brand-logo" aria-hidden="true" /><div><b>GOG NEWSROOM</b><small>GENIUS ON THE GROUND</small></div></div>
         <p>นำเสนอเฉพาะพาดหัวและสรุปสั้นเพื่อการติดตามข่าว · ลิขสิทธิ์บทความเป็นของแหล่งข่าวต้นฉบับ</p>
         <div><span><i /> ระบบออนไลน์</span><a href="#top">กลับด้านบน ↑</a></div>
       </footer>

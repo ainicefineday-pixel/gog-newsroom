@@ -36,8 +36,10 @@ test("keeps required data sources and durable storage wiring", async () => {
   assert.match(pipeline, /telegraph\.co\.uk/);
   assert.match(pipeline, /nytimes\.com\/athletic/);
   assert.match(pipeline, /titleSimilarity\(.*\) > 0\.8/);
-  assert.deepEqual(JSON.parse(hosting), { d1: "DB", r2: null });
+  const hostingConfig = JSON.parse(hosting);
+  assert.equal(hostingConfig.d1, "DB");
+  assert.equal(hostingConfig.r2, null);
+  assert.match(hostingConfig.project_id, /^appgprj_/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   assert.equal(templateRoot.pathname.length > 0, true);
 });
-
