@@ -29,7 +29,9 @@ test("server-renders the GOG Newsroom product shell", async () => {
   assert.match(html, /ระบบโดย DM ENGINE™/);
   assert.match(html, /tab-icon-news/);
   assert.match(html, /tab-icon-calendar/);
+  assert.match(html, /tab-icon-map/);
   assert.match(html, /tab-icon-team/);
+  assert.match(html, /แผนที่สนาม/);
   assert.match(html, /dual-clock/);
   assert.match(html, /ไทย · ICT/);
   assert.match(html, /อังกฤษ · GMT\/BST/);
@@ -138,4 +140,23 @@ test("keeps Bangkok and London clocks on automatic time zones", async () => {
   assert.match(newsroom, /Europe\/London/);
   assert.match(newsroom, /formatClock\(now, "Asia\/Bangkok"\)/);
   assert.match(newsroom, /formatClock\(now, "Europe\/London"\)/);
+});
+
+test("maps all 20 fixture grounds with an accessible OpenStreetMap layer", async () => {
+  const [locations, mapPanel, fixtures, layout] = await Promise.all([
+    readFile(new URL("../config/stadium-locations.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/stadium-map.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../config/mu-fixtures.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.equal((locations.match(/^\s*\{ club:/gm) ?? []).length, 20);
+  for (const stadium of ["Old Trafford", "Anfield", "Emirates Stadium", "St James' Park", "Stadium of Light"]) {
+    assert.match(locations, new RegExp(stadium.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.match(fixtures, new RegExp(stadium.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
+  assert.match(mapPanel, /tile\.openstreetmap\.org/);
+  assert.match(mapPanel, /OpenStreetMap<\/a> contributors/);
+  assert.match(mapPanel, /marker\.on\("click"/);
+  assert.match(mapPanel, /เวลาไทย/);
+  assert.match(layout, /leaflet\/dist\/leaflet\.css/);
 });

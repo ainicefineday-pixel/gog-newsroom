@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 import { FixturesPanel, GogTeamPanel } from "@/app/gog-hub";
+import { StadiumMapPanel } from "@/app/stadium-map";
 
 type LastSync = {
   finished_at: string;
@@ -29,7 +30,7 @@ const DEFAULT_CAPABILITIES: SourceCapabilities = {
   translation: false,
 };
 
-type WorkspaceView = "news" | "fixtures" | "team";
+type WorkspaceView = "news" | "fixtures" | "map" | "team";
 
 const CATEGORY_META: Record<Category, { icon: string; label: string; className: string }> = {
   Transfer: { icon: "↔", label: "ตลาดนักเตะ", className: "transfer" },
@@ -325,6 +326,7 @@ export function Newsroom() {
         <nav aria-label="เมนูหลัก">
           <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}>ข่าวล่าสุด</button>
           <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}>โปรแกรมพรีเมียร์ลีก</button>
+          <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}>แผนที่สนาม</button>
           <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}>ทีม GOG</button>
         </nav>
         <div className="header-status">
@@ -371,6 +373,7 @@ export function Newsroom() {
         <nav className="workspace-tabs" aria-label="ส่วนหลักของเว็บไซต์">
           <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}><span className="tab-icon tab-icon-news" aria-hidden="true" /><b>ข่าวล่าสุด</b><small>NEWS INTELLIGENCE</small></button>
           <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}><span className="tab-icon tab-icon-calendar" aria-hidden="true" /><b>โปรแกรมพรีเมียร์ลีก</b><small>2026/27 · THAI TIME</small></button>
+          <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}><span className="tab-icon tab-icon-map" aria-hidden="true" /><b>แผนที่สนาม</b><small>20 GROUNDS · ENGLAND</small></button>
           <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}><span className="tab-icon tab-icon-team" aria-hidden="true" /><b>ทีม GOG</b><small>CREATORS · ANALYTICS</small></button>
         </nav>
 
@@ -560,7 +563,7 @@ export function Newsroom() {
             </section>
           </aside>
         </div>
-        </> : activeView === "fixtures" ? <FixturesPanel /> : <GogTeamPanel />}
+        </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "map" ? <StadiumMapPanel /> : <GogTeamPanel />}
       </main>
 
       <footer>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
 const title = "GOG NEWSROOM | Genius on the Ground · ภารกิจบุกถิ่นผี";
