@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 
 type LastSync = {
@@ -116,7 +115,9 @@ function StoryCard({ story, now }: { story: Story; now: Date }) {
           <div className="source-list" aria-label="แหล่งข่าวต้นฉบับ">
             {story.sources.map((source) => (
               <a key={source.url} className="source-chip" href={source.url} target="_blank" rel="noreferrer">
-              <Image src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(source.domain)}&sz=32`} alt="" width={13} height={13} unoptimized />
+              {/* Dynamic third-party favicons are deliberately not sent through the image optimizer. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(source.domain)}&sz=32`} alt="" width="13" height="13" />
                 <span>{source.name}</span>
                 <small>T{source.tier}</small>
                 <b aria-hidden="true">↗</b>
@@ -149,7 +150,7 @@ function EmptyState({ syncing, onSync }: { syncing: boolean; onSync: () => void 
 export function Newsroom() {
   const [stories, setStories] = useState<Story[]>([]);
   const [lastSync, setLastSync] = useState<LastSync>(null);
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState("");
@@ -190,6 +191,7 @@ export function Newsroom() {
   }, [loadStories]);
 
   useEffect(() => {
+    window.queueMicrotask(() => setNow(new Date()));
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
@@ -230,7 +232,7 @@ export function Newsroom() {
     const newestDate = stories[0]?.date;
     const pool = stories.filter((story) => story.date === newestDate);
     return pool
-      .map((story) => ({ story, rank: story.credibility / (1 + Math.max(0, now.getTime() - new Date(story.publishedAt).getTime()) / 86_400_000) }))
+      .map((story) => ({ story, rank: story.credibility / (1 + Math.max(0, (now?.getTime() ?? 0) - new Date(story.publishedAt).getTime()) / 86_400_000) }))
       .sort((a, b) => b.rank - a.rank)
       .slice(0, 3)
       .map((item) => item.story);
@@ -239,7 +241,7 @@ export function Newsroom() {
   const selectedTop = topStories.find((story) => story.id === selectedTopId) ?? topStories[0];
 
   const trendTerms = useMemo(() => {
-    const cutoff = now.getTime() - 7 * 86_400_000;
+    const cutoff = (now?.getTime() ?? 0) - 7 * 86_400_000;
     const counts = new Map<string, number>();
     for (const story of stories) {
       if (new Date(story.publishedAt).getTime() < cutoff) continue;
@@ -290,7 +292,7 @@ export function Newsroom() {
         </nav>
         <div className="header-status">
           <span className="live-pill"><i /> LIVE</span>
-          <div className="clock"><b>{formatClock(now)}</b><small>เวลาไทย · ICT</small></div>
+          <div className="clock"><b>{now ? formatClock(now) : "--:--:--"}</b><small>เวลาไทย · ICT</small></div>
           <button className="sync-button" type="button" onClick={() => void sync()} disabled={syncing} aria-label="ซิงก์ข่าวล่าสุด">
             <span className={syncing ? "spinning" : ""}>↻</span>
           </button>
@@ -316,7 +318,7 @@ export function Newsroom() {
           </div>
           <div className="hero-update">
             <span>LAST SYNCED</span>
-            <b>{lastSync ? relativeTime(lastSync.finished_at, now) : syncing ? "กำลังซิงก์…" : "ยังไม่เคยซิงก์"}</b>
+            <b>{lastSync && now ? relativeTime(lastSync.finished_at, now) : syncing ? "กำลังซิงก์…" : lastSync ? "ซิงก์แล้ว" : "ยังไม่เคยซิงก์"}</b>
             <small>{lastSync ? `${lastSync.matched} รายการตรงเกณฑ์ · ${lastSync.stored} คลัสเตอร์` : "RSS พร้อมทำงานโดยไม่ต้องใช้ API key"}</small>
           </div>
         </section>
@@ -378,7 +380,7 @@ export function Newsroom() {
                   <small>{items.length} ข่าว</small>
                 </div>
                 <div className="story-list">
-                  {items.map((story) => <StoryCard key={story.id} story={story} now={now} />)}
+                  {items.map((story) => <StoryCard key={story.id} story={story} now={now ?? new Date(0)} />)}
                 </div>
               </div>
             )) : <EmptyState syncing={syncing} onSync={() => void sync()} />}
