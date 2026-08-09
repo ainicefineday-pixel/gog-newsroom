@@ -88,3 +88,43 @@ test("keeps the exact 18-source directory and durable storage wiring", async () 
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
   assert.equal(templateRoot.pathname.length > 0, true);
 });
+
+test("uses the provider-based X public-data collector without official API coupling", async () => {
+  const [providers, collector, analyzer, pipeline, api, schema, migration, envExample] = await Promise.all([
+    readFile(new URL("../lib/server/x/providers.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/server/x/collector.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/server/x/analyzer.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/server/pipeline.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/server/api.ts", import.meta.url), "utf8"),
+    readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0001_chemical_masque.sql", import.meta.url), "utf8"),
+    readFile(new URL("../.env.example", import.meta.url), "utf8"),
+  ]);
+  assert.match(providers, /interface XDataProvider/);
+  assert.match(providers, /class ThirdPartyProvider/);
+  assert.match(providers, /class PublicSourceProvider/);
+  assert.match(providers, /class MockXProvider/);
+  assert.match(providers, /X_ALLOW_MOCK_INGEST === "true"/);
+  assert.match(collector, /ensureConfiguredWatchlist/);
+  assert.match(collector, /x_collection_jobs/);
+  assert.match(collector, /platform_post_id IS NOT NULL/);
+  assert.match(collector, /createXAccount/);
+  assert.match(collector, /updateXAccount/);
+  assert.match(collector, /deactivateXAccount/);
+  assert.match(analyzer, /summarizePosts/);
+  assert.match(analyzer, /sentimentAnalysis/);
+  assert.match(pipeline, /collectXWatchlist/);
+  assert.doesNotMatch(pipeline, /api\.x\.com|X_BEARER_TOKEN/);
+  assert.match(api, /\/api\/x\/status/);
+  assert.match(api, /\/api\/x\/collect-all/);
+  assert.match(api, /\/api\/x\/export\/posts\.csv/);
+  assert.match(api, /search_not_supported/);
+  assert.match(schema, /xAccounts/);
+  assert.match(schema, /xPosts/);
+  assert.match(schema, /xCollectionJobs/);
+  assert.match(migration, /CREATE TABLE `x_accounts`/);
+  assert.match(migration, /CREATE TABLE `x_posts`/);
+  assert.match(envExample, /X_PROVIDER=/);
+  assert.match(envExample, /X_PUBLIC_FEED_URL_TEMPLATE=/);
+  assert.doesNotMatch(envExample, /X_BEARER_TOKEN/);
+});

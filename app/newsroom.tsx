@@ -17,6 +17,7 @@ type SourceCapabilities = {
   rss: boolean;
   newsApi: boolean;
   x: boolean;
+  xProvider?: "third_party" | "public_source" | "mock" | null;
   translation: boolean;
 };
 
@@ -24,6 +25,7 @@ const DEFAULT_CAPABILITIES: SourceCapabilities = {
   rss: true,
   newsApi: false,
   x: false,
+  xProvider: null,
   translation: false,
 };
 
@@ -397,7 +399,7 @@ export function Newsroom() {
                 <option value="All">ทุกแหล่ง</option>
                 {NEWS_SOURCE_DIRECTORY.map((option) => (
                   <option key={option.id} value={option.id}>
-                    {option.label}{option.kind === "x" && !capabilities.x ? " · รอ X API" : ""}
+                    {option.label}{option.kind === "x" && !capabilities.x ? " · รอ X Provider" : ""}
                   </option>
                 ))}
               </select>
@@ -410,7 +412,7 @@ export function Newsroom() {
               <div className="source-directory-popover">
                 <div className="source-directory-heading">
                   <div><span>แหล่งข่าวที่กำหนด</span><strong>เว็บไซต์ 3 · X 15</strong></div>
-                  <small><i className="ready" /> พร้อม <i /> รอ API</small>
+                  <small><i className="ready" /> พร้อม <i /> รอ Provider</small>
                 </div>
                 <div className="source-directory-grid">
                   {NEWS_SOURCE_DIRECTORY.map((item) => {
@@ -419,14 +421,14 @@ export function Newsroom() {
                       <a key={item.id} href={item.homepage} target="_blank" rel="noreferrer" title={`เปิด ${item.label}`}>
                         <span className={`source-status-dot ${ready ? "ready" : ""}`} />
                         <b>{item.label}</b>
-                        <small>{item.kind === "rss" ? "RSS" : ready ? "X API" : "รอ X API"}</small>
+                        <small>{item.kind === "rss" ? "RSS" : ready ? "X COLLECTOR" : "รอ Provider"}</small>
                         <em>↗</em>
                       </a>
                     );
                   })}
                 </div>
                 {!capabilities.x && (
-                  <p>เพิ่ม X_BEARER_TOKEN ในการตั้งค่าเว็บเพื่อซิงก์โพสต์จากบัญชี X ทั้ง 15 บัญชี</p>
+                  <p>ตั้งค่า X Provider ที่ได้รับอนุญาตหรือแหล่งฟีดสาธารณะ เพื่อซิงก์บัญชี X ทั้ง 15 บัญชีผ่านระบบ Collector</p>
                 )}
               </div>
             </details>

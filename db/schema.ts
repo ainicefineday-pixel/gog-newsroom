@@ -68,3 +68,74 @@ export const ingestRuns = sqliteTable(
   },
   (table) => [index("idx_ingest_runs_finished_at").on(table.finishedAt)],
 );
+
+export const xAccounts = sqliteTable(
+  "x_accounts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    username: text("username").notNull(),
+    displayName: text("display_name"),
+    profileUrl: text("profile_url").notNull(),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    collectionIntervalMinutes: integer("collection_interval_minutes").notNull().default(30),
+    lastCheckedAt: text("last_checked_at"),
+    createdAt: text("created_at").notNull(),
+    updatedAt: text("updated_at").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_x_accounts_username").on(table.username),
+    index("idx_x_accounts_active_checked").on(table.isActive, table.lastCheckedAt),
+  ],
+);
+
+export const xPosts = sqliteTable(
+  "x_posts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    platformPostId: text("platform_post_id"),
+    accountId: integer("account_id").notNull(),
+    postUrl: text("post_url").notNull(),
+    text: text("text").notNull(),
+    postCreatedAt: text("post_created_at").notNull(),
+    mediaUrlsJson: text("media_urls_json").notNull().default("[]"),
+    externalUrlsJson: text("external_urls_json").notNull().default("[]"),
+    replyCount: integer("reply_count"),
+    repostCount: integer("repost_count"),
+    likeCount: integer("like_count"),
+    quoteCount: integer("quote_count"),
+    viewCount: integer("view_count"),
+    language: text("language"),
+    source: text("source").notNull(),
+    rawDataJson: text("raw_data_json"),
+    collectedAt: text("collected_at").notNull(),
+    createdAtDb: text("created_at_db").notNull(),
+    updatedAtDb: text("updated_at_db").notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_x_posts_platform_post_id").on(table.platformPostId),
+    uniqueIndex("idx_x_posts_post_url").on(table.postUrl),
+    index("idx_x_posts_account_created").on(table.accountId, table.postCreatedAt),
+    index("idx_x_posts_collected_at").on(table.collectedAt),
+  ],
+);
+
+export const xCollectionJobs = sqliteTable(
+  "x_collection_jobs",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    accountId: integer("account_id").notNull(),
+    provider: text("provider").notNull(),
+    status: text("status").notNull(),
+    startedAt: text("started_at").notNull(),
+    finishedAt: text("finished_at"),
+    postsFound: integer("posts_found").notNull().default(0),
+    newPostsSaved: integer("new_posts_saved").notNull().default(0),
+    duplicates: integer("duplicates").notNull().default(0),
+    errorCode: text("error_code"),
+    errorMessage: text("error_message"),
+  },
+  (table) => [
+    index("idx_x_collection_jobs_account_started").on(table.accountId, table.startedAt),
+    index("idx_x_collection_jobs_status_started").on(table.status, table.startedAt),
+  ],
+);

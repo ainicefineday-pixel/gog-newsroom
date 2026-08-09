@@ -3,10 +3,19 @@ import type { Digest, Story } from "@/lib/types";
 export type RuntimeEnv = {
   DB?: D1Database;
   NEWSAPI_KEY?: string;
-  X_BEARER_TOKEN?: string;
   ANTHROPIC_API_KEY?: string;
   ANTHROPIC_MODEL?: string;
   YOUTUBE_API_KEY?: string;
+  X_PROVIDER?: string;
+  X_PROVIDER_BASE_URL?: string;
+  X_PROVIDER_API_KEY?: string;
+  X_PROVIDER_RECENT_PATH?: string;
+  X_PUBLIC_FEED_URL_TEMPLATE?: string;
+  X_ALLOW_MOCK_INGEST?: string;
+  X_COLLECTION_DEFAULT_INTERVAL?: string;
+  X_MAX_POSTS_PER_COLLECTION?: string;
+  X_MAX_ACCOUNTS_PER_RUN?: string;
+  X_REQUEST_TIMEOUT_SECONDS?: string;
   CRON_SECRET?: string;
 };
 
@@ -71,11 +80,62 @@ export async function ensureDatabase(db: D1Database) {
       status TEXT NOT NULL,
       note TEXT NOT NULL DEFAULT ''
     )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS x_accounts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      display_name TEXT,
+      profile_url TEXT NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      collection_interval_minutes INTEGER NOT NULL DEFAULT 30,
+      last_checked_at TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS x_posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      platform_post_id TEXT,
+      account_id INTEGER NOT NULL,
+      post_url TEXT NOT NULL UNIQUE,
+      text TEXT NOT NULL,
+      post_created_at TEXT NOT NULL,
+      media_urls_json TEXT NOT NULL DEFAULT '[]',
+      external_urls_json TEXT NOT NULL DEFAULT '[]',
+      reply_count INTEGER,
+      repost_count INTEGER,
+      like_count INTEGER,
+      quote_count INTEGER,
+      view_count INTEGER,
+      language TEXT,
+      source TEXT NOT NULL,
+      raw_data_json TEXT,
+      collected_at TEXT NOT NULL,
+      created_at_db TEXT NOT NULL,
+      updated_at_db TEXT NOT NULL
+    )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS x_collection_jobs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      account_id INTEGER NOT NULL,
+      provider TEXT NOT NULL,
+      status TEXT NOT NULL,
+      started_at TEXT NOT NULL,
+      finished_at TEXT,
+      posts_found INTEGER NOT NULL DEFAULT 0,
+      new_posts_saved INTEGER NOT NULL DEFAULT 0,
+      duplicates INTEGER NOT NULL DEFAULT 0,
+      error_code TEXT,
+      error_message TEXT
+    )`),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_stories_published_at ON stories(published_at)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_stories_category_credibility ON stories(category, credibility)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_stories_verified_date ON stories(verified, story_date)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_story_source_events_story_published ON story_source_events(story_id, published_at)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_ingest_runs_finished_at ON ingest_runs(finished_at)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_x_accounts_active_checked ON x_accounts(is_active, last_checked_at)"),
+    db.prepare("CREATE UNIQUE INDEX IF NOT EXISTS idx_x_posts_platform_post_id ON x_posts(platform_post_id) WHERE platform_post_id IS NOT NULL"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_x_posts_account_created ON x_posts(account_id, post_created_at)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_x_posts_collected_at ON x_posts(collected_at)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_x_collection_jobs_account_started ON x_collection_jobs(account_id, started_at)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_x_collection_jobs_status_started ON x_collection_jobs(status, started_at)"),
   ]);
 }
 

@@ -1,6 +1,5 @@
 import { MU_KEYWORDS } from "@/config/mu-keywords";
 import { RSS_NEWS_SOURCES } from "@/config/news-sources";
-import { X_SOURCE_HANDLES } from "@/config/x-sources";
 import type { Category, EditorialAngle, Story, StorySource } from "@/lib/types";
 import {
   ensureDatabase,
@@ -10,6 +9,7 @@ import {
   upsertStory,
   type RuntimeEnv,
 } from "@/lib/server/database";
+import { collectXWatchlist } from "@/lib/server/x/collector";
 
 type RawItem = {
   title: string;
@@ -152,38 +152,6 @@ async function fetchNewsApi(key: string): Promise<RawItem[]> {
       sourceName: article.source?.name ?? "NewsAPI source",
       author: article.author,
     }];
-  });
-}
-
-async function fetchXItems(token: string): Promise<RawItem[]> {
-  const authors = X_SOURCE_HANDLES.map((handle) => `from:${handle}`).join(" OR ");
-  const query = `(${authors}) ("Manchester United" OR "Man Utd" OR "Old Trafford") -is:retweet lang:en`;
-  const params = new URLSearchParams({
-    query,
-    max_results: "100",
-    "tweet.fields": "created_at,author_id",
-    expansions: "author_id",
-    "user.fields": "username,name",
-  });
-  const payload = JSON.parse(await fetchText(`https://api.x.com/2/tweets/search/recent?${params}`, {
-    headers: { authorization: `Bearer ${token}` },
-  })) as {
-    data?: Array<{ id: string; text: string; created_at?: string; author_id?: string }>;
-    includes?: { users?: Array<{ id: string; name: string; username: string }> };
-  };
-  const users = new Map((payload.includes?.users ?? []).map((user) => [user.id, user]));
-  return (payload.data ?? []).map((tweet) => {
-    const user = users.get(tweet.author_id ?? "");
-    const handle = user?.username ?? "x";
-    return {
-      title: tweet.text.replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim().slice(0, 240),
-      description: tweet.text,
-      url: `https://x.com/${handle}/status/${tweet.id}`,
-      publishedAt: safeIso(tweet.created_at ?? ""),
-      sourceName: user?.name ?? `@${handle}`,
-      author: user?.name,
-      handle,
-    };
   });
 }
 
@@ -421,8 +389,21 @@ export async function runIngest(env: RuntimeEnv) {
     if (env.NEWSAPI_KEY && rssItems.filter(matchesManchesterUnited).length < 5) {
       try { extras.push(...await fetchNewsApi(env.NEWSAPI_KEY)); } catch { note += "NewsAPI unavailable. "; }
     }
-    if (env.X_BEARER_TOKEN) {
-      try { extras.push(...await fetchXItems(env.X_BEARER_TOKEN)); } catch { note += "X API unavailable. "; }
+    try {
+      const xCollection = await collectXWatchlist(env);
+      extras.push(...xCollection.posts.map((post) => ({
+        title: post.text.replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim().slice(0, 240),
+        description: post.text,
+        url: post.postUrl,
+        publishedAt: post.createdAt,
+        sourceName: post.displayName ?? `@${post.username}`,
+        author: post.displayName ?? undefined,
+        handle: post.username,
+      })));
+      if (!xCollection.configured) note += "X collector waiting for a configured provider. ";
+      else if (xCollection.errors.length) note += `X collector completed with ${xCollection.errors.length} account error(s). `;
+    } catch {
+      note += "X collector unavailable. ";
     }
     const rawItems = [...rssItems, ...extras];
     fetched = rawItems.length;
