@@ -145,21 +145,31 @@ test("keeps Bangkok and London clocks on automatic time zones", async () => {
 });
 
 test("maps all 20 fixture grounds with an accessible OpenStreetMap layer", async () => {
-  const [locations, mapPanel, fixtures, layout] = await Promise.all([
+  const [locations, travel, mapPanel, fixtures, layout] = await Promise.all([
     readFile(new URL("../config/stadium-locations.ts", import.meta.url), "utf8"),
+    readFile(new URL("../config/stadium-travel.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/stadium-map.tsx", import.meta.url), "utf8"),
     readFile(new URL("../config/mu-fixtures.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
   ]);
   assert.equal((locations.match(/^\s*\{ club:/gm) ?? []).length, 20);
+  assert.equal((travel.match(/^    stadium:/gm) ?? []).length, 20);
   for (const stadium of ["Old Trafford", "Anfield", "Emirates Stadium", "St James' Park", "Stadium of Light"]) {
     assert.match(locations, new RegExp(stadium.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
     assert.match(fixtures, new RegExp(stadium.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.match(travel, new RegExp(stadium.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.match(mapPanel, /tile\.openstreetmap\.org/);
   assert.match(mapPanel, /OpenStreetMap<\/a> contributors/);
   assert.match(mapPanel, /marker\.on\("click"/);
   assert.match(mapPanel, /เวลาไทย/);
+  assert.match(mapPanel, /TRAIN FROM MANCHESTER/);
+  assert.match(mapPanel, /Europe\/London/);
+  assert.match(mapPanel, /เวลาเป้าหมาย/);
+  assert.match(mapPanel, /มีโอกาสกลับ Manchester ในคืนเดียวกันไม่ได้/);
+  assert.match(travel, /nationalrail\.co\.uk\/journey-planner/);
+  assert.match(travel, /tfgm\.com\/plan-a-journey/);
+  assert.match(travel, /not live rail timetables/);
   assert.match(layout, /leaflet\/dist\/leaflet\.css/);
 });
 

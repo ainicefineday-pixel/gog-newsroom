@@ -3,6 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MU_PREMIER_LEAGUE_FIXTURES, type MuFixture } from "@/config/mu-fixtures";
 import { STADIUM_LOCATIONS, type StadiumLocation } from "@/config/stadium-locations";
+import {
+  getStadiumTravelPlan,
+  NATIONAL_RAIL_TIMETABLE_GUIDANCE,
+  type StadiumTravelPlan,
+} from "@/config/stadium-travel";
 
 function formatMapFixture(fixture: MuFixture) {
   const date = new Intl.DateTimeFormat("th-TH", {
@@ -25,6 +30,50 @@ function venueFixtures(stadium: string) {
   return MU_PREMIER_LEAGUE_FIXTURES.filter((fixture) => fixture.stadium === stadium);
 }
 
+function formatDuration(minutes: number) {
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (!hours) return `${remainder} นาที`;
+  return remainder ? `${hours} ชม. ${remainder} นาที` : `${hours} ชม.`;
+}
+
+function formatUkTravelTime(value: Date) {
+  return new Intl.DateTimeFormat("th-TH", {
+    timeZone: "Europe/London",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(value);
+}
+
+function ukDateKey(value: Date) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/London",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(value);
+}
+
+function travelWindow(fixture: MuFixture, plan: StadiumTravelPlan) {
+  const kickoff = new Date(fixture.kickoffUtc);
+  const arriveGround = new Date(kickoff.getTime() - 120 * 60_000);
+  const leaveManchester = new Date(arriveGround.getTime() - plan.typicalMinutes * 60_000);
+  const boardReturn = new Date(kickoff.getTime() + 150 * 60_000);
+  const arriveManchester = new Date(boardReturn.getTime() + plan.typicalMinutes * 60_000);
+  return {
+    kickoff,
+    arriveGround,
+    leaveManchester,
+    boardReturn,
+    arriveManchester,
+    overnight: ukDateKey(kickoff) !== ukDateKey(arriveManchester),
+  };
+}
+
 function markerIcon(Leaflet: typeof import("leaflet"), location: StadiumLocation, selected: boolean) {
   const isHome = location.club === "Manchester United";
   return Leaflet.divIcon({
@@ -37,12 +86,16 @@ function markerIcon(Leaflet: typeof import("leaflet"), location: StadiumLocation
 
 export function StadiumMapPanel() {
   const [selectedClub, setSelectedClub] = useState("Manchester United");
+  const [selectedTravelMatchday, setSelectedTravelMatchday] = useState<number | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
   const markerRefs = useRef(new Map<string, import("leaflet").Marker>());
   const selected = STADIUM_LOCATIONS.find((location) => location.club === selectedClub) ?? STADIUM_LOCATIONS[0];
   const fixtures = useMemo(() => venueFixtures(selected.stadium), [selected.stadium]);
+  const selectedTravelFixture = fixtures.find((fixture) => fixture.matchday === selectedTravelMatchday) ?? fixtures[0];
+  const travelPlan = getStadiumTravelPlan(selected.stadium);
+  const recommendedWindow = selectedTravelFixture && travelPlan ? travelWindow(selectedTravelFixture, travelPlan) : null;
 
   useEffect(() => {
     let active = true;
@@ -77,7 +130,10 @@ export function StadiumMapPanel() {
           title: `${location.stadium} · ${location.club}`,
           keyboard: true,
         }).addTo(map);
-        marker.on("click", () => setSelectedClub(location.club));
+        marker.on("click", () => {
+          setSelectedClub(location.club);
+          setSelectedTravelMatchday(null);
+        });
         markers.set(location.club, marker);
       }
       map.fitBounds(bounds, { padding: [38, 38] });
@@ -106,6 +162,7 @@ export function StadiumMapPanel() {
 
   const chooseStadium = (location: StadiumLocation) => {
     setSelectedClub(location.club);
+    setSelectedTravelMatchday(null);
   };
 
   return (
@@ -152,6 +209,77 @@ export function StadiumMapPanel() {
             ))}
             {fixtures.length > 4 && <small className="more-fixtures">และอีก {fixtures.length - 4} นัดที่ Old Trafford — ดูทั้งหมดในแท็บโปรแกรม</small>}
           </div>
+
+          {travelPlan && selectedTravelFixture && recommendedWindow && (
+            <section className="rail-travel-card" aria-labelledby="rail-travel-heading">
+              <div className="rail-travel-heading">
+                <div>
+                  <span>{travelPlan.mode === "tram" ? "MANCHESTER TRAM PLAN" : "TRAIN FROM MANCHESTER"}</span>
+                  <h3 id="rail-travel-heading">แผนเดินทางไปสนาม</h3>
+                </div>
+                <i aria-hidden="true">↗</i>
+              </div>
+
+              <div className="rail-travel-metrics">
+                <span><small>ระยะจาก Manchester</small><b>≈ {travelPlan.distanceKm} กม.</b></span>
+                <span><small>เวลาเดินทางรวม</small><b>≈ {formatDuration(travelPlan.typicalMinutes)}</b></span>
+              </div>
+
+              {fixtures.length > 1 && (
+                <label className="travel-fixture-select">
+                  <span>เลือกนัดเพื่อคำนวณเวลา</span>
+                  <select
+                    value={selectedTravelFixture.matchday}
+                    onChange={(event) => setSelectedTravelMatchday(Number(event.target.value))}
+                  >
+                    {fixtures.map((fixture) => (
+                      <option key={fixture.matchday} value={fixture.matchday}>
+                        MW {fixture.matchday} · {fixture.home} v {fixture.away}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              <div className="rail-route" aria-label="สถานีและเส้นทางแนะนำ">
+                {travelPlan.via.map((stop, index) => (
+                  <div key={`${stop}-${index}`}>
+                    <i className={index === 0 || index === travelPlan.via.length - 1 ? "terminal" : ""} aria-hidden="true" />
+                    <span><small>{index === 0 ? "เริ่ม" : index === travelPlan.via.length - 1 ? "ลง" : "เปลี่ยน/ผ่าน"}</small><b>{stop}</b></span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="rail-last-mile"><b>จากสถานีถึงสนาม:</b> {travelPlan.lastMile}</p>
+
+              <div className="travel-time-window">
+                <div className="travel-time-window-title">
+                  <span>เวลาเป้าหมาย · เวลาท้องถิ่นอังกฤษ</span>
+                  <b>MW {String(selectedTravelFixture.matchday).padStart(2, "0")}</b>
+                </div>
+                <div className="travel-time-grid">
+                  <span><small>ออกจาก Manchester</small><b>{formatUkTravelTime(recommendedWindow.leaveManchester)}</b></span>
+                  <span><small>ถึงย่านสนาม</small><b>{formatUkTravelTime(recommendedWindow.arriveGround)}</b></span>
+                  <span><small>เป้าหมายขึ้นเที่ยวกลับ</small><b>{formatUkTravelTime(recommendedWindow.boardReturn)}</b></span>
+                  <span><small>ถึง Manchester โดยประมาณ</small><b>{formatUkTravelTime(recommendedWindow.arriveManchester)}</b></span>
+                </div>
+              </div>
+
+              {(recommendedWindow.overnight || selectedTravelFixture.status === "provisional" || travelPlan.note) && (
+                <div className="travel-alerts">
+                  {recommendedWindow.overnight && <p className="overnight"><b>!</b> มีโอกาสกลับ Manchester ในคืนเดียวกันไม่ได้ ควรตรวจเที่ยวสุดท้ายและเตรียมแผนค้างคืน</p>}
+                  {selectedTravelFixture.status === "provisional" && <p><b>i</b> เวลาแข่งยังรอยืนยัน แผนนี้จะคำนวณใหม่เมื่อเวลาแข่งขันเปลี่ยน</p>}
+                  {travelPlan.note && <p><b>i</b> {travelPlan.note}</p>}
+                </div>
+              )}
+
+              <div className="rail-planner-actions">
+                <a href={travelPlan.plannerUrl} target="_blank" rel="noreferrer">ตรวจเที่ยวจริง ↗</a>
+                <a href={NATIONAL_RAIL_TIMETABLE_GUIDANCE} target="_blank" rel="noreferrer">เกณฑ์ยืนยันตารางรถไฟ ↗</a>
+              </div>
+              <small className="travel-disclaimer">เวลาเหล่านี้เป็นกรอบวางแผน ไม่ใช่เวลาเที่ยวรถที่ยืนยัน · ตารางรถไฟปกติยืนยันราว 12 สัปดาห์ก่อนเดินทาง</small>
+            </section>
+          )}
 
           <div className="stadium-picker" aria-label="เลือกรายชื่อสนาม">
             <div><span>เลือกสนาม</span><small>{selected.city}</small></div>
