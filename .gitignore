@@ -32,6 +32,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# Cloudflare API token used by deploy.ps1
+.cloudflare-token
+
 # TypeScript incremental cache
 *.tsbuildinfo
 
