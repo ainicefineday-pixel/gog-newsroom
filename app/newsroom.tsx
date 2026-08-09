@@ -63,9 +63,9 @@ function formatThaiDate(date: string) {
   }).format(parsed);
 }
 
-function formatClock(date: Date) {
-  return new Intl.DateTimeFormat("th-TH", {
-    timeZone: "Asia/Bangkok",
+function formatClock(date: Date, timeZone: "Asia/Bangkok" | "Europe/London") {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone,
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
@@ -329,7 +329,17 @@ export function Newsroom() {
         </nav>
         <div className="header-status">
           <span className="live-pill"><i /> LIVE</span>
-          <div className="clock"><b>{now ? formatClock(now) : "--:--:--"}</b><small>เวลาไทย · ICT</small></div>
+          <div className="dual-clock" role="group" aria-label="เวลาไทยและเวลาอังกฤษ">
+            <div className="clock clock-th">
+              <b>{now ? formatClock(now, "Asia/Bangkok") : "--:--:--"}</b>
+              <small>ไทย · ICT</small>
+            </div>
+            <span className="clock-divider" aria-hidden="true" />
+            <div className="clock clock-uk" title="เวลาอังกฤษปรับ GMT และ BST อัตโนมัติ">
+              <b>{now ? formatClock(now, "Europe/London") : "--:--:--"}</b>
+              <small>อังกฤษ · GMT/BST</small>
+            </div>
+          </div>
           <button className="sync-button" type="button" onClick={() => void sync()} disabled={syncing} aria-label="ซิงก์ข่าวล่าสุด">
             <span className={syncing ? "spinning" : ""}>↻</span>
           </button>

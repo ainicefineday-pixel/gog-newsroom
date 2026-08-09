@@ -30,6 +30,9 @@ test("server-renders the GOG Newsroom product shell", async () => {
   assert.match(html, /tab-icon-news/);
   assert.match(html, /tab-icon-calendar/);
   assert.match(html, /tab-icon-team/);
+  assert.match(html, /dual-clock/);
+  assert.match(html, /ไทย · ICT/);
+  assert.match(html, /อังกฤษ · GMT\/BST/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
@@ -127,4 +130,12 @@ test("uses the provider-based X public-data collector without official API coupl
   assert.match(envExample, /X_PROVIDER=/);
   assert.match(envExample, /X_PUBLIC_FEED_URL_TEMPLATE=/);
   assert.doesNotMatch(envExample, /X_BEARER_TOKEN/);
+});
+
+test("keeps Bangkok and London clocks on automatic time zones", async () => {
+  const newsroom = await readFile(new URL("../app/newsroom.tsx", import.meta.url), "utf8");
+  assert.match(newsroom, /Asia\/Bangkok/);
+  assert.match(newsroom, /Europe\/London/);
+  assert.match(newsroom, /formatClock\(now, "Asia\/Bangkok"\)/);
+  assert.match(newsroom, /formatClock\(now, "Europe\/London"\)/);
 });
