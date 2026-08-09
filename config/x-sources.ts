@@ -16,3 +16,4 @@ export const X_SOURCE_HANDLES = [
   "simonpeach",
 ] as const;
 
+export type XSourceHandle = (typeof X_SOURCE_HANDLES)[number];

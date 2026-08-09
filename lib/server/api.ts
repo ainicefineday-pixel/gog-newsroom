@@ -13,6 +13,15 @@ function noDatabase() {
   return json({ error: "Story storage is not configured." }, 503);
 }
 
+function sourceCapabilities(env: RuntimeEnv) {
+  return {
+    rss: true,
+    newsApi: Boolean(env.NEWSAPI_KEY),
+    x: Boolean(env.X_BEARER_TOKEN),
+    translation: Boolean(env.ANTHROPIC_API_KEY),
+  };
+}
+
 export async function handleApi(request: Request, env: RuntimeEnv) {
   const url = new URL(request.url);
   if (!url.pathname.startsWith("/api/")) return null;
@@ -30,11 +39,11 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
       source,
     });
     const lastSync = await getLatestSync(env.DB);
-    return json({ stories, lastSync });
+    return json({ stories, lastSync, capabilities: sourceCapabilities(env) });
   }
 
   if (url.pathname === "/api/status" && request.method === "GET") {
-    return json({ ok: true, lastSync: await getLatestSync(env.DB), sources: { rss: true, newsApi: Boolean(env.NEWSAPI_KEY), x: Boolean(env.X_BEARER_TOKEN), translation: Boolean(env.ANTHROPIC_API_KEY) } });
+    return json({ ok: true, lastSync: await getLatestSync(env.DB), sources: sourceCapabilities(env) });
   }
 
   if (url.pathname === "/api/ingest" && (request.method === "POST" || request.method === "GET")) {
@@ -65,4 +74,3 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
 
   return json({ error: "Not found" }, 404);
 }
-

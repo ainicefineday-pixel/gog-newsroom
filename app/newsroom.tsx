@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 
 type LastSync = {
@@ -10,6 +11,20 @@ type LastSync = {
   stored: number;
   status: string;
 } | null;
+
+type SourceCapabilities = {
+  rss: boolean;
+  newsApi: boolean;
+  x: boolean;
+  translation: boolean;
+};
+
+const DEFAULT_CAPABILITIES: SourceCapabilities = {
+  rss: true,
+  newsApi: false,
+  x: false,
+  translation: false,
+};
 
 const CATEGORY_META: Record<Category, { icon: string; label: string; className: string }> = {
   Transfer: { icon: "↔", label: "ตลาดนักเตะ", className: "transfer" },
@@ -66,6 +81,19 @@ function todayBangkok() {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
+}
+
+function storyMatchesSource(story: Story, source: NewsSourceDirectoryItem) {
+  if (source.kind === "x") {
+    return story.sources.some((item) =>
+      item.handle?.toLowerCase() === source.id
+      || item.url.toLowerCase().includes(`x.com/${source.id.toLowerCase()}/`),
+    );
+  }
+  return story.sources.some((item) =>
+    item.name.toLowerCase() === source.label.toLowerCase()
+    || item.domain.toLowerCase().endsWith(source.domain),
+  );
 }
 
 function TopStoryCard({ story, rank, active, onSelect }: { story: Story; rank: number; active: boolean; onSelect: () => void }) {
@@ -150,6 +178,7 @@ function EmptyState({ syncing, onSync }: { syncing: boolean; onSync: () => void 
 export function Newsroom() {
   const [stories, setStories] = useState<Story[]>([]);
   const [lastSync, setLastSync] = useState<LastSync>(null);
+  const [capabilities, setCapabilities] = useState<SourceCapabilities>(DEFAULT_CAPABILITIES);
   const [now, setNow] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -167,9 +196,10 @@ export function Newsroom() {
   const loadStories = useCallback(async () => {
     const response = await fetch("/api/stories?days=14", { cache: "no-store" });
     if (!response.ok) throw new Error("ไม่สามารถโหลดคลังข่าวได้");
-    const payload = await response.json() as { stories: Story[]; lastSync: LastSync };
+    const payload = await response.json() as { stories: Story[]; lastSync: LastSync; capabilities?: SourceCapabilities };
     setStories(payload.stories);
     setLastSync(payload.lastSync);
+    setCapabilities(payload.capabilities ?? DEFAULT_CAPABILITIES);
     return payload.stories;
   }, []);
 
@@ -212,14 +242,11 @@ export function Newsroom() {
     return () => { active = false; };
   }, [loadStories, sync]);
 
-  const sourceOptions = useMemo(() => {
-    return [...new Set(stories.flatMap((story) => story.sources.map((item) => item.name)))].sort();
-  }, [stories]);
-
   const filteredStories = useMemo(() => stories.filter((story) => {
+    const selectedSource = NEWS_SOURCE_DIRECTORY.find((item) => item.id === source);
     return (category === "All" || story.category === category)
       && story.credibility >= minCredibility
-      && (source === "All" || story.sources.some((item) => item.name === source));
+      && (source === "All" || Boolean(selectedSource && storyMatchesSource(story, selectedSource)));
   }), [stories, category, minCredibility, source]);
 
   const groupedStories = useMemo(() => {
@@ -308,7 +335,7 @@ export function Newsroom() {
             <div className="hero-stats">
               <div><strong>{stories.length || "—"}</strong><span>ข่าวในระบบ</span></div>
               <div><strong>{verifiedCount || "—"}</strong><span>ยืนยันแล้ว</span></div>
-              <div><strong>{sourceOptions.length || "—"}</strong><span>แหล่งข่าว</span></div>
+              <div><strong>{NEWS_SOURCE_DIRECTORY.length}</strong><span>แหล่งข่าว</span></div>
             </div>
           </div>
           <div className="hero-insignia" aria-hidden="true">
@@ -353,9 +380,41 @@ export function Newsroom() {
               <span>แหล่งข่าว</span>
               <select value={source} onChange={(event) => setSource(event.target.value)}>
                 <option value="All">ทุกแหล่ง</option>
-                {sourceOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                {NEWS_SOURCE_DIRECTORY.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}{option.kind === "x" && !capabilities.x ? " · รอ X API" : ""}
+                  </option>
+                ))}
               </select>
             </label>
+            <details className="source-directory">
+              <summary>
+                <span>รายการติดตาม</span>
+                <b>{NEWS_SOURCE_DIRECTORY.length}</b>
+              </summary>
+              <div className="source-directory-popover">
+                <div className="source-directory-heading">
+                  <div><span>แหล่งข่าวที่กำหนด</span><strong>เว็บไซต์ 3 · X 15</strong></div>
+                  <small><i className="ready" /> พร้อม <i /> รอ API</small>
+                </div>
+                <div className="source-directory-grid">
+                  {NEWS_SOURCE_DIRECTORY.map((item) => {
+                    const ready = item.kind === "rss" || capabilities.x;
+                    return (
+                      <a key={item.id} href={item.homepage} target="_blank" rel="noreferrer" title={`เปิด ${item.label}`}>
+                        <span className={`source-status-dot ${ready ? "ready" : ""}`} />
+                        <b>{item.label}</b>
+                        <small>{item.kind === "rss" ? "RSS" : ready ? "X API" : "รอ X API"}</small>
+                        <em>↗</em>
+                      </a>
+                    );
+                  })}
+                </div>
+                {!capabilities.x && (
+                  <p>เพิ่ม X_BEARER_TOKEN ในการตั้งค่าเว็บเพื่อซิงก์โพสต์จากบัญชี X ทั้ง 15 บัญชี</p>
+                )}
+              </div>
+            </details>
           </div>
         </section>
 

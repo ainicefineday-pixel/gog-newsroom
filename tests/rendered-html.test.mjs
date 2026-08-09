@@ -26,15 +26,28 @@ test("server-renders the GOG Newsroom product shell", async () => {
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
-test("keeps required data sources and durable storage wiring", async () => {
-  const [pipeline, hosting, packageJson] = await Promise.all([
+test("keeps the exact 18-source directory and durable storage wiring", async () => {
+  const [pipeline, newsSources, xSources, hosting, packageJson] = await Promise.all([
     readFile(new URL("../lib/server/pipeline.ts", import.meta.url), "utf8"),
+    readFile(new URL("../config/news-sources.ts", import.meta.url), "utf8"),
+    readFile(new URL("../config/x-sources.ts", import.meta.url), "utf8"),
     readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
-  assert.match(pipeline, /feeds\.bbci\.co\.uk/);
-  assert.match(pipeline, /telegraph\.co\.uk/);
-  assert.match(pipeline, /nytimes\.com\/athletic/);
+  assert.match(newsSources, /www\.bbc\.com\/sport\/football/);
+  assert.match(newsSources, /www\.telegraph\.co\.uk\/football/);
+  assert.match(newsSources, /www\.nytimes\.com\/athletic\/uk/);
+  assert.match(newsSources, /feeds\.bbci\.co\.uk/);
+  assert.match(newsSources, /telegraph\.co\.uk\/football\/rss\.xml/);
+  assert.match(newsSources, /nytimes\.com\/athletic\/rss\/football/);
+  const configuredHandles = [...xSources.matchAll(/^\s*"([a-z0-9_]+)",?$/gmi)].map((match) => match[1]);
+  assert.deepEqual(configuredHandles, [
+    "jacobsben", "andymitten", "telegraphducker", "david_ornstein", "fabrizioromano",
+    "theathleticfc", "sistoney67", "statszone", "statmandave", "gradient_sports",
+    "lauriewhitwell", "lukeedwardstele", "jamespearcelfc", "howardnurse", "simonpeach",
+  ]);
+  assert.match(newsSources, /X_SOURCE_HANDLES\.map/);
+  assert.match(pipeline, /RSS_NEWS_SOURCES\.map/);
   assert.match(pipeline, /titleSimilarity\(.*\) > 0\.8/);
   const hostingConfig = JSON.parse(hosting);
   assert.equal(hostingConfig.d1, "DB");

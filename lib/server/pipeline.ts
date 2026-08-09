@@ -1,4 +1,5 @@
 import { MU_KEYWORDS } from "@/config/mu-keywords";
+import { RSS_NEWS_SOURCES } from "@/config/news-sources";
 import { X_SOURCE_HANDLES } from "@/config/x-sources";
 import type { Category, EditorialAngle, Story, StorySource } from "@/lib/types";
 import {
@@ -9,12 +10,6 @@ import {
   upsertStory,
   type RuntimeEnv,
 } from "@/lib/server/database";
-
-const RSS_FEEDS = [
-  { name: "BBC Sport", url: "https://feeds.bbci.co.uk/sport/football/rss.xml" },
-  { name: "The Telegraph", url: "https://www.telegraph.co.uk/football/rss.xml" },
-  { name: "The Athletic", url: "https://www.nytimes.com/athletic/rss/football/" },
-] as const;
 
 type RawItem = {
   title: string;
@@ -124,7 +119,7 @@ async function fetchText(url: string, init: RequestInit = {}) {
 
 async function fetchRssItems() {
   const settled = await Promise.allSettled(
-    RSS_FEEDS.map(async (feed) => parseRss(await fetchText(feed.url), feed.name)),
+    RSS_NEWS_SOURCES.map(async (source) => parseRss(await fetchText(source.feedUrl), source.name)),
   );
   return settled.flatMap((result) => (result.status === "fulfilled" ? result.value : []));
 }
@@ -558,4 +553,3 @@ export async function maybeGenerateMorningDigest(env: RuntimeEnv) {
   if (hour < 7) return null;
   return generateDailyDigest(env);
 }
-
