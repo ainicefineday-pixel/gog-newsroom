@@ -6,6 +6,7 @@ export type RuntimeEnv = {
   X_BEARER_TOKEN?: string;
   ANTHROPIC_API_KEY?: string;
   ANTHROPIC_MODEL?: string;
+  YOUTUBE_API_KEY?: string;
   CRON_SECRET?: string;
 };
 
@@ -207,4 +208,3 @@ export async function getDigest(db: D1Database, date: string) {
   if (!row) return null;
   return { date: row.date, contentTh: row.content_th, storyCount: row.story_count, generatedAt: row.generated_at } satisfies Digest;
 }
-

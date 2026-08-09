@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
+import { FixturesPanel, GogTeamPanel } from "@/app/gog-hub";
 
 type LastSync = {
   finished_at: string;
@@ -25,6 +26,8 @@ const DEFAULT_CAPABILITIES: SourceCapabilities = {
   x: false,
   translation: false,
 };
+
+type WorkspaceView = "news" | "fixtures" | "team";
 
 const CATEGORY_META: Record<Category, { icon: string; label: string; className: string }> = {
   Transfer: { icon: "↔", label: "ตลาดนักเตะ", className: "transfer" },
@@ -177,6 +180,7 @@ function EmptyState({ syncing, onSync }: { syncing: boolean; onSync: () => void 
 
 export function Newsroom() {
   const [stories, setStories] = useState<Story[]>([]);
+  const [activeView, setActiveView] = useState<WorkspaceView>("news");
   const [lastSync, setLastSync] = useState<LastSync>(null);
   const [capabilities, setCapabilities] = useState<SourceCapabilities>(DEFAULT_CAPABILITIES);
   const [now, setNow] = useState<Date | null>(null);
@@ -304,18 +308,22 @@ export function Newsroom() {
 
   const verifiedCount = stories.filter((story) => story.verified).length;
 
+  const switchView = (view: WorkspaceView) => {
+    setActiveView(view);
+    window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+  };
+
   return (
     <div className="newsroom-shell">
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="GOG Newsroom home">
+        <button className="brand" type="button" onClick={() => switchView("news")} aria-label="GOG Newsroom home">
           <span className="brand-logo" aria-hidden="true" />
-          <span><b>GOG</b> NEWSROOM<small>MU NEWS INTELLIGENCE</small></span>
-        </a>
+          <span><b>GOG</b> NEWSROOM<small>GENIUS ON THE GROUND</small></span>
+        </button>
         <nav aria-label="เมนูหลัก">
-          <a className="active" href="#news">ข่าวล่าสุด</a>
-          <a href="#angles">มุมทำคอนเทนต์</a>
-          <a href="#digest">สรุปรายวัน</a>
-          <a href="#trends">เทรนด์</a>
+          <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}>ข่าวล่าสุด</button>
+          <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}>โปรแกรมพรีเมียร์ลีก</button>
+          <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}>ทีม GOG</button>
         </nav>
         <div className="header-status">
           <span className="live-pill"><i /> LIVE</span>
@@ -339,7 +347,7 @@ export function Newsroom() {
             </div>
           </div>
           <div className="hero-insignia" aria-hidden="true">
-            <span className="hero-brand-stamp">GENIUS ON THE GROUND</span>
+            <span className="hero-brand-stamp">GENIUS ON THE GROUND | ภารกิจบุกถิ่นผี</span>
           </div>
           <div className="hero-update">
             <span>LAST SYNCED</span>
@@ -348,6 +356,13 @@ export function Newsroom() {
           </div>
         </section>
 
+        <nav className="workspace-tabs" aria-label="ส่วนหลักของเว็บไซต์">
+          <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}><span>01</span><b>ข่าวล่าสุด</b><small>NEWS INTELLIGENCE</small></button>
+          <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}><span>02</span><b>โปรแกรมพรีเมียร์ลีก</b><small>2026/27 · THAI TIME</small></button>
+          <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}><span>03</span><b>ทีม GOG</b><small>CREATORS · ANALYTICS</small></button>
+        </nav>
+
+        {activeView === "news" ? <>
         <section className="top-section" aria-labelledby="top-heading">
           <div className="section-heading">
             <div><span className="eyebrow">DAILY PRIORITY</span><h2 id="top-heading">เรื่องเด่นวันนี้</h2></div>
@@ -533,10 +548,11 @@ export function Newsroom() {
             </section>
           </aside>
         </div>
+        </> : activeView === "fixtures" ? <FixturesPanel /> : <GogTeamPanel />}
       </main>
 
       <footer>
-        <div className="footer-brand"><span className="brand-logo" aria-hidden="true" /><div><b>GOG NEWSROOM</b><small>GENIUS ON THE GROUND</small></div></div>
+        <div className="footer-brand"><span className="brand-logo" aria-hidden="true" /><div><b>GOG NEWSROOM</b><small>GENIUS ON THE GROUND | ภารกิจบุกถิ่นผี</small></div></div>
         <p>นำเสนอเฉพาะพาดหัวและสรุปสั้นเพื่อการติดตามข่าว · ลิขสิทธิ์บทความเป็นของแหล่งข่าวต้นฉบับ</p>
         <div><span><i /> ระบบออนไลน์</span><a href="#top">กลับด้านบน ↑</a></div>
       </footer>

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 
-const title = "GOG NEWSROOM | Manchester United News Intelligence";
-const description = "ศูนย์ข่าวแมนเชสเตอร์ ยูไนเต็ดสำหรับแฟนบอลไทย คัดกรอง ตรวจสอบ และจัดอันดับทุกประเด็นสำคัญ";
+const title = "GOG NEWSROOM | Genius on the Ground · ภารกิจบุกถิ่นผี";
+const description = "ศูนย์ข่าว โปรแกรมแข่ง และข้อมูลคอนเทนต์แมนเชสเตอร์ ยูไนเต็ด โดยโยโย่ ธีรัตน์ และอั้ม ภัทรเศรษฐ์";
 
 export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
@@ -22,13 +22,13 @@ export async function generateMetadata(): Promise<Metadata> {
       locale: "th_TH",
       type: "website",
       url: origin,
-      images: [{ url: `${origin}/gog-team.jpg`, width: 2048, height: 1152, alt: "GOG — Genius on the Ground" }],
+      images: [{ url: `${origin}/gog-logo-dark.png`, width: 2048, height: 1152, alt: "GOG — Genius on the Ground | ภารกิจบุกถิ่นผี" }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [`${origin}/gog-team.jpg`],
+      images: [`${origin}/gog-logo-dark.png`],
     },
   };
 }

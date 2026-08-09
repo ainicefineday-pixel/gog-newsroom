@@ -21,9 +21,37 @@ test("server-renders the GOG Newsroom product shell", async () => {
   const html = await response.text();
   assert.match(html, /<html lang="th">/i);
   assert.match(html, /GOG NEWSROOM/);
-  assert.match(html, /Manchester United News Intelligence/);
+  assert.match(html, /Genius on the Ground/);
   assert.match(html, /ข่าวล่าสุด/);
+  assert.match(html, /โปรแกรมพรีเมียร์ลีก/);
+  assert.match(html, /ทีม GOG/);
+  assert.match(html, /GENIUS ON THE GROUND/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
+});
+
+test("keeps the official 38-match 2026/27 fixture calendar and channel analytics wiring", async () => {
+  const [fixtures, analytics, hub, api, envExample, layout] = await Promise.all([
+    readFile(new URL("../config/mu-fixtures.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/server/channel-analytics.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/gog-hub.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../lib/server/api.ts", import.meta.url), "utf8"),
+    readFile(new URL("../.env.example", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.equal((fixtures.match(/^\s*fixture\(/gm) ?? []).length, 38);
+  assert.match(fixtures, /2026-08-22T11:30:00Z/);
+  assert.match(fixtures, /2027-05-30T15:00:00Z/);
+  assert.match(fixtures, /Old Trafford/);
+  assert.match(fixtures, /PREMIER_LEAGUE_FIXTURE_SOURCE/);
+  assert.match(analytics, /youtube\/v3/);
+  assert.match(analytics, /forHandle=FootballGeniusAG/);
+  assert.match(hub, /ธีรัตน์ ภิรมย์สวัสดิ์/);
+  assert.match(hub, /ภัทรเศรษฐ์ เรืองรัตนะกูล/);
+  assert.match(hub, /tiktok\.com\/@yo_theerat/);
+  assert.match(hub, /youtube\.com\/@FootballGeniusAG/);
+  assert.match(api, /\/api\/channel-analytics/);
+  assert.match(envExample, /YOUTUBE_API_KEY=/);
+  assert.match(layout, /gog-logo-dark\.png/);
 });
 
 test("keeps the exact 18-source directory and durable storage wiring", async () => {

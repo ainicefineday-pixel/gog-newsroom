@@ -1,6 +1,7 @@
 import { CATEGORIES } from "@/lib/types";
 import { ensureDatabase, getLatestSync, listStories, type RuntimeEnv } from "@/lib/server/database";
 import { generateDailyDigest, runIngest } from "@/lib/server/pipeline";
+import { getChannelAnalytics } from "@/lib/server/channel-analytics";
 
 function json(data: unknown, status = 200, headers: HeadersInit = {}) {
   return Response.json(data, {
@@ -43,7 +44,11 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
   }
 
   if (url.pathname === "/api/status" && request.method === "GET") {
-    return json({ ok: true, lastSync: await getLatestSync(env.DB), sources: sourceCapabilities(env) });
+    return json({ ok: true, lastSync: await getLatestSync(env.DB), sources: sourceCapabilities(env), channelAnalytics: Boolean(env.YOUTUBE_API_KEY) });
+  }
+
+  if (url.pathname === "/api/channel-analytics" && request.method === "GET") {
+    return json(await getChannelAnalytics(env));
   }
 
   if (url.pathname === "/api/ingest" && (request.method === "POST" || request.method === "GET")) {
