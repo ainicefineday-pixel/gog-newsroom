@@ -27,9 +27,66 @@ interface ExecutionContext {
 // dangerouslyAllowSVG: true in next.config.js and uncomment below:
 // const imageConfig: ImageConfig = { dangerouslyAllowSVG: true };
 
+// Static assets are served before this Worker ever runs, so the track is offered
+// on a path that is deliberately not an asset. The bytes still come from the
+// asset store underneath.
+const ANTHEM_PATH = "/media/anthem.mp3";
+const ANTHEM_ASSET = "/gog-anthem.mp3";
+const RANGE_PATTERN = /^bytes=(\d*)-(\d*)$/;
+
+function rangeNotSatisfiable(total: number, headers: Headers) {
+  headers.set("Content-Range", `bytes */${total}`);
+  headers.delete("Content-Length");
+  return new Response(null, { status: 416, headers });
+}
+
+// The static asset server answers every request with a plain 200, and iOS Safari
+// refuses to start a media element unless its opening range probe comes back as
+// a 206. Serving the track through here restores that contract.
+async function serveAnthem(request: Request, env: Env): Promise<Response> {
+  const asset = await env.ASSETS.fetch(new Request(new URL(ANTHEM_ASSET, request.url)));
+  if (!asset.ok) return asset;
+
+  const headers = new Headers(asset.headers);
+  headers.set("Accept-Ranges", "bytes");
+  headers.set("Cache-Control", "public, max-age=604800");
+
+  const rangeHeader = request.headers.get("Range");
+  const match = rangeHeader ? RANGE_PATTERN.exec(rangeHeader.trim()) : null;
+  if (!match) return new Response(asset.body, { status: 200, headers });
+
+  const buffer = await asset.arrayBuffer();
+  const total = buffer.byteLength;
+  const [, rawStart, rawEnd] = match;
+
+  let start: number;
+  let end: number;
+  if (rawStart === "") {
+    // A suffix range asks for the final N bytes.
+    const suffix = Number(rawEnd);
+    if (!Number.isFinite(suffix) || suffix <= 0) return rangeNotSatisfiable(total, headers);
+    start = Math.max(0, total - suffix);
+    end = total - 1;
+  } else {
+    start = Number(rawStart);
+    end = rawEnd === "" ? total - 1 : Number(rawEnd);
+  }
+
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= total) {
+    return rangeNotSatisfiable(total, headers);
+  }
+  end = Math.min(end, total - 1);
+
+  headers.set("Content-Range", `bytes ${start}-${end}/${total}`);
+  headers.set("Content-Length", String(end - start + 1));
+  return new Response(buffer.slice(start, end + 1), { status: 206, headers });
+}
+
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    if (url.pathname === ANTHEM_PATH) return serveAnthem(request, env);
 
     const apiResponse = await handleApi(request, env);
     if (apiResponse) return apiResponse;

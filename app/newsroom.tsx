@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
+import { AnthemPlayer } from "@/app/anthem-player";
 import { FixturesPanel, GogTeamPanel } from "@/app/gog-hub";
 import { StadiumMapPanel } from "@/app/stadium-map";
 import { TacticBoardPanel } from "@/app/tactic-board";
@@ -574,6 +575,8 @@ export function Newsroom() {
         <p>นำเสนอเฉพาะพาดหัวและสรุปสั้นเพื่อการติดตามข่าว · ลิขสิทธิ์บทความเป็นของแหล่งข่าวต้นฉบับ<strong>ระบบโดย DM ENGINE™</strong></p>
         <div><span><i /> ระบบออนไลน์</span><a href="#top">กลับด้านบน ↑</a></div>
       </footer>
+
+      <AnthemPlayer />
     </div>
   );
 }
