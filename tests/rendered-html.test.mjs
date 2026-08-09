@@ -30,8 +30,10 @@ test("server-renders the GOG Newsroom product shell", async () => {
   assert.match(html, /tab-icon-news/);
   assert.match(html, /tab-icon-calendar/);
   assert.match(html, /tab-icon-map/);
+  assert.match(html, /tab-icon-tactics/);
   assert.match(html, /tab-icon-team/);
   assert.match(html, /แผนที่สนาม/);
+  assert.match(html, /แผนการเล่น/);
   assert.match(html, /dual-clock/);
   assert.match(html, /ไทย · ICT/);
   assert.match(html, /อังกฤษ · GMT\/BST/);
@@ -159,4 +161,27 @@ test("maps all 20 fixture grounds with an accessible OpenStreetMap layer", async
   assert.match(mapPanel, /marker\.on\("click"/);
   assert.match(mapPanel, /เวลาไทย/);
   assert.match(layout, /leaflet\/dist\/leaflet\.css/);
+});
+
+test("provides an editable visual tactics board backed by the official squad baseline", async () => {
+  const [squad, tactics, newsroom] = await Promise.all([
+    readFile(new URL("../config/mu-squad.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/tactic-board.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/newsroom.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.equal((squad.match(/^\s*\{ id:/gm) ?? []).length, 34);
+  for (const player of ["Bruno Fernandes", "Andrey Santos", "Youri Tielemans", "Benjamin Sesko", "Senne Lammens"]) {
+    assert.match(squad, new RegExp(player));
+  }
+  assert.match(squad, /manutd\.com\/en\/players-and-staff\/first-team/);
+  assert.match(tactics, /"4-2-3-1"/);
+  assert.match(tactics, /"3-4-2-1"/);
+  assert.match(tactics, /"4-3-3"/);
+  assert.match(tactics, /gog-tactics-squad-v1/);
+  assert.match(tactics, /window\.localStorage\.setItem/);
+  assert.match(tactics, /MU_PREMIER_LEAGUE_FIXTURES\.map/);
+  assert.match(tactics, /เพิ่มผู้เล่น/);
+  assert.match(tactics, /แก้ไขข้อมูลนักเตะ/);
+  assert.match(tactics, /ไม่ใช่ไลน์อัปยืนยัน/);
+  assert.match(newsroom, /<TacticBoardPanel \/>/);
 });

@@ -5,6 +5,7 @@ import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/ne
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 import { FixturesPanel, GogTeamPanel } from "@/app/gog-hub";
 import { StadiumMapPanel } from "@/app/stadium-map";
+import { TacticBoardPanel } from "@/app/tactic-board";
 
 type LastSync = {
   finished_at: string;
@@ -30,7 +31,7 @@ const DEFAULT_CAPABILITIES: SourceCapabilities = {
   translation: false,
 };
 
-type WorkspaceView = "news" | "fixtures" | "map" | "team";
+type WorkspaceView = "news" | "fixtures" | "map" | "tactics" | "team";
 
 const CATEGORY_META: Record<Category, { icon: string; label: string; className: string }> = {
   Transfer: { icon: "↔", label: "ตลาดนักเตะ", className: "transfer" },
@@ -327,6 +328,7 @@ export function Newsroom() {
           <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}>ข่าวล่าสุด</button>
           <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}>โปรแกรมพรีเมียร์ลีก</button>
           <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}>แผนที่สนาม</button>
+          <button type="button" className={activeView === "tactics" ? "active" : ""} onClick={() => switchView("tactics")}>แผนการเล่น</button>
           <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}>ทีม GOG</button>
         </nav>
         <div className="header-status">
@@ -374,6 +376,7 @@ export function Newsroom() {
           <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}><span className="tab-icon tab-icon-news" aria-hidden="true" /><b>ข่าวล่าสุด</b><small>NEWS INTELLIGENCE</small></button>
           <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}><span className="tab-icon tab-icon-calendar" aria-hidden="true" /><b>โปรแกรมพรีเมียร์ลีก</b><small>2026/27 · THAI TIME</small></button>
           <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}><span className="tab-icon tab-icon-map" aria-hidden="true" /><b>แผนที่สนาม</b><small>20 GROUNDS · ENGLAND</small></button>
+          <button type="button" className={activeView === "tactics" ? "active" : ""} onClick={() => switchView("tactics")}><span className="tab-icon tab-icon-tactics" aria-hidden="true" /><b>แผนการเล่น</b><small>TACTICS · SQUAD XI</small></button>
           <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}><span className="tab-icon tab-icon-team" aria-hidden="true" /><b>ทีม GOG</b><small>CREATORS · ANALYTICS</small></button>
         </nav>
 
@@ -563,7 +566,7 @@ export function Newsroom() {
             </section>
           </aside>
         </div>
-        </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "map" ? <StadiumMapPanel /> : <GogTeamPanel />}
+        </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "map" ? <StadiumMapPanel /> : activeView === "tactics" ? <TacticBoardPanel /> : <GogTeamPanel />}
       </main>
 
       <footer>
