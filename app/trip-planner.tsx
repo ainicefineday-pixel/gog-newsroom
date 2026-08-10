@@ -107,7 +107,7 @@ function ItineraryDayCard({ day, money, onRemove }: {
   onRemove: (placeId: string) => void;
 }) {
   return (
-    <article className={`itinerary-day ${day.theme}`}>
+    <article className={`itinerary-day day-${day.theme}`}>
       <header>
         <span className="itinerary-day-no">DAY {day.dayNumber}</span>
         <div>
