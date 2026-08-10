@@ -1,6 +1,6 @@
 import { CATEGORIES } from "@/lib/types";
 import { ensureDatabase, getLatestSync, listStories, type RuntimeEnv } from "@/lib/server/database";
-import { generateDailyDigest, runIngest } from "@/lib/server/pipeline";
+import { generateDailyDigest, runIngest, translateStories } from "@/lib/server/pipeline";
 import { getChannelAnalytics } from "@/lib/server/channel-analytics";
 import {
   collectXWatchlist,
@@ -218,6 +218,27 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
       return json({ ok: true, ...(await runIngest(env)) });
     } catch (error) {
       return json({ ok: false, error: error instanceof Error ? error.message : "Ingestion failed" }, 502);
+    }
+  }
+
+  // 🇹🇭 แปลไทยตามคำสั่ง — ผู้ใช้กดปุ่มบนหน้าเว็บเท่านั้น ครอนไม่เรียก
+  // body: { ids?: string[], force?: boolean, limit?: number } · ผลลัพธ์บันทึกลง D1 แล้ว
+  if (url.pathname === "/api/translate" && request.method === "POST") {
+    let body: { ids?: unknown; force?: unknown; limit?: unknown } = {};
+    try { body = (await request.json()) as typeof body; } catch { /* ไม่มี body = แปลข่าวที่ยังค้างอยู่ */ }
+    const ids = Array.isArray(body.ids) ? body.ids.filter((id): id is string => typeof id === "string") : undefined;
+    try {
+      const result = await translateStories(env, {
+        ids,
+        force: body.force === true,
+        limit: typeof body.limit === "number" ? body.limit : undefined,
+      });
+      if ("error" in result && result.error === "translation_not_configured") {
+        return json({ ok: false, error: result.error, message: "ยังไม่ได้ตั้งค่า ANTHROPIC_API_KEY บน Worker" }, 503);
+      }
+      return json({ ok: true, ...result });
+    } catch (error) {
+      return json({ ok: false, error: error instanceof Error ? error.message : "Translation failed" }, 502);
     }
   }
 

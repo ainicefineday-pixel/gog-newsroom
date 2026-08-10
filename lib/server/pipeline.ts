@@ -35,6 +35,13 @@ type ClaudeEditorial = {
   angles: EditorialAngle[];
 };
 
+// โมเดล Claude ที่ใช้เขียน/แปลข่าวไทย — override ได้ด้วย secret ANTHROPIC_MODEL
+// หมายเหตุ: รุ่นนี้คิดก่อนตอบเป็นค่าเริ่มต้น และไม่รับ temperature (ส่งไปจะได้ 400)
+// จึงคุมความลึก/ค่าใช้จ่ายด้วย output_config.effort แทน
+const DEFAULT_ANTHROPIC_MODEL = "claude-opus-5";
+// คิดก่อนตอบทำให้ตอบช้ากว่าเดิม — 30 วิเดิมตัดกลางคันจนตกไปใช้พาดหัวอังกฤษ
+const ANTHROPIC_TIMEOUT_MS = 120_000;
+
 const STOP_WORDS = new Set([
   "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "in", "is",
   "it", "of", "on", "or", "that", "the", "to", "with", "manchester", "united", "man", "utd",
@@ -321,16 +328,18 @@ function parseJsonPayload(text: string) {
   return JSON.parse(cleaned) as unknown;
 }
 
-async function createEditorial(clusters: Cluster[], categories: Category[], env: RuntimeEnv) {
-  const fallback = clusters.map((cluster, index) => fallbackEditorial(cluster, categories[index], index));
-  if (!env.ANTHROPIC_API_KEY || !clusters.length) return fallback;
+type EditorialInput = {
+  index: number;
+  category: Category;
+  title_en: string;
+  source_excerpt: string;
+};
 
-  const inputs = clusters.map((cluster, index) => ({
-    index,
-    category: categories[index],
-    title_en: cluster.title,
-    source_excerpt: cluster.description.slice(0, 700),
-  }));
+// เรียก Claude แปล/เรียบเรียงเป็นไทย — คืน Map ของ index ที่แปลสำเร็จเท่านั้น
+// ตัวนี้ถูกเรียกจากปุ่ม "แปลไทย" ของผู้ใช้เท่านั้น ครอนไม่แตะ (กันค่า API ไหลทิ้ง)
+async function requestEditorial(inputs: EditorialInput[], env: RuntimeEnv) {
+  const empty = new Map<number, ClaudeEditorial>();
+  if (!env.ANTHROPIC_API_KEY || !inputs.length) return empty;
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -339,31 +348,28 @@ async function createEditorial(clusters: Cluster[], categories: Category[], env:
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
-      max_tokens: 5000,
-      temperature: 0.15,
+      model: env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL,
+      max_tokens: 16_000,
+      output_config: { effort: "low" },
       system: "You are a careful Thai sports desk editor. Never add a fact that is not present in the supplied headline or excerpt. Preserve uncertainty and attribution. Return only valid JSON.",
       messages: [{
         role: "user",
         content: `Rewrite each supplied item for Thai Manchester United supporters. For every index return: titleTh (professional, not clickbait), summaryTh (2-3 concise Thai sentences), and angles (exactly 2 objects with hook and why for a Thai YouTube/TikTok football channel). Do not claim verification; do not invent context, fees, injuries, quotes, or outcomes. JSON shape: {"items":[{"index":0,"titleTh":"","summaryTh":"","angles":[{"hook":"","why":""}]}]}. INPUT: ${JSON.stringify(inputs)}`,
       }],
     }),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(ANTHROPIC_TIMEOUT_MS),
   });
-  if (!response.ok) return fallback;
+  if (!response.ok) throw new Error(`Claude ${response.status}: ${(await response.text()).slice(0, 300)}`);
   const payload = await response.json() as { content?: Array<{ type: string; text?: string }> };
   const text = payload.content?.find((part) => part.type === "text")?.text;
-  if (!text) return fallback;
+  if (!text) return empty;
   try {
     const parsed = parseJsonPayload(text) as { items?: ClaudeEditorial[] };
-    const byIndex = new Map((parsed.items ?? []).map((item) => [item.index, item]));
-    return fallback.map((entry) => {
-      const generated = byIndex.get(entry.index);
-      if (!generated?.titleTh || !generated.summaryTh || generated.angles?.length !== 2) return entry;
-      return generated;
-    });
+    const usable = (parsed.items ?? []).filter((item) =>
+      item?.titleTh && item.summaryTh && item.angles?.length === 2);
+    return new Map(usable.map((item) => [item.index, item]));
   } catch {
-    return fallback;
+    return empty;
   }
 }
 
@@ -411,12 +417,14 @@ export async function runIngest(env: RuntimeEnv) {
     matched = relevant.length;
     const clusters = clusterItems(relevant).slice(0, 40);
     const categories = clusters.map((cluster) => categorizeStory(cluster.title, cluster.description));
-    const editorials = await createEditorial(clusters, categories, env);
     const existingStories = await listStories(db, { days: 21 });
+    // เก็บข่าวดิบอย่างเดียว — ไม่เรียก Claude ที่นี่ การแปลเป็นไทยเกิดตอนกดปุ่มเท่านั้น
+    const matches = clusters.map((cluster) =>
+      existingStories.find((story) => titleSimilarity(story.titleEn, cluster.title) > 0.8));
 
     for (let index = 0; index < clusters.length; index += 1) {
       const cluster = clusters[index];
-      const matching = existingStories.find((story) => titleSimilarity(story.titleEn, cluster.title) > 0.8);
+      const matching = matches[index];
       const incomingSources = cluster.items.map(toSource);
       const sources = mergeSources(matching?.sources ?? [], incomingSources);
       const assessment = credibilityFor(cluster.items.concat(
@@ -430,21 +438,24 @@ export async function runIngest(env: RuntimeEnv) {
           handle: source.handle,
         })),
       ));
-      const editorial = editorials[index];
-      const translated = !editorial.summaryTh.startsWith("ยังไม่ได้ตั้งค่า");
+      // ข่าวที่แปลไว้แล้วต้องคงคำแปลเดิม ไม่ให้รอบซิงก์ถัดไปทับกลับเป็น placeholder
+      const placeholder = fallbackEditorial(cluster, categories[index], index);
+      const excerptEn = cluster.description.slice(0, 700) || matching?.excerptEn || "";
       const story: Story = {
         id: matching?.id ?? storyId(cluster.title),
         date: bangkokDate(cluster.publishedAt),
         category: categories[index],
         credibility: assessment.score,
         titleEn: cluster.title,
-        titleTh: translated || !matching ? editorial.titleTh : matching.titleTh,
-        summaryTh: translated || !matching ? editorial.summaryTh : matching.summaryTh,
+        excerptEn,
+        titleTh: matching?.translated ? matching.titleTh : placeholder.titleTh,
+        summaryTh: matching?.translated ? matching.summaryTh : placeholder.summaryTh,
+        translated: Boolean(matching?.translated),
         sources,
         url: sources[0]?.url ?? cluster.items[0].url,
         publishedAt: sources.map((source) => source.publishedAt).sort().at(-1) ?? cluster.publishedAt,
         verified: assessment.verified,
-        angles: translated || !matching ? editorial.angles : matching.angles,
+        angles: matching?.translated ? matching.angles : placeholder.angles,
         topicTerms: [...new Set([
           ...(matching?.topicTerms ?? []),
           ...extractTopics(cluster.title, cluster.description),
@@ -473,6 +484,53 @@ export async function runIngest(env: RuntimeEnv) {
   }
 }
 
+// 🇹🇭 แปลตามคำสั่ง — เรียกจาก POST /api/translate เมื่อผู้ใช้กดปุ่มเท่านั้น
+//   ids ว่าง = แปลทุกข่าวที่ยังไม่ได้แปล · force = แปลซ้ำข่าวที่แปลไปแล้ว
+//   ผลลัพธ์ถูกเขียนลง D1 ทันที (translated = 1) รอบซิงก์ถัดไปจะไม่ทับกลับ
+export async function translateStories(
+  env: RuntimeEnv,
+  options: { ids?: string[]; force?: boolean; limit?: number } = {},
+) {
+  if (!env.DB) throw new Error("D1 binding DB is not configured");
+  await ensureDatabase(env.DB);
+  if (!env.ANTHROPIC_API_KEY) {
+    return { translated: 0, skipped: 0, stories: [] as Story[], error: "translation_not_configured" as const };
+  }
+
+  const ids = options.ids?.filter(Boolean) ?? [];
+  const all = await listStories(env.DB, { days: 60 });
+  const wanted = ids.length ? all.filter((story) => ids.includes(story.id)) : all;
+  const targets = (options.force ? wanted : wanted.filter((story) => !story.translated))
+    .slice(0, Math.min(Math.max(options.limit ?? 12, 1), 25));
+  if (!targets.length) return { translated: 0, skipped: wanted.length, stories: [] as Story[] };
+
+  const generated = await requestEditorial(
+    targets.map((story, index) => ({
+      index,
+      category: story.category,
+      title_en: story.titleEn,
+      source_excerpt: story.excerptEn || story.sources.map((source) => source.name).join(", "),
+    })),
+    env,
+  );
+
+  const stories: Story[] = [];
+  for (let index = 0; index < targets.length; index += 1) {
+    const editorial = generated.get(index);
+    if (!editorial) continue;
+    const updated: Story = {
+      ...targets[index],
+      titleTh: editorial.titleTh,
+      summaryTh: editorial.summaryTh,
+      angles: editorial.angles,
+      translated: true,
+    };
+    await upsertStory(env.DB, updated);
+    stories.push(updated);
+  }
+  return { translated: stories.length, skipped: targets.length - stories.length, stories };
+}
+
 function yesterdayBangkok() {
   const now = new Date();
   return bangkokDate(new Date(now.getTime() - 86_400_000).toISOString());
@@ -494,13 +552,13 @@ async function claudeDigest(stories: Story[], env: RuntimeEnv) {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: env.ANTHROPIC_MODEL || "claude-sonnet-4-5",
-      max_tokens: 1800,
-      temperature: 0.1,
+      model: env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL,
+      max_tokens: 16_000,
+      output_config: { effort: "low" },
       system: "You produce concise, factual Thai sports news digests using only the evidence supplied. Never add facts.",
       messages: [{ role: "user", content: `Write a publish-ready Thai morning digest of yesterday's verified Manchester United news. Open with one overview sentence, then short numbered items, then a one-line source/verification note. Evidence: ${JSON.stringify(evidence)}` }],
     }),
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(ANTHROPIC_TIMEOUT_MS),
   });
   if (!response.ok) return null;
   const payload = await response.json() as { content?: Array<{ type: string; text?: string }> };

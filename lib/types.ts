@@ -31,8 +31,12 @@ export type Story = {
   category: Category;
   credibility: number;
   titleEn: string;
+  /** ย่อหน้าต้นฉบับภาษาอังกฤษ — เก็บไว้ให้ตอนกดแปลทีหลังยังมีบริบทเท่ากับตอนดึงข่าวมา */
+  excerptEn: string;
   titleTh: string;
   summaryTh: string;
+  /** true เมื่อคำแปลไทยมาจาก Claude แล้ว (ไม่ใช่ข้อความ placeholder) */
+  translated: boolean;
   sources: StorySource[];
   url: string;
   publishedAt: string;

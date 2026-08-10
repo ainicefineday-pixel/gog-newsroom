@@ -25,8 +25,10 @@ type StoryRow = {
   category: Story["category"];
   credibility: number;
   title_en: string;
+  excerpt_en: string | null;
   title_th: string;
   summary_th: string;
+  translated: number | null;
   sources_json: string;
   url: string;
   published_at: string;
@@ -43,8 +45,10 @@ export async function ensureDatabase(db: D1Database) {
       category TEXT NOT NULL,
       credibility INTEGER NOT NULL,
       title_en TEXT NOT NULL,
+      excerpt_en TEXT NOT NULL DEFAULT '',
       title_th TEXT NOT NULL,
       summary_th TEXT NOT NULL,
+      translated INTEGER NOT NULL DEFAULT 0,
       sources_json TEXT NOT NULL,
       url TEXT NOT NULL,
       published_at TEXT NOT NULL,
@@ -137,6 +141,15 @@ export async function ensureDatabase(db: D1Database) {
     db.prepare("CREATE INDEX IF NOT EXISTS idx_x_collection_jobs_account_started ON x_collection_jobs(account_id, started_at)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_x_collection_jobs_status_started ON x_collection_jobs(status, started_at)"),
   ]);
+
+  // ตารางที่สร้างไว้ก่อนหน้านี้ยังไม่มี 2 คอลัมน์นี้ — SQLite ไม่มี ADD COLUMN IF NOT EXISTS
+  // จึงยิงแล้วกลืน error "duplicate column name" ทิ้ง (idempotent พอสำหรับรันทุกรีเควสต์)
+  for (const statement of [
+    "ALTER TABLE stories ADD COLUMN excerpt_en TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE stories ADD COLUMN translated INTEGER NOT NULL DEFAULT 0",
+  ]) {
+    try { await db.prepare(statement).run(); } catch { /* มีคอลัมน์อยู่แล้ว */ }
+  }
 }
 
 function safeJson<T>(value: string, fallback: T): T {
@@ -154,8 +167,10 @@ export function rowToStory(row: StoryRow): Story {
     category: row.category,
     credibility: row.credibility,
     titleEn: row.title_en,
+    excerptEn: row.excerpt_en ?? "",
     titleTh: row.title_th,
     summaryTh: row.summary_th,
+    translated: Boolean(row.translated),
     sources: safeJson(row.sources_json, []),
     url: row.url,
     publishedAt: row.published_at,
@@ -196,17 +211,19 @@ export async function upsertStory(db: D1Database, story: Story) {
   const now = new Date().toISOString();
   await db
     .prepare(`INSERT INTO stories (
-      id, story_date, category, credibility, title_en, title_th, summary_th,
-      sources_json, url, published_at, verified, angle_suggestions_json,
+      id, story_date, category, credibility, title_en, excerpt_en, title_th, summary_th,
+      translated, sources_json, url, published_at, verified, angle_suggestions_json,
       topic_terms_json, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       story_date = excluded.story_date,
       category = excluded.category,
       credibility = excluded.credibility,
       title_en = excluded.title_en,
+      excerpt_en = excluded.excerpt_en,
       title_th = excluded.title_th,
       summary_th = excluded.summary_th,
+      translated = excluded.translated,
       sources_json = excluded.sources_json,
       url = excluded.url,
       published_at = excluded.published_at,
@@ -220,8 +237,10 @@ export async function upsertStory(db: D1Database, story: Story) {
       story.category,
       story.credibility,
       story.titleEn,
+      story.excerptEn,
       story.titleTh,
       story.summaryTh,
+      story.translated ? 1 : 0,
       JSON.stringify(story.sources),
       story.url,
       story.publishedAt,

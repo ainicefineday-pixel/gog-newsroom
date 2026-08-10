@@ -260,6 +260,22 @@ main { max-width: 1440px; margin: 0 auto; padding: 0 28px 70px; }
 .summary-th { font-size: 12px; color: #a8adb5; line-height: 1.72; margin: 0 0 10px; }
 .headline-en { color: #60656e; font: 500 9px/1.45 "Kanit",sans-serif; margin: 0; display: flex; gap: 7px; }
 .headline-en span { color: #999ea6; border: 1px solid #373a40; padding: 1px 3px; font-size: 6px; height: fit-content; margin-top: 1px; }
+/* ปุ่มแปลไทย/คัดลอก ในการ์ดข่าว — แปลเมื่อกดเท่านั้น ผลลัพธ์เก็บในฐานข้อมูล */
+.feed-title-actions { display: flex; align-items: center; gap: 10px; }
+.feed-title-actions > span { color: var(--muted); font-size: 10px; }
+.story-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.story-action { font: 700 10px/1 "Kanit",sans-serif; padding: 7px 12px; border-radius: 7px; cursor: pointer; border: 1px solid var(--line); background: #17191d; color: #e7e9ec; transition: opacity .15s, border-color .15s; }
+.story-action:hover:not(:disabled) { border-color: #6b7078; }
+.story-action:disabled { opacity: .42; cursor: not-allowed; }
+.story-action.primary { background: var(--accent, #da291c); border-color: transparent; color: #fff; }
+.story-action.ghost { background: transparent; }
+.story-action-note { color: var(--muted); font-size: 9px; }
+.story-action-note.done { color: #4ade80; }
+.translate-bar { position: relative; height: 4px; border-radius: 99px; background: #24272c; overflow: hidden; margin-top: 9px; width: 100%; }
+.translate-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent, #da291c), #f0a500); transition: width .12s linear; }
+.translate-bar::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, #ffffff22, transparent); animation: translate-sheen 1.1s linear infinite; }
+@keyframes translate-sheen { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.feed-title-actions .translate-bar { width: 150px; margin-top: 0; }
 .story-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid var(--line); margin-top: 15px; padding-top: 12px; }
 .source-list { display: flex; gap: 5px; flex-wrap: wrap; }
 .source-chip { display: inline-flex; align-items: center; gap: 5px; background: #171a20; border: 1px solid var(--line); padding: 5px 7px; font: 600 8px/1 "Kanit",sans-serif; color: #b2b6bc; transition: border-color .2s, color .2s; }

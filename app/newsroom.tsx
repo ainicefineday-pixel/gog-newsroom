@@ -120,8 +120,49 @@ function TopStoryCard({ story, rank, active, onSelect }: { story: Story; rank: n
   );
 }
 
-function StoryCard({ story, now }: { story: Story; now: Date }) {
+// ข้อความที่กด "คัดลอก" แล้วได้ไปวางในคลิป/โพสต์ได้ทันที
+function copyBlock(story: Story) {
+  return [
+    story.titleTh,
+    "",
+    story.summaryTh,
+    "",
+    ...story.angles.flatMap((angle) => [`• ${angle.hook}`, `  ${angle.why}`]),
+    "",
+    `EN: ${story.titleEn}`,
+    `ที่มา: ${story.sources.map((source) => `${source.name} — ${source.url}`).join("\n       ")}`,
+  ].join("\n");
+}
+
+// ความคืบหน้าการแปล — API เป็นคำขอเดียวจบ ไม่ได้รายงานเปอร์เซ็นต์จริงระหว่างทาง
+// จึงประมาณจากเวลาที่ผ่านไปเทียบเวลาที่คาดไว้ แล้วตรึงไว้ที่ 95% จนกว่าจะได้คำตอบ
+// (เวลาที่นับเป็นของจริง — ไว้ให้ดูออกว่าบาร์ยังเดินอยู่ ไม่ได้ค้าง)
+export type TranslateProgress = { percent: number; seconds: number };
+
+function TranslateBar({ progress }: { progress: TranslateProgress }) {
+  return (
+    <div className="translate-bar" role="progressbar" aria-valuenow={Math.round(progress.percent)} aria-valuemin={0} aria-valuemax={100}>
+      <i style={{ width: `${progress.percent}%` }} />
+    </div>
+  );
+}
+
+function translateLabel(progress: TranslateProgress) {
+  return `กำลังแปล… ${Math.round(progress.percent)}% · ${progress.seconds.toFixed(1)} วิ`;
+}
+
+function StoryCard({
+  story, now, onTranslate, translating, progress,
+}: { story: Story; now: Date; onTranslate: (story: Story) => void; translating: boolean; progress: TranslateProgress | null }) {
   const meta = CATEGORY_META[story.category];
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(copyBlock(story));
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch { /* เบราว์เซอร์ไม่ให้เข้าคลิปบอร์ด */ }
+  };
   return (
     <article className="story-card">
       <div className="story-score-column">
@@ -146,6 +187,25 @@ function StoryCard({ story, now }: { story: Story; now: Date }) {
         <h2>{story.titleTh}</h2>
         <p className="summary-th">{story.summaryTh}</p>
         <p className="headline-en"><span>EN</span>{story.titleEn}</p>
+
+        {/* แปลเมื่อกดเท่านั้น — ผลลัพธ์เซฟลงฐานข้อมูลทันที กดคัดลอกไปใช้ต่อได้เลย */}
+        <div className="story-actions">
+          <button
+            type="button"
+            className={`story-action ${story.translated ? "ghost" : "primary"}`}
+            onClick={() => onTranslate(story)}
+            disabled={translating}
+          >
+            {translating && progress ? translateLabel(progress) : story.translated ? "🔁 แปลใหม่" : "🇹🇭 แปลเป็นไทย"}
+          </button>
+          <button type="button" className="story-action ghost" onClick={copy} disabled={!story.translated}>
+            {copied ? "✓ คัดลอกแล้ว" : "📋 คัดลอก"}
+          </button>
+          {story.translated
+            ? <span className="story-action-note done">แปลแล้ว · บันทึกในฐานข้อมูล</span>
+            : <span className="story-action-note">ยังไม่แปล — กดเพื่อให้ Claude เรียบเรียงเป็นไทย</span>}
+        </div>
+        {translating && progress && <TranslateBar progress={progress} />}
 
         <div className="story-footer">
           <div className="source-list" aria-label="แหล่งข่าวต้นฉบับ">
@@ -200,6 +260,11 @@ export function Newsroom() {
   const [digestLoading, setDigestLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const initialSyncAttempted = useRef(false);
+  const [translatingIds, setTranslatingIds] = useState<string[]>([]);
+  // งานแปลที่กำลังทำอยู่ — เก็บเวลาเริ่มไว้เพื่อนับเวลาจริงและประมาณ %
+  const [translateJob, setTranslateJob] = useState<{ startedAt: number; count: number } | null>(null);
+  const [translateElapsed, setTranslateElapsed] = useState(0);
+
   const syncInFlight = useRef(false);
 
   const loadStories = useCallback(async () => {
@@ -211,6 +276,47 @@ export function Newsroom() {
     setCapabilities(payload.capabilities ?? DEFAULT_CAPABILITIES);
     return payload.stories;
   }, []);
+
+  // แปลตามคำสั่ง — ids ว่าง = แปลทุกข่าวที่ยังค้าง · เซิร์ฟเวอร์เซฟลง D1 ให้แล้ว
+  const translate = useCallback(async (ids: string[], expected = 1) => {
+    setTranslatingIds((current) => [...current, ...ids, ...(ids.length ? [] : ["*"])]);
+    setTranslateJob({ startedAt: Date.now(), count: Math.max(expected, 1) });
+    setTranslateElapsed(0);
+    setError("");
+    try {
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(ids.length ? { ids, force: true } : {}),
+      });
+      const payload = await response.json() as { ok?: boolean; message?: string; error?: string; translated?: number };
+      if (!response.ok || !payload.ok) throw new Error(payload.message || payload.error || "แปลไม่สำเร็จ");
+      if (!payload.translated) throw new Error("ไม่มีข่าวที่ต้องแปล หรือโมเดลไม่ได้ส่งคำแปลกลับมา");
+      await loadStories();
+    } catch (translateError) {
+      setError(translateError instanceof Error ? translateError.message : "แปลไม่สำเร็จ");
+    } finally {
+      setTranslatingIds((current) => current.filter((id) => !ids.includes(id) && id !== "*"));
+      setTranslateJob(null);
+    }
+  }, [loadStories]);
+
+  // นับเวลาจริงระหว่างรอคำตอบ — เดินทุก 100ms ให้บาร์ขยับเห็นชัดว่าไม่ค้าง
+  useEffect(() => {
+    if (!translateJob) return;
+    const timer = window.setInterval(() => setTranslateElapsed(Date.now() - translateJob.startedAt), 100);
+    return () => window.clearInterval(timer);
+  }, [translateJob]);
+
+  // ประมาณ ~9 วิ/ข่าว + โอเวอร์เฮด แล้วตรึงที่ 95% จนกว่าคำตอบจะกลับมา
+  const translateProgress = useMemo<TranslateProgress | null>(() => {
+    if (!translateJob) return null;
+    const expectedMs = translateJob.count * 9_000 + 3_000;
+    return {
+      percent: Math.min(95, (translateElapsed / expectedMs) * 100),
+      seconds: translateElapsed / 1000,
+    };
+  }, [translateJob, translateElapsed]);
 
   const sync = useCallback(async (automatic = false) => {
     if (syncInFlight.current) return;
@@ -257,6 +363,8 @@ export function Newsroom() {
       && story.credibility >= minCredibility
       && (source === "All" || Boolean(selectedSource && storyMatchesSource(story, selectedSource)));
   }), [stories, category, minCredibility, source]);
+
+  const untranslatedCount = useMemo(() => stories.filter((story) => !story.translated).length, [stories]);
 
   const groupedStories = useMemo(() => {
     const groups = new Map<string, Story[]>();
@@ -458,7 +566,23 @@ export function Newsroom() {
           <section className="feed" id="news" aria-labelledby="latest-heading">
             <div className="feed-title-row">
               <div><span className="eyebrow">VERIFIED NEWS FEED</span><h2 id="latest-heading">ข่าวล่าสุด</h2></div>
-              <span>{filteredStories.length} เรื่อง</span>
+              <div className="feed-title-actions">
+                {untranslatedCount > 0 && (
+                  <button
+                    type="button"
+                    className="story-action primary"
+                    onClick={() => translate([], untranslatedCount)}
+                    disabled={translatingIds.length > 0 || !capabilities.translation}
+                    title={capabilities.translation ? "" : "ยังไม่ได้ตั้งค่า ANTHROPIC_API_KEY บน Worker"}
+                  >
+                    {translatingIds.includes("*") && translateProgress
+                      ? translateLabel(translateProgress)
+                      : `🇹🇭 แปลที่ยังค้าง ${untranslatedCount} ข่าว`}
+                  </button>
+                )}
+                <span>{filteredStories.length} เรื่อง</span>
+                {translatingIds.includes("*") && translateProgress && <TranslateBar progress={translateProgress} />}
+              </div>
             </div>
             {loading && !stories.length ? (
               <div className="loading-stack" aria-label="กำลังโหลดข่าว"><i /><i /><i /></div>
@@ -471,7 +595,16 @@ export function Newsroom() {
                   <small>{items.length} ข่าว</small>
                 </div>
                 <div className="story-list">
-                  {items.map((story) => <StoryCard key={story.id} story={story} now={now ?? new Date(0)} />)}
+                  {items.map((story) => (
+                    <StoryCard
+                      key={story.id}
+                      story={story}
+                      now={now ?? new Date(0)}
+                      onTranslate={(target) => translate([target.id])}
+                      translating={translatingIds.includes(story.id) || translatingIds.includes("*")}
+                      progress={translateProgress}
+                    />
+                  ))}
                 </div>
               </div>
             )) : <EmptyState syncing={syncing} onSync={() => void sync()} />}
