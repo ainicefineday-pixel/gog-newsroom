@@ -1,6 +1,21 @@
 import { CATEGORIES } from "@/lib/types";
 import { ensureDatabase, getLatestSync, getTripPlan, listStories, saveTripPlan, type RuntimeEnv } from "@/lib/server/database";
 import { askTripAssistant } from "@/lib/server/trip-assistant";
+import {
+  createBookingRequest,
+  createPartner,
+  listAllPartners,
+  listVerifiedPartners,
+  setPartnerStatus,
+  PARTNER_KINDS,
+  PARTNER_STATUSES,
+  PRICING_MODELS,
+  type PartnerKind,
+  type PartnerService,
+  type PartnerStatus,
+  type PricingModel,
+} from "@/lib/server/partners";
+import { fetchMatchWeather } from "@/services/weather";
 import { generateDailyDigest, runIngest, translateStories } from "@/lib/server/pipeline";
 import { getChannelAnalytics } from "@/lib/server/channel-analytics";
 import {
@@ -220,6 +235,129 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
     } catch (error) {
       return json({ ok: false, error: error instanceof Error ? error.message : "Ingestion failed" }, 502);
     }
+  }
+
+  // ── อากาศวันแข่ง (Open-Meteo · ฟรี ไม่ต้องใช้คีย์) ────────────────────
+  if (url.pathname === "/api/weather" && request.method === "GET") {
+    const city = url.searchParams.get("city") ?? "";
+    const date = url.searchParams.get("date") ?? "";
+    const weather = await fetchMatchWeather(city, date);
+    return json(weather ? { ok: true, weather } : { ok: false, error: "unavailable" }, weather ? 200 : 404);
+  }
+
+  // ── GOG Partner Network ──────────────────────────────────────────────
+  // สมัครเป็นผู้ให้บริการ — ทุกคนเข้าสถานะ pending รอทีมงานตรวจ
+  if (url.pathname === "/api/partners" && request.method === "POST") {
+    let body: Record<string, unknown> = {};
+    try { body = (await request.json()) as Record<string, unknown>; } catch { return json({ error: "invalid_body" }, 400); }
+
+    const text = (key: string, max = 400) => (typeof body[key] === "string" ? (body[key] as string).trim().slice(0, max) : "");
+    const kind = text("kind") as PartnerKind;
+    if (!PARTNER_KINDS.includes(kind)) return json({ error: "invalid_kind" }, 400);
+    const displayName = text("displayName", 120);
+    const city = text("city", 60);
+    const email = text("email", 160);
+    if (!displayName || !city) return json({ error: "name_and_city_required" }, 400);
+    if (!email && !text("phone") && !text("lineId")) return json({ error: "contact_required" }, 400);
+
+    const list = (key: string) => (Array.isArray(body[key])
+      ? (body[key] as unknown[]).filter((item): item is string => typeof item === "string").slice(0, 12)
+      : []);
+
+    const rawServices = Array.isArray(body.services) ? (body.services as Record<string, unknown>[]).slice(0, 8) : [];
+    const services: PartnerService[] = rawServices.flatMap((service, index) => {
+      const title = typeof service.title === "string" ? service.title.trim().slice(0, 160) : "";
+      if (!title) return [];
+      const pricingModel = (PRICING_MODELS as readonly string[]).includes(String(service.pricingModel))
+        ? (service.pricingModel as PricingModel)
+        : "per_day";
+      return [{
+        id: `svc_${index}`,
+        title,
+        pricingModel,
+        priceThb: Math.max(0, Math.round(Number(service.priceThb) || 0)),
+        capacity: Math.min(Math.max(Math.round(Number(service.capacity) || 1), 1), 60),
+        matchdayReady: service.matchdayReady === true,
+        notes: typeof service.notes === "string" ? service.notes.trim().slice(0, 400) : "",
+      }];
+    });
+
+    const rawVehicle = body.vehicle as Record<string, unknown> | undefined;
+    const vehicle = kind === "driver" && rawVehicle && typeof rawVehicle.model === "string"
+      ? {
+          make: String(rawVehicle.make ?? "").slice(0, 60),
+          model: String(rawVehicle.model).slice(0, 60),
+          year: Math.min(Math.max(Math.round(Number(rawVehicle.year) || 0), 1980), 2100),
+          seats: Math.min(Math.max(Math.round(Number(rawVehicle.seats) || 4), 1), 60),
+          luggage: Math.min(Math.max(Math.round(Number(rawVehicle.luggage) || 0), 0), 30),
+        }
+      : null;
+
+    const created = await createPartner(env.DB, {
+      kind,
+      displayName,
+      legalName: text("legalName", 160),
+      city,
+      areas: list("areas"),
+      languages: list("languages"),
+      bio: text("bio", 1_200),
+      email,
+      phone: text("phone", 60),
+      lineId: text("lineId", 80),
+      vehicle,
+      services,
+    });
+    return json({ ok: true, ...created });
+  }
+
+  // รายชื่อสาธารณะ — เฉพาะที่ตรวจแล้ว และไม่ส่งช่องทางติดต่อออกไป
+  if (url.pathname === "/api/partners" && request.method === "GET") {
+    const city = url.searchParams.get("city") ?? undefined;
+    const kindParam = url.searchParams.get("kind");
+    const kind = kindParam && PARTNER_KINDS.includes(kindParam as PartnerKind) ? (kindParam as PartnerKind) : undefined;
+    return json({ ok: true, partners: await listVerifiedPartners(env.DB, { city, kind }) });
+  }
+
+  // หน้าตรวจสอบของทีมงาน — ต้องมี CRON_SECRET
+  if (url.pathname === "/api/partners/admin" && request.method === "GET") {
+    const denied = adminAuthorizationError(request, env);
+    if (denied) return denied;
+    return json({ ok: true, partners: await listAllPartners(env.DB) });
+  }
+
+  const partnerStatusMatch = url.pathname.match(/^\/api\/partners\/(ptn_[a-z0-9]+)\/status$/);
+  if (partnerStatusMatch && request.method === "POST") {
+    const denied = adminAuthorizationError(request, env);
+    if (denied) return denied;
+    let body: { status?: unknown } = {};
+    try { body = (await request.json()) as typeof body; } catch { return json({ error: "invalid_body" }, 400); }
+    const status = String(body.status) as PartnerStatus;
+    if (!PARTNER_STATUSES.includes(status)) return json({ error: "invalid_status" }, 400);
+    return json({ ok: true, ...(await setPartnerStatus(env.DB, partnerStatusMatch[1], status)) });
+  }
+
+  // คำขอจอง — โหมดไดเรกทอรี ระบบแค่ส่งต่อคำขอ ไม่รับเงิน
+  if (url.pathname === "/api/bookings" && request.method === "POST") {
+    let body: Record<string, unknown> = {};
+    try { body = (await request.json()) as Record<string, unknown>; } catch { return json({ error: "invalid_body" }, 400); }
+    const str = (key: string, max = 300) => (typeof body[key] === "string" ? (body[key] as string).trim().slice(0, max) : "");
+    const partnerId = str("partnerId", 40);
+    const travellerName = str("travellerName", 120);
+    const travellerContact = str("travellerContact", 200);
+    const serviceDate = str("serviceDate", 10);
+    if (!partnerId || !travellerName || !travellerContact || !/^\d{4}-\d{2}-\d{2}$/.test(serviceDate)) {
+      return json({ error: "missing_fields" }, 400);
+    }
+    return json({ ok: true, ...(await createBookingRequest(env.DB, {
+      partnerId,
+      serviceId: str("serviceId", 40),
+      tripId: str("tripId", 40),
+      travellerName,
+      travellerContact,
+      serviceDate,
+      pax: Math.min(Math.max(Math.round(Number(body.pax) || 1), 1), 60),
+      message: str("message", 800),
+    })) });
   }
 
   // ── ทริปที่บันทึกไว้ (STEP 27) ───────────────────────────────────────

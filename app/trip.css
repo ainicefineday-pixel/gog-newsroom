@@ -181,3 +181,61 @@ a.trip-cta { text-decoration: none; }
 .trip-save:disabled { opacity: .5; cursor: not-allowed; }
 .trip-share-url { margin: 0; color: var(--muted); font: 500 9.5px/1.6 "Kanit",sans-serif; word-break: break-all; }
 .trip-share-url code { color: #4ade80; font-size: 9.5px; }
+
+/* ═══ GOG Partner Network + อากาศวันแข่ง ════════════════════════════════ */
+.tab-icon-partners::before { content: ""; position: absolute; left: 3px; top: 4px; width: 7px; height: 7px; border: 2px solid currentColor; border-radius: 50%; }
+.tab-icon-partners::after { content: ""; position: absolute; right: 3px; bottom: 3px; width: 12px; height: 8px; border: 2px solid currentColor; border-radius: 8px 8px 3px 3px; opacity: .75; }
+
+.partner-view { display: flex; flex-direction: column; gap: 20px; }
+.partner-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 28px 30px; border: 1px solid var(--line); background: radial-gradient(circle at 12% 15%, rgba(240,165,0,.14), transparent 17rem), linear-gradient(125deg,#11141a,#0c0e12); }
+.partner-hero h2 { margin: 7px 0 6px; font-size: clamp(23px,2.6vw,34px); }
+.partner-hero p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.75; max-width: 60ch; }
+.partner-tabs { display: flex; gap: 8px; }
+.partner-tabs button { display: inline-flex; align-items: center; gap: 6px; background: #0c0e12; border: 1px solid var(--line); border-radius: 9px; color: #a9aeb6; font: 700 11.5px/1 "Kanit",sans-serif; padding: 11px 16px; cursor: pointer; }
+.partner-tabs button.active { background: var(--red); border-color: transparent; color: #fff; }
+
+.partner-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(268px,1fr)); gap: 12px; }
+.partner-grid.compact { grid-template-columns: repeat(auto-fill,minmax(230px,1fr)); }
+.partner-card { border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 16px 17px; display: flex; flex-direction: column; gap: 6px; }
+.partner-card > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.partner-kind { display: inline-flex; align-items: center; gap: 5px; color: #f0a500; font: 800 9.5px/1 "Kanit",sans-serif; letter-spacing: .06em; }
+.partner-verified { display: inline-flex; align-items: center; gap: 4px; color: #4ade80; font: 700 9px/1 "Kanit",sans-serif; }
+.partner-card h4 { margin: 3px 0 0; font-size: 14.5px; }
+.partner-where { margin: 0; color: var(--muted); font-size: 10.5px; }
+.partner-vehicle { margin: 0; color: #cfd3da; font: 600 11px/1.5 "Kanit",sans-serif; }
+.partner-bio { margin: 4px 0 0; color: #9aa0a8; font: 400 11px/1.7 "Kanit",sans-serif; }
+.partner-services { list-style: none; margin: 7px 0 0; padding: 0; display: grid; gap: 5px; }
+.partner-services li { display: flex; justify-content: space-between; gap: 10px; font: 500 10.5px/1.5 "Kanit",sans-serif; color: #b7bbc2; }
+.partner-services b { color: #f0a500; white-space: nowrap; }
+.partner-reasons { list-style: none; margin: 7px 0 0; padding: 0; display: grid; gap: 4px; }
+.partner-reasons li { color: #9aa0a8; font: 500 10px/1.5 "Kanit",sans-serif; padding-left: 13px; position: relative; }
+.partner-reasons li::before { content: "✓"; position: absolute; left: 0; color: #4ade80; }
+.partner-card > footer { display: flex; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 10px; border-top: 1px solid #ffffff0d; }
+.partner-from { color: #f0a500; font: 800 11px/1 "Kanit",sans-serif; }
+.partner-rating { color: var(--muted); font: 600 10px/1 "Kanit",sans-serif; }
+.partner-empty, .partner-empty-sub { color: var(--muted); font: 400 11.5px/1.8 "Kanit",sans-serif; margin: 0; }
+.partner-empty-state { text-align: center; padding: 28px 16px; border: 1px dashed var(--line); border-radius: 12px; display: grid; gap: 6px; }
+
+.partner-form { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 13px; }
+.partner-form textarea { background: #0c0e12; border: 1px solid var(--line); border-radius: 8px; color: #e7e9ec; font: 500 12px/1.7 "Kanit",sans-serif; padding: 11px; resize: vertical; }
+.partner-checkbox { flex-direction: row !important; align-items: center; gap: 9px; }
+.partner-checkbox input { width: 17px; height: 17px; accent-color: #f0a500; }
+.partner-checkbox span { color: #cfd3da; font: 500 11px/1.5 "Kanit",sans-serif; letter-spacing: 0; }
+.partner-requirements { grid-column: 1 / -1; border: 1px solid rgba(240,165,0,.28); border-radius: 11px; background: rgba(240,165,0,.05); padding: 14px 16px; }
+.partner-requirements strong { display: block; color: #f0a500; font: 800 11.5px/1 "Kanit",sans-serif; margin-bottom: 8px; }
+.partner-requirements ul { margin: 0; padding-left: 18px; color: #b7bbc2; font: 400 11px/1.8 "Kanit",sans-serif; }
+.partner-legal { margin: 10px 0 0; color: #f87171; font: 500 10.5px/1.7 "Kanit",sans-serif; }
+.partner-submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--red); border: none; border-radius: 9px; color: #fff; font: 800 13px/1 "Kanit",sans-serif; padding: 14px 22px; cursor: pointer; }
+.partner-submit:disabled { opacity: .55; cursor: not-allowed; }
+.partner-submitted { display: flex; gap: 14px; align-items: flex-start; padding: 20px; border: 1px solid rgba(74,222,128,.3); border-radius: 12px; background: rgba(74,222,128,.06); color: #4ade80; }
+.partner-submitted strong { display: block; font-size: 14px; color: #fff; margin-bottom: 5px; }
+.partner-submitted p { margin: 0 0 11px; color: #b7bbc2; font: 400 11.5px/1.8 "Kanit",sans-serif; }
+.partner-submitted code { color: #4ade80; }
+
+.weather-block { border-color: rgba(59,130,246,.28); background: linear-gradient(135deg, rgba(59,130,246,.06), #0f1115 55%); }
+.weather-row { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.weather-temp strong { font: 800 38px/1 "Kanit",sans-serif; color: #fff; }
+.weather-temp span { display: block; color: var(--muted); font-size: 10.5px; margin-top: 4px; }
+.weather-facts { display: grid; gap: 5px; }
+.weather-facts span { color: #cfd3da; font: 600 12px/1.4 "Kanit",sans-serif; }
+.weather-advice { margin: 13px 0 0; padding: 11px 14px; border-radius: 10px; background: #ffffff08; color: #e7e9ec; font: 400 11.5px/1.8 "Kanit",sans-serif; }

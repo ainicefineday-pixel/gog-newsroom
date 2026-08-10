@@ -9,6 +9,7 @@ import {
   Landmark,
   MapPin,
   Plane,
+  CloudSun,
   Share2,
   Sparkles,
   Ticket,
@@ -22,6 +23,10 @@ import { defaultHotel, listHotels } from "@/services/hotels";
 import { estimateTrip, formatMoney } from "@/services/pricing";
 import { buildItinerary, detectConflicts, type ItineraryDay } from "@/services/itinerary";
 import { pilgrimageIn, PLACES } from "@/services/places";
+import { PARTNER_KIND_LABEL, fromPrice, rankPartners } from "@/services/partners";
+import type { Partner } from "@/lib/server/partners";
+import type { MatchWeather } from "@/services/weather";
+import { formatThb } from "@/services/pricing";
 import { FLIGHT_OPTIONS } from "@/services/flights";
 import { HOTEL_OPTIONS } from "@/services/hotels";
 import { BUDGET_LABELS, type BudgetStyle, type DestinationCity, type TripLength } from "@/services/trip/types";
@@ -133,6 +138,8 @@ export function TripPlanner() {
   const [assistantBusy, setAssistantBusy] = useState(false);
   const [assistantReply, setAssistantReply] = useState<{ reply: string; changed: string[] } | null>(null);
   const [tripError, setTripError] = useState("");
+  const [weather, setWeather] = useState<MatchWeather | null>(null);
+  const [partners, setPartners] = useState<Partner[]>([]);
 
   const fixture = useMemo(() => fixtures.find((item) => item.key === fixtureKey) ?? null, [fixtures, fixtureKey]);
   const city: DestinationCity = fixture?.destination ?? "Manchester";
@@ -262,6 +269,30 @@ export function TripPlanner() {
     return () => { alive = false; };
   }, []);
 
+  // อากาศวันแข่งจาก Open-Meteo — พยากรณ์ล่วงหน้าได้ประมาณ 16 วัน ไกลกว่านั้นคืนว่าง
+  useEffect(() => {
+    let alive = true;
+    if (!matchDate) {
+      window.queueMicrotask(() => { if (alive) setWeather(null); });
+      return () => { alive = false; };
+    }
+    fetch(`/api/weather?city=${encodeURIComponent(city)}&date=${matchDate}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { weather?: MatchWeather } | null) => { if (alive) setWeather(payload?.weather ?? null); })
+      .catch(() => { if (alive) setWeather(null); });
+    return () => { alive = false; };
+  }, [city, matchDate]);
+
+  // พาร์ตเนอร์คนไทยในเมืองปลายทาง (เฉพาะที่ตรวจเอกสารแล้ว)
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/partners?city=${encodeURIComponent(city)}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { partners?: Partner[] } | null) => { if (alive) setPartners(payload?.partners ?? []); })
+      .catch(() => { if (alive) setPartners([]); });
+    return () => { alive = false; };
+  }, [city]);
+
   const saveTrip = useCallback(async () => {
     setSaving(true);
     setTripError("");
@@ -385,6 +416,12 @@ export function TripPlanner() {
       apply: () => setReturnDate(addDays(returnDate, 1)),
     },
   ];
+
+  const hasMatch = Boolean(fixture);
+  const rankedPartners = useMemo(
+    () => rankPartners(partners, { city, travellers, matchday: hasMatch }).slice(0, 6),
+    [partners, city, travellers, hasMatch],
+  );
 
   const money = (amount: number) => formatMoney(amount, currency);
   const maxLine = Math.max(...estimate.lines.map((line) => line.amount), 1);
@@ -694,6 +731,66 @@ export function TripPlanner() {
               </div>
             </section>
           )}
+
+          {/* ── อากาศวันแข่ง (Open-Meteo) ────────────────────────────────── */}
+          {weather && (
+            <section className="trip-block weather-block">
+              <header className="trip-block-head">
+                <div>
+                  <span className="eyebrow">MATCHDAY WEATHER</span>
+                  <h3><CloudSun size={15} aria-hidden="true" /> อากาศวันแข่ง</h3>
+                </div>
+              </header>
+              <div className="weather-row">
+                <div className="weather-temp">
+                  <strong>{weather.maxC}°</strong>
+                  <span>ต่ำสุด {weather.minC}°</span>
+                </div>
+                <div className="weather-facts">
+                  <span>{weather.summary}</span>
+                  <span>โอกาสฝน {weather.rainChance}%</span>
+                  <span>ลม {weather.windKph} กม./ชม.</span>
+                </div>
+              </div>
+              <p className="weather-advice">{weather.advice}</p>
+              <p className="trip-disclaimer">พยากรณ์จาก Open-Meteo · แม่นขึ้นเมื่อใกล้วันแข่ง ควรเช็กซ้ำก่อนออกเดินทาง</p>
+            </section>
+          )}
+
+          {/* ── GOG Partner Network ───────────────────────────────────────── */}
+          <section className="trip-block">
+            <header className="trip-block-head">
+              <div>
+                <span className="eyebrow">GOG PARTNER NETWORK</span>
+                <h3>คนไทยใน{city === "Manchester" ? "แมนเชสเตอร์" : "ลอนดอน"}ที่รับงานได้</h3>
+              </div>
+            </header>
+            {rankedPartners.length === 0 ? (
+              <p className="partner-empty">
+                ยังไม่มีผู้ให้บริการที่ผ่านการตรวจในเมืองนี้ — ถ้าคุณอยู่อังกฤษและอยากรับงานกับ GOG
+                ไปที่แท็บ &quot;เครือข่าย GOG&quot; เพื่อลงทะเบียน
+              </p>
+            ) : (
+              <div className="partner-grid compact">
+                {rankedPartners.map(({ partner, reasons }) => (
+                  <article className="partner-card" key={partner.id}>
+                    <header>
+                      <span className="partner-kind">{PARTNER_KIND_LABEL[partner.kind]}</span>
+                    </header>
+                    <h4>{partner.displayName}</h4>
+                    {partner.vehicle && (
+                      <p className="partner-vehicle">{partner.vehicle.make} {partner.vehicle.model} · {partner.vehicle.seats} ที่นั่ง</p>
+                    )}
+                    <ul className="partner-reasons">{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
+                    {fromPrice(partner) > 0 && <span className="partner-from">เริ่มต้น {formatThb(fromPrice(partner))}</span>}
+                  </article>
+                ))}
+              </div>
+            )}
+            <p className="trip-disclaimer">
+              GOG เป็นไดเรกทอรี — ผู้เดินทางตกลงเงื่อนไขและชำระเงินกับผู้ให้บริการโดยตรง
+            </p>
+          </section>
 
           {/* ── STEP 39 · ASK GOG ────────────────────────────────────────── */}
           <section className="trip-block ask-gog">
