@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { recommendFixture } from "@/services/football/recommendation";
+import { toPlannable } from "@/services/football/fixtures";
 import {
   FIXTURE_DATA_UPDATED_AT,
   MU_PREMIER_LEAGUE_FIXTURES,
@@ -159,39 +161,50 @@ export function FixturesPanel() {
       <div className="fixture-table-wrap">
         <table className="fixture-table">
           <thead>
-            <tr><th>นัด</th><th>วันแข่งขัน</th><th>คู่แข่งขัน</th><th>เวลาไทย</th><th>เวลาอังกฤษ</th><th>นับถอยหลัง</th><th>สนาม</th><th>เมือง</th><th>สถานะ</th></tr>
+            <tr><th>นัด</th><th>วันแข่งขัน</th><th>คู่แข่งขัน</th><th>เวลาเตะ</th><th>สนาม</th><th>คำแนะนำ</th></tr>
           </thead>
           <tbody>
             {fixtures.map((fixture) => {
               const isHome = fixture.home === "Manchester United";
               const inManchester = isInManchester(fixture);
               const countdown = countdownTo(fixture, now);
+              const recommendation = recommendFixture(toPlannable(fixture));
               return (
                 <tr
                   key={`${fixture.matchday}-${fixture.kickoffUtc}`}
-                  className={`${inManchester ? "in-manchester" : ""} ${countdown?.past ? "played" : ""}`.trim()}
+                  className={`${inManchester ? "in-manchester" : ""} ${countdown?.past ? "played" : ""} ${recommendation.special ? "special" : ""}`.trim()}
                   title={inManchester ? "แข่งที่แมนเชสเตอร์" : undefined}
                 >
                   <td><b className="matchday">{String(fixture.matchday).padStart(2, "0")}</b></td>
-                  <td><strong>{formatFixtureDate(fixture)}</strong></td>
-                  <td>
+                  <td className="cell-date">
+                    <strong>{formatFixtureDate(fixture)}</strong>
+                    {countdown
+                      ? <span className={`fixture-countdown ${countdown.live ? "live" : ""} ${countdown.soon ? "soon" : ""} ${countdown.past ? "past" : ""}`.trim()}>{countdown.text}</span>
+                      : <span className="fixture-countdown">—</span>}
+                  </td>
+                  <td className="cell-teams">
                     <div className="fixture-opponents">
                       <span className={isHome ? "united" : ""}>{fixture.home}</span><i>v</i><span className={!isHome ? "united" : ""}>{fixture.away}</span>
                     </div>
-                    <small>{isHome ? "เหย้า" : "เยือน"}</small>
+                    <span className="fixture-venue-tag">{isHome ? "เหย้า" : "เยือน"}{inManchester ? " · แมนเชสเตอร์" : ""}</span>
                   </td>
-                  <td><b className="thai-time">{formatFixtureTime(fixture)} น.</b><small>Asia/Bangkok</small></td>
-                  <td><b className="uk-time">{formatUkTime(fixture)}</b><small>{formatUkDate(fixture)} · Europe/London</small></td>
-                  <td>
-                    {countdown
-                      ? <b className={`fixture-countdown ${countdown.live ? "live" : ""} ${countdown.soon ? "soon" : ""} ${countdown.past ? "past" : ""}`.trim()}>{countdown.text}</b>
-                      : <b className="fixture-countdown">—</b>}
+                  <td className="cell-time">
+                    <b className="thai-time">{formatFixtureTime(fixture)} น.</b>
+                    <span className="tz-label">เวลาไทย</span>
+                    <b className="uk-time">{formatUkTime(fixture)}</b>
+                    <span className="tz-label">{formatUkDate(fixture)} เวลาอังกฤษ</span>
                   </td>
-                  <td><strong>{fixture.stadium}</strong></td>
-                  <td>{fixture.city}</td>
-                  <td>
+                  <td className="cell-venue">
+                    <strong>{fixture.stadium}</strong>
+                    <span>{fixture.city}</span>
+                  </td>
+                  <td className="cell-advice">
+                    <span className={`fixture-tier ${recommendation.tier}`}>{recommendation.tierLabel}</span>
+                    {recommendation.badges.filter((badge) => badge.kind !== "must" && badge.kind !== "should").map((badge) => (
+                      <span key={badge.label} className={`fixture-badge ${badge.kind}`}>{badge.label}</span>
+                    ))}
                     <span className={`fixture-status ${fixture.status}`}><i />{fixture.status === "confirmed" ? "ยืนยันแล้ว" : "รอยืนยัน"}</span>
-                    {fixture.broadcaster && <small>{fixture.broadcaster}</small>}
+                    {fixture.broadcaster && <span className="fixture-broadcaster">{fixture.broadcaster}</span>}
                   </td>
                 </tr>
               );

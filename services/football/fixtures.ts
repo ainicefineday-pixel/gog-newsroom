@@ -71,8 +71,9 @@ function ymd(date: Date) {
  */
 export function recommendTripDates(kickoffUtc: string, length: TripLength) {
   const matchDay = new Date(`${kickoffUtc.slice(0, 10)}T00:00:00Z`);
-  // ทริปยาวขึ้น = มาถึงก่อนเกมมากขึ้น เผื่อเที่ยวเมืองอื่นก่อนแล้วค่อยกลับมาดูบอล
-  const daysBefore = length === 5 ? 2 : length === 8 ? 4 : 5;
+  // ต้องถึงอังกฤษก่อนวันแข่งอย่างน้อย 2 วัน (บิน 1 คืน + พักปรับเจ็ตแล็ก 1 วันเต็ม)
+  // ของเดิมทริป 5 วันออกก่อนแข่ง 2 วัน = ถึงก่อนแข่งแค่วันเดียว ซึ่งไปชนคำเตือนของระบบเองทุกครั้ง
+  const daysBefore = length === 5 ? 3 : length === 8 ? 4 : 5;
   const depart = addDays(matchDay, -daysBefore);
   const back = addDays(depart, length - 1);
   return { departDate: ymd(depart), returnDate: ymd(back), matchDate: ymd(matchDay) };

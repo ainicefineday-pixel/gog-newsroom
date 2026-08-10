@@ -14,12 +14,12 @@
 .trip-form { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 12px; }
 .trip-field { display: flex; flex-direction: column; gap: 6px; }
 .trip-field-wide { grid-column: span 2; }
-.trip-field > span { color: var(--muted); font: 700 9.5px/1 "Kanit",sans-serif; letter-spacing: .06em; display: inline-flex; align-items: center; gap: 5px; }
-.trip-field input, .trip-field select { background: #0c0e12; border: 1px solid var(--line); border-radius: 8px; color: #e7e9ec; font: 600 12px/1 "Kanit",sans-serif; padding: 10px 11px; width: 100%; }
+.trip-field > span { color: var(--muted); font: 700 9.5px/1.45 "Kanit",sans-serif; letter-spacing: .06em; display: inline-flex; align-items: center; gap: 5px; }
+.trip-field input, .trip-field select { background: #0c0e12; border: 1px solid var(--line); border-radius: 8px; color: #e7e9ec; font: 600 12px/1.45 "Kanit",sans-serif; padding: 10px 11px; width: 100%; }
 .trip-field input:read-only { color: #9aa0a8; }
 .trip-field input:focus-visible, .trip-field select:focus-visible { outline: 2px solid var(--red); outline-offset: 1px; }
 .trip-segment { display: flex; gap: 6px; flex-wrap: wrap; }
-.trip-segment button { flex: 1; min-width: 82px; background: #0c0e12; border: 1px solid var(--line); border-radius: 8px; color: #a9aeb6; font: 700 11px/1 "Kanit",sans-serif; padding: 10px 8px; cursor: pointer; }
+.trip-segment button { flex: 1; min-width: 82px; background: #0c0e12; border: 1px solid var(--line); border-radius: 8px; color: #a9aeb6; font: 700 11px/1.45 "Kanit",sans-serif; padding: 10px 8px; cursor: pointer; }
 .trip-segment button.active { background: var(--red); border-color: transparent; color: #fff; }
 
 .trip-warning { display: flex; align-items: center; gap: 10px; padding: 11px 15px; border: 1px solid rgba(240,165,0,.4); background: rgba(240,165,0,.09); color: #f0a500; border-radius: 10px; font: 600 12px/1.5 "Kanit",sans-serif; }
@@ -30,7 +30,7 @@
 .trip-block-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
 .trip-block-head h3 { margin: 5px 0 0; font-size: 18px; display: inline-flex; align-items: center; gap: 8px; }
 .trip-filters { display: flex; gap: 6px; flex-wrap: wrap; }
-.trip-filters button { background: transparent; border: 1px solid var(--line); border-radius: 99px; color: #9aa0a8; font: 700 10px/1 "Kanit",sans-serif; padding: 7px 13px; cursor: pointer; }
+.trip-filters button { background: transparent; border: 1px solid var(--line); border-radius: 99px; color: #9aa0a8; font: 700 10px/1.45 "Kanit",sans-serif; padding: 7px 13px; cursor: pointer; }
 .trip-filters button.active { background: var(--red); border-color: transparent; color: #fff; }
 
 .fixture-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(232px,1fr)); gap: 11px; }
@@ -38,21 +38,21 @@
 .trip-fixture:hover { border-color: #6b7078; transform: translateY(-2px); }
 .trip-fixture.active { border-color: var(--red); background: rgba(218,41,28,.08); }
 .trip-fixture.manchester { box-shadow: inset 3px 0 0 var(--red); }
-.trip-fixture-md { color: var(--muted); font: 800 8px/1 "Kanit",sans-serif; letter-spacing: .14em; }
+.trip-fixture-md { color: var(--muted); font: 800 8px/1.45 "Kanit",sans-serif; letter-spacing: .14em; }
 .trip-fixture strong { font-size: 13px; line-height: 1.3; }
-.trip-fixture em { color: var(--muted); font: 700 9px/1 "Kanit",sans-serif; font-style: normal; }
+.trip-fixture em { color: var(--muted); font: 700 9px/1.45 "Kanit",sans-serif; font-style: normal; }
 .trip-fixture-when { font: 700 11px/1.4 "Kanit",sans-serif; color: #e7e9ec; }
 .trip-fixture-when small { color: var(--muted); font-weight: 500; font-size: 9px; margin-left: 5px; }
 .trip-fixture-venue { color: var(--muted); font-size: 10.5px; margin-top: 3px; }
 .trip-fixture-rec { color: #f0a500; font: 600 10px/1.4 "Kanit",sans-serif; margin-top: 5px; }
-.trip-fixture-status { font: 700 9px/1 "Kanit",sans-serif; margin-top: 6px; color: #6b7078; }
+.trip-fixture-status { font: 700 9px/1.45 "Kanit",sans-serif; margin-top: 6px; color: #6b7078; }
 .trip-fixture-status.confirmed { color: #4ade80; }
 
 .budget-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 11px; }
 .budget-card { display: grid; gap: 5px; text-align: left; padding: 17px 18px; border: 1px solid var(--line); border-radius: 11px; background: #0c0e12; color: #d5d8dd; cursor: pointer; transition: border-color .16s; }
 .budget-card:hover { border-color: #6b7078; }
 .budget-card.active { border-color: var(--red); background: rgba(218,41,28,.08); }
-.budget-name { font: 800 13px/1 "Kanit",sans-serif; color: #fff; }
+.budget-name { font: 800 13px/1.45 "Kanit",sans-serif; color: #fff; }
 .budget-tagline { color: var(--muted); font-size: 10.5px; }
 .budget-card strong { font-size: 21px; color: #f0a500; margin-top: 6px; font-variant-numeric: tabular-nums; }
 .budget-card small { color: var(--muted); font-size: 9.5px; }
@@ -88,10 +88,10 @@
 .trip-summary dt { color: var(--muted); font-weight: 500; }
 .trip-summary dd { margin: 0; text-align: right; color: #e7e9ec; }
 .trip-total { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 2px; }
-.trip-total span { color: var(--muted); font: 700 9px/1 "Kanit",sans-serif; letter-spacing: .1em; }
+.trip-total span { color: var(--muted); font: 700 9px/1.45 "Kanit",sans-serif; letter-spacing: .1em; }
 .trip-total strong { font-size: 26px; color: #f0a500; font-variant-numeric: tabular-nums; }
 .trip-total small { color: var(--muted); font-size: 10px; }
-.trip-cta { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: var(--red); border: none; border-radius: 9px; color: #fff; font: 800 12.5px/1 "Kanit",sans-serif; padding: 13px; cursor: pointer; }
+.trip-cta { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: var(--red); border: none; border-radius: 9px; color: #fff; font: 800 12.5px/1.45 "Kanit",sans-serif; padding: 13px; cursor: pointer; }
 .trip-summary-note { margin: 0; color: var(--muted); font-size: 9.5px; line-height: 1.6; }
 
 @media (max-width: 980px) {
@@ -117,10 +117,10 @@
 .itinerary-day > header { display: flex; align-items: center; gap: 13px; }
 .itinerary-day > header > div { flex: 1; min-width: 0; }
 .itinerary-day h4 { margin: 0; font-size: 15px; }
-.itinerary-day-no { font: 800 9px/1 "Kanit",sans-serif; letter-spacing: .13em; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 6px 10px; flex-shrink: 0; }
+.itinerary-day-no { font: 800 9px/1.45 "Kanit",sans-serif; letter-spacing: .13em; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 6px 10px; flex-shrink: 0; }
 .itinerary-day.matchday .itinerary-day-no { color: #fff; background: var(--red); border-color: transparent; }
 .itinerary-day-date { color: var(--muted); font-size: 10.5px; }
-.itinerary-day > header b { color: #f0a500; font: 800 13px/1 "Kanit",sans-serif; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.itinerary-day > header b { color: #f0a500; font: 800 13px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; flex-shrink: 0; }
 .itinerary-day-summary { margin: 9px 0 13px; color: #9aa0a8; font: 400 11.5px/1.7 "Kanit",sans-serif; }
 
 .itinerary-timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -136,9 +136,9 @@
 .pilgrimage-list { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 11px; }
 .pilgrimage-card { border: 1px solid var(--line); border-left: 3px solid var(--red); border-radius: 11px; background: #0c0e12; padding: 15px 17px; }
 .pilgrimage-card h4 { margin: 0 0 5px; font-size: 13.5px; line-height: 1.35; }
-.pilgrimage-area { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font: 600 10px/1 "Kanit",sans-serif; }
+.pilgrimage-area { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font: 600 10px/1.45 "Kanit",sans-serif; }
 .pilgrimage-card p { margin: 9px 0 0; color: #b7bbc2; font: 400 11.5px/1.75 "Kanit",sans-serif; }
-.pilgrimage-meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 11px; padding-top: 9px; border-top: 1px solid #ffffff0d; color: var(--muted); font: 600 10px/1 "Kanit",sans-serif; }
+.pilgrimage-meta { display: flex; justify-content: space-between; gap: 10px; margin-top: 11px; padding-top: 9px; border-top: 1px solid #ffffff0d; color: var(--muted); font: 600 10px/1.45 "Kanit",sans-serif; }
 
 a.trip-cta { text-decoration: none; }
 
@@ -148,10 +148,10 @@ a.trip-cta { text-decoration: none; }
 }
 
 /* ═══ ปรับแผนเอง / What if? / ASK GOG / แชร์ทริป (STEP 19, 24, 27, 39) ═══ */
-.item-remove { margin-top: 7px; background: transparent; border: 1px solid var(--line); border-radius: 7px; color: #6b7078; font: 600 9.5px/1 "Kanit",sans-serif; padding: 5px 9px; cursor: pointer; }
+.item-remove { margin-top: 7px; background: transparent; border: 1px solid var(--line); border-radius: 7px; color: #6b7078; font: 600 9.5px/1.45 "Kanit",sans-serif; padding: 5px 9px; cursor: pointer; }
 .item-remove:hover { border-color: #ef4444; color: #f87171; }
-.removed-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; padding: 9px 13px; border: 1px dashed var(--line); border-radius: 9px; color: var(--muted); font: 600 11px/1 "Kanit",sans-serif; }
-.removed-bar button { background: transparent; border: none; color: #f0a500; font: 700 11px/1 "Kanit",sans-serif; cursor: pointer; text-decoration: underline; }
+.removed-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; padding: 9px 13px; border: 1px dashed var(--line); border-radius: 9px; color: var(--muted); font: 600 11px/1.45 "Kanit",sans-serif; }
+.removed-bar button { background: transparent; border: none; color: #f0a500; font: 700 11px/1.45 "Kanit",sans-serif; cursor: pointer; text-decoration: underline; }
 
 .whatif-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(210px,1fr)); gap: 10px; }
 .whatif-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; padding: 14px 15px; border: 1px solid var(--line); border-radius: 11px; background: #0c0e12; color: #d5d8dd; cursor: pointer; font: 600 11.5px/1.4 "Kanit",sans-serif; }
@@ -163,20 +163,20 @@ a.trip-cta { text-decoration: none; }
 .ask-gog { border-color: rgba(240,165,0,.3); background: linear-gradient(135deg, rgba(240,165,0,.05), #0f1115 55%); }
 .ask-gog-lead { margin: 0 0 13px; color: #9aa0a8; font: 400 11.5px/1.7 "Kanit",sans-serif; }
 .ask-gog-suggestions { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 13px; }
-.ask-gog-suggestions button { background: #0c0e12; border: 1px solid var(--line); border-radius: 99px; color: #b7bbc2; font: 600 10.5px/1 "Kanit",sans-serif; padding: 8px 13px; cursor: pointer; }
+.ask-gog-suggestions button { background: #0c0e12; border: 1px solid var(--line); border-radius: 99px; color: #b7bbc2; font: 600 10.5px/1.45 "Kanit",sans-serif; padding: 8px 13px; cursor: pointer; }
 .ask-gog-suggestions button:hover:not(:disabled) { border-color: #f0a500; color: #f0a500; }
 .ask-gog-suggestions button:disabled { opacity: .45; cursor: not-allowed; }
 .ask-gog-form { display: flex; gap: 8px; flex-wrap: wrap; }
-.ask-gog-form input { flex: 1; min-width: 200px; background: #0c0e12; border: 1px solid var(--line); border-radius: 9px; color: #e7e9ec; font: 500 12px/1 "Kanit",sans-serif; padding: 12px 13px; }
-.ask-gog-form button { display: inline-flex; align-items: center; gap: 7px; background: #f0a500; border: none; border-radius: 9px; color: #17130a; font: 800 12px/1 "Kanit",sans-serif; padding: 12px 18px; cursor: pointer; }
+.ask-gog-form input { flex: 1; min-width: 200px; background: #0c0e12; border: 1px solid var(--line); border-radius: 9px; color: #e7e9ec; font: 500 12px/1.45 "Kanit",sans-serif; padding: 12px 13px; }
+.ask-gog-form button { display: inline-flex; align-items: center; gap: 7px; background: #f0a500; border: none; border-radius: 9px; color: #17130a; font: 800 12px/1.45 "Kanit",sans-serif; padding: 12px 18px; cursor: pointer; }
 .ask-gog-form button:disabled { opacity: .5; cursor: not-allowed; }
 .ask-gog-reply { margin-top: 14px; padding: 14px 16px; border: 1px solid rgba(240,165,0,.28); border-radius: 11px; background: rgba(240,165,0,.06); }
 .ask-gog-reply p { margin: 0; color: #e7e9ec; font: 400 12px/1.8 "Kanit",sans-serif; }
-.ask-gog-changed-label { display: block; margin-top: 11px; color: #f0a500; font: 800 9px/1 "Kanit",sans-serif; letter-spacing: .12em; }
+.ask-gog-changed-label { display: block; margin-top: 11px; color: #f0a500; font: 800 9px/1.45 "Kanit",sans-serif; letter-spacing: .12em; }
 .ask-gog-reply ul { margin: 7px 0 0; padding-left: 18px; color: #b7bbc2; font: 400 11.5px/1.75 "Kanit",sans-serif; }
 .ask-gog-error { margin: 12px 0 0; color: #f87171; font: 600 11.5px/1.6 "Kanit",sans-serif; }
 
-.trip-save { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: transparent; border: 1px solid var(--line); border-radius: 9px; color: #d5d8dd; font: 700 11.5px/1 "Kanit",sans-serif; padding: 11px; cursor: pointer; }
+.trip-save { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: transparent; border: 1px solid var(--line); border-radius: 9px; color: #d5d8dd; font: 700 11.5px/1.45 "Kanit",sans-serif; padding: 11px; cursor: pointer; }
 .trip-save:hover:not(:disabled) { border-color: #f0a500; color: #f0a500; }
 .trip-save:disabled { opacity: .5; cursor: not-allowed; }
 .trip-share-url { margin: 0; color: var(--muted); font: 500 9.5px/1.6 "Kanit",sans-serif; word-break: break-all; }
@@ -191,15 +191,15 @@ a.trip-cta { text-decoration: none; }
 .partner-hero h2 { margin: 7px 0 6px; font-size: clamp(23px,2.6vw,34px); }
 .partner-hero p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.75; max-width: 60ch; }
 .partner-tabs { display: flex; gap: 8px; }
-.partner-tabs button { display: inline-flex; align-items: center; gap: 6px; background: #0c0e12; border: 1px solid var(--line); border-radius: 9px; color: #a9aeb6; font: 700 11.5px/1 "Kanit",sans-serif; padding: 11px 16px; cursor: pointer; }
+.partner-tabs button { display: inline-flex; align-items: center; gap: 6px; background: #0c0e12; border: 1px solid var(--line); border-radius: 9px; color: #a9aeb6; font: 700 11.5px/1.45 "Kanit",sans-serif; padding: 11px 16px; cursor: pointer; }
 .partner-tabs button.active { background: var(--red); border-color: transparent; color: #fff; }
 
 .partner-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(268px,1fr)); gap: 12px; }
 .partner-grid.compact { grid-template-columns: repeat(auto-fill,minmax(230px,1fr)); }
 .partner-card { border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 16px 17px; display: flex; flex-direction: column; gap: 6px; }
 .partner-card > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.partner-kind { display: inline-flex; align-items: center; gap: 5px; color: #f0a500; font: 800 9.5px/1 "Kanit",sans-serif; letter-spacing: .06em; }
-.partner-verified { display: inline-flex; align-items: center; gap: 4px; color: #4ade80; font: 700 9px/1 "Kanit",sans-serif; }
+.partner-kind { display: inline-flex; align-items: center; gap: 5px; color: #f0a500; font: 800 9.5px/1.45 "Kanit",sans-serif; letter-spacing: .06em; }
+.partner-verified { display: inline-flex; align-items: center; gap: 4px; color: #4ade80; font: 700 9px/1.45 "Kanit",sans-serif; }
 .partner-card h4 { margin: 3px 0 0; font-size: 14.5px; }
 .partner-where { margin: 0; color: var(--muted); font-size: 10.5px; }
 .partner-vehicle { margin: 0; color: #cfd3da; font: 600 11px/1.5 "Kanit",sans-serif; }
@@ -211,8 +211,8 @@ a.trip-cta { text-decoration: none; }
 .partner-reasons li { color: #9aa0a8; font: 500 10px/1.5 "Kanit",sans-serif; padding-left: 13px; position: relative; }
 .partner-reasons li::before { content: "✓"; position: absolute; left: 0; color: #4ade80; }
 .partner-card > footer { display: flex; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 10px; border-top: 1px solid #ffffff0d; }
-.partner-from { color: #f0a500; font: 800 11px/1 "Kanit",sans-serif; }
-.partner-rating { color: var(--muted); font: 600 10px/1 "Kanit",sans-serif; }
+.partner-from { color: #f0a500; font: 800 11px/1.45 "Kanit",sans-serif; }
+.partner-rating { color: var(--muted); font: 600 10px/1.45 "Kanit",sans-serif; }
 .partner-empty, .partner-empty-sub { color: var(--muted); font: 400 11.5px/1.8 "Kanit",sans-serif; margin: 0; }
 .partner-empty-state { text-align: center; padding: 28px 16px; border: 1px dashed var(--line); border-radius: 12px; display: grid; gap: 6px; }
 
@@ -222,10 +222,10 @@ a.trip-cta { text-decoration: none; }
 .partner-checkbox input { width: 17px; height: 17px; accent-color: #f0a500; }
 .partner-checkbox span { color: #cfd3da; font: 500 11px/1.5 "Kanit",sans-serif; letter-spacing: 0; }
 .partner-requirements { grid-column: 1 / -1; border: 1px solid rgba(240,165,0,.28); border-radius: 11px; background: rgba(240,165,0,.05); padding: 14px 16px; }
-.partner-requirements strong { display: block; color: #f0a500; font: 800 11.5px/1 "Kanit",sans-serif; margin-bottom: 8px; }
+.partner-requirements strong { display: block; color: #f0a500; font: 800 11.5px/1.45 "Kanit",sans-serif; margin-bottom: 8px; }
 .partner-requirements ul { margin: 0; padding-left: 18px; color: #b7bbc2; font: 400 11px/1.8 "Kanit",sans-serif; }
 .partner-legal { margin: 10px 0 0; color: #f87171; font: 500 10.5px/1.7 "Kanit",sans-serif; }
-.partner-submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--red); border: none; border-radius: 9px; color: #fff; font: 800 13px/1 "Kanit",sans-serif; padding: 14px 22px; cursor: pointer; }
+.partner-submit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--red); border: none; border-radius: 9px; color: #fff; font: 800 13px/1.45 "Kanit",sans-serif; padding: 14px 22px; cursor: pointer; }
 .partner-submit:disabled { opacity: .55; cursor: not-allowed; }
 .partner-submitted { display: flex; gap: 14px; align-items: flex-start; padding: 20px; border: 1px solid rgba(74,222,128,.3); border-radius: 12px; background: rgba(74,222,128,.06); color: #4ade80; }
 .partner-submitted strong { display: block; font-size: 14px; color: #fff; margin-bottom: 5px; }
@@ -239,3 +239,68 @@ a.trip-cta { text-decoration: none; }
 .weather-facts { display: grid; gap: 5px; }
 .weather-facts span { color: #cfd3da; font: 600 12px/1.4 "Kanit",sans-serif; }
 .weather-advice { margin: 13px 0 0; padding: 11px 14px; border-radius: 10px; background: #ffffff08; color: #e7e9ec; font: 400 11.5px/1.8 "Kanit",sans-serif; }
+
+/* ═══ ตารางโปรแกรมแข่งแบบใหม่ — ยุบ 9 คอลัมน์เหลือ 6 กันตัวหนังสือทับกัน ═══ */
+.fixture-table { table-layout: auto; width: 100%; }
+.fixture-table th, .fixture-table td { vertical-align: top; padding: 12px 14px; }
+.fixture-table td.cell-date { min-width: 132px; }
+.fixture-table td.cell-teams { min-width: 210px; }
+.fixture-table td.cell-time { min-width: 118px; white-space: nowrap; }
+.fixture-table td.cell-venue { min-width: 150px; }
+.fixture-table td.cell-advice { min-width: 158px; }
+.cell-date strong { display: block; font-size: 12px; line-height: 1.5; }
+.cell-date .fixture-countdown { display: block; margin-top: 4px; font-size: 10.5px; }
+.cell-time .thai-time { display: block; font: 800 13px/1.3 "Kanit",sans-serif; color: #fff; }
+.cell-time .uk-time { display: block; margin-top: 7px; font: 800 13px/1.3 "Kanit",sans-serif; color: #cfd3da; }
+.cell-time .tz-label { display: block; color: var(--muted); font: 500 9px/1.4 "Kanit",sans-serif; }
+.cell-venue strong { display: block; font-size: 12px; line-height: 1.5; }
+.cell-venue span { display: block; color: var(--muted); font-size: 10px; margin-top: 3px; }
+.fixture-venue-tag { display: inline-block; margin-top: 5px; color: var(--muted); font: 600 9.5px/1.45 "Kanit",sans-serif; }
+.cell-advice { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
+.fixture-broadcaster { color: #6b7078; font: 500 9px/1.45 "Kanit",sans-serif; }
+
+/* ระดับความน่าไป */
+.fixture-tier { display: inline-flex; align-items: center; gap: 4px; border-radius: 99px; padding: 4px 10px; font: 800 9.5px/1.45 "Kanit",sans-serif; white-space: nowrap; }
+.fixture-tier.must { background: linear-gradient(120deg,#f0a500,#ffd66b); color: #2a1c00; }
+.fixture-tier.should { background: rgba(218,41,28,.16); color: #ff8b80; border: 1px solid rgba(218,41,28,.4); }
+.fixture-tier.optional { background: #ffffff0d; color: #8d9199; border: 1px solid var(--line); }
+
+.fixture-badge { display: inline-block; border-radius: 99px; padding: 3px 9px; font: 700 9px/1.4 "Kanit",sans-serif; white-space: nowrap; }
+.fixture-badge.derby { background: rgba(218,41,28,.18); color: #ff8b80; }
+.fixture-badge.value { background: rgba(74,222,128,.14); color: #4ade80; }
+.fixture-badge.weekend { background: rgba(59,130,246,.14); color: #7dabff; }
+
+/* แถวแมตช์พิเศษ = ทอง */
+.fixture-table tr.special td { background: linear-gradient(90deg, rgba(240,165,0,.10), transparent 55%); }
+.fixture-table tr.special td:first-child { box-shadow: inset 3px 0 0 #f0a500; }
+.fixture-table tr.special.in-manchester td:first-child { box-shadow: inset 3px 0 0 #f0a500, inset 6px 0 0 var(--red); }
+
+/* การ์ดแมตช์ในหน้าวางแผนทริป */
+.trip-fixture-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.trip-fixture-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.trip-fixture-reason { color: #9aa0a8; font: 400 10px/1.6 "Kanit",sans-serif; margin-top: 6px; }
+.trip-fixture.special { border-color: rgba(240,165,0,.55); background: linear-gradient(140deg, rgba(240,165,0,.12), #0c0e12 62%); box-shadow: inset 3px 0 0 #f0a500; }
+.trip-fixture.special.active { border-color: #f0a500; }
+.trip-fixture.special.manchester { box-shadow: inset 3px 0 0 #f0a500; }
+
+/* ไอคอนเส้นในไทม์ไลน์แผนเที่ยว (แทน emoji) */
+.itinerary-timeline li { grid-template-columns: 52px 26px 1fr; }
+.item-icon { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px; background: #ffffff0d; border: 1px solid var(--line); color: #9aa0a8; margin-top: 1px; }
+.itinerary-timeline li.highlight .item-icon { background: rgba(218,41,28,.16); border-color: rgba(218,41,28,.4); color: #ff8b80; }
+.itinerary-day.matchday .item-icon { color: #cfd3da; }
+
+@media (max-width: 980px) {
+  .itinerary-timeline li { grid-template-columns: 44px 24px 1fr; gap: 8px; }
+  .fixture-table th, .fixture-table td { padding: 10px 9px; }
+}
+.hotel-stars { display: inline-flex; align-items: center; gap: 8px; }
+.hotel-stars em { display: inline-flex; gap: 1px; color: #f0a500; font-style: normal; }
+
+/* หมายเหตุ: line-height: 1 ถูกแก้เป็น 1.45 ทั่วทั้งไฟล์แล้ว
+   เพราะภาษาไทยมีสระบน-ล่างและวรรณยุกต์ที่ต้องใช้พื้นที่เหนือ-ใต้ตัวอักษร
+   ค่า 1 เท่ากับขนาดฟอนต์พอดี ทำให้ตัวอักษรถูกตัดและชนบรรทัดบน
+   เหลือไว้ที่ 1 เฉพาะตัวอักษรลายน้ำขนาดใหญ่ (30px ขึ้นไป) ที่เป็นภาษาอังกฤษล้วน */
+.itinerary-day.takeoff { box-shadow: inset 4px 0 0 #8b5cf6; }
+
+/* ™ ในบรรทัดโลโก้สูงกว่าตัวอักษรปกติ ต้องเผื่อ line-height ให้พอ */
+.brand small, .footer-brand small { line-height: 1.4; }

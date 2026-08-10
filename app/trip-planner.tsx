@@ -2,18 +2,27 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Beer,
+  BedDouble,
+  Building2,
+  Bus,
   CalendarDays,
   Clock,
+  CloudSun,
+  Coffee,
   Coins,
   Hotel,
   Landmark,
   MapPin,
   Plane,
-  CloudSun,
   Share2,
+  ShoppingBag,
   Sparkles,
+  Star,
   Ticket,
   TriangleAlert,
+  Trophy,
+  UtensilsCrossed,
   Users,
   Wand2,
 } from "lucide-react";
@@ -23,6 +32,8 @@ import { defaultHotel, listHotels } from "@/services/hotels";
 import { estimateTrip, formatMoney } from "@/services/pricing";
 import { buildItinerary, detectConflicts, type ItineraryDay } from "@/services/itinerary";
 import { pilgrimageIn, PLACES } from "@/services/places";
+import { recommendFixture, sortByRecommendation } from "@/services/football/recommendation";
+import type { ItemIcon } from "@/services/itinerary";
 import { PARTNER_KIND_LABEL, fromPrice, rankPartners } from "@/services/partners";
 import type { Partner } from "@/lib/server/partners";
 import type { MatchWeather } from "@/services/weather";
@@ -32,6 +43,22 @@ import { HOTEL_OPTIONS } from "@/services/hotels";
 import { BUDGET_LABELS, type BudgetStyle, type DestinationCity, type TripLength } from "@/services/trip/types";
 
 const BUDGET_ORDER: BudgetStyle[] = ["saver", "comfort", "premium"];
+
+// ไอคอนเส้นแทน emoji — ชุดเดียวกับ nav bar ของ people-space
+const ITEM_ICON: Record<ItemIcon, typeof Plane> = {
+  plane: Plane,
+  hotel: BedDouble,
+  food: UtensilsCrossed,
+  coffee: Coffee,
+  stadium: Trophy,
+  museum: Building2,
+  transport: Bus,
+  shop: ShoppingBag,
+  pub: Beer,
+  landmark: Landmark,
+  ticket: Ticket,
+  clock: Clock,
+};
 
 function thaiDate(ymd: string) {
   if (!ymd) return "—";
@@ -94,6 +121,9 @@ function ItineraryDayCard({ day, money, onRemove }: {
         {day.items.map((item, index) => (
           <li key={`${item.time}-${index}`} className={item.highlight ? "highlight" : ""}>
             <time>{item.time}</time>
+            <span className="item-icon" aria-hidden="true">
+              {(() => { const Icon = ITEM_ICON[item.icon] ?? Clock; return <Icon size={14} />; })()}
+            </span>
             <div>
               <strong>{item.title}{item.booking ? <em className="need-booking">ต้องจองล่วงหน้า</em> : null}</strong>
               <p>{item.detail}</p>
@@ -199,12 +229,34 @@ export function TripPlanner() {
   const arrivalDate = departDate ? addDays(departDate, selectedFlight?.arrivesMorning ? 1 : 1) : "";
   const warning = arrivalDate ? arrivalWarning(arrivalDate, matchDate) : null;
 
-  const visibleFixtures = fixtures.filter((item) => {
-    if (cityFilter !== "All" && item.destination !== cityFilter) return false;
-    if (venueFilter === "home" && !item.isHome) return false;
-    if (venueFilter === "away" && item.isHome) return false;
-    return true;
-  });
+  // หาแมตช์ที่ทริปถูกที่สุด — คิดจากราคาจริงของแต่ละเมืองในระดับงบปัจจุบัน
+  const cheapestKey = useMemo(() => {
+    let best: { key: string; price: number } | null = null;
+    for (const item of fixtures) {
+      if (!item.destination) continue;
+      const airports = ARRIVAL_AIRPORTS.filter((airport) => airport.city === item.destination);
+      const flight = listFlights(airports.map((airport) => airport.code), budget, "cheapest")[0];
+      const hotel = defaultHotel(item.destination, budget);
+      const price = estimateTrip({
+        length, nights: length - 1, city: item.destination, budget, travellers,
+        flightFare: flight?.estimatedFare[budget] ?? 0,
+        hotelNightly: hotel?.nightlyThb ?? 0,
+        includeMatch: true,
+      }).perPerson;
+      if (!best || price < best.price) best = { key: item.key, price };
+    }
+    return best?.key;
+  }, [fixtures, budget, length, travellers]);
+
+  const visibleFixtures = sortByRecommendation(
+    fixtures.filter((item) => {
+      if (cityFilter !== "All" && item.destination !== cityFilter) return false;
+      if (venueFilter === "home" && !item.isHome) return false;
+      if (venueFilter === "away" && item.isHome) return false;
+      return true;
+    }),
+    cheapestKey,
+  );
 
   // ── STEP 11/12/21 · แผนเที่ยวรายวัน ─────────────────────────────────
   const itineraryInput = {
@@ -537,14 +589,21 @@ export function TripPlanner() {
               {visibleFixtures.slice(0, 12).map((item) => {
                 const recommended = recommendTripDates(item.kickoffUtc, length);
                 const active = item.key === fixtureKey;
+                const advice = recommendFixture(item, cheapestKey);
                 return (
                   <button
                     key={item.key}
                     type="button"
-                    className={`trip-fixture ${active ? "active" : ""} ${item.city === "Manchester" ? "manchester" : ""}`}
+                    className={`trip-fixture ${active ? "active" : ""} ${item.city === "Manchester" ? "manchester" : ""} ${advice.special ? "special" : ""}`}
                     onClick={() => setFixtureKey(item.key)}
                   >
-                    <span className="trip-fixture-md">MW {item.matchday}</span>
+                    <span className="trip-fixture-top">
+                      <span className="trip-fixture-md">MW {item.matchday}</span>
+                      <span className={`fixture-tier ${advice.tier}`}>
+                        {advice.tier === "must" && <Star size={10} aria-hidden="true" />}
+                        {advice.tierLabel}
+                      </span>
+                    </span>
                     <strong>{item.home}</strong>
                     <em>v</em>
                     <strong>{item.away}</strong>
@@ -552,6 +611,12 @@ export function TripPlanner() {
                     <span className="trip-fixture-when">{thaiKickoff(item)} น. <small>เวลาไทย</small></span>
                     <span className="trip-fixture-venue">{item.stadium} · {item.city}</span>
                     <span className="trip-fixture-rec">แนะนำเดินทาง {thaiDate(recommended.departDate)} – {thaiDate(recommended.returnDate)}</span>
+                    <span className="trip-fixture-badges">
+                      {advice.badges.filter((badge) => badge.kind !== "must" && badge.kind !== "should").map((badge) => (
+                        <span key={badge.label} className={`fixture-badge ${badge.kind}`}>{badge.label}</span>
+                      ))}
+                    </span>
+                    <span className="trip-fixture-reason">{advice.reason}</span>
                     <span className={`trip-fixture-status ${item.status}`}>{item.status === "confirmed" ? "ยืนยันเวลาแล้ว" : "เวลาอาจเปลี่ยน"}</span>
                   </button>
                 );
@@ -652,7 +717,14 @@ export function TripPlanner() {
                 >
                   <div className="option-main">
                     <strong>{hotel.name}</strong>
-                    <span>{hotel.area} · {"★".repeat(hotel.stars)}</span>
+                    <span className="hotel-stars">
+                      {hotel.area}
+                      <em aria-label={`${hotel.stars} ดาว`}>
+                        {Array.from({ length: hotel.stars }, (_, index) => (
+                          <Star key={index} size={11} aria-hidden="true" />
+                        ))}
+                      </em>
+                    </span>
                     <small>
                       ใจกลางเมือง {hotel.minutesToCityCentre} น. · ถึงสนาม {hotel.minutesToStadium} น. · สถานี {hotel.nearestStation}
                     </small>

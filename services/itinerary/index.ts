@@ -10,9 +10,15 @@
 import { PLACES, type Place } from "@/services/places";
 import type { DestinationCity, TripLength } from "@/services/trip/types";
 
-export type DayTheme = "arrival" | "football" | "matchday" | "city" | "daytrip" | "departure";
+export type DayTheme = "takeoff" | "arrival" | "football" | "matchday" | "city" | "daytrip" | "departure";
+
+/** ประเภทไอคอนของรายการ — UI แปลงเป็นไอคอนเส้น ไม่ใช้ emoji */
+export type ItemIcon =
+  | "plane" | "hotel" | "food" | "coffee" | "stadium" | "museum"
+  | "transport" | "shop" | "pub" | "landmark" | "ticket" | "clock";
 
 export type ItineraryItem = {
+  icon: ItemIcon;
   /** id ของสถานที่ต้นทาง — มีเฉพาะรายการที่มาจากคลังสถานที่ (ใช้ตอนตัดออก/เพิ่มกลับ) */
   placeId?: string;
   /** เวลาแบบ HH:MM ตามเวลาท้องถิ่นอังกฤษ */
@@ -38,6 +44,7 @@ export type ItineraryDay = {
 };
 
 const THEME_TITLE: Record<DayTheme, string> = {
+  takeoff: "ออกเดินทางจากกรุงเทพฯ",
   arrival: "ถึงอังกฤษ + ปรับตัว",
   football: "วันสายบอล",
   matchday: "วันแข่ง",
@@ -85,8 +92,20 @@ function pick(city: DestinationCity, kinds: Place["kind"][], used: Set<string>, 
   return chosen;
 }
 
+const ICON_BY_KIND: Record<Place["kind"], ItemIcon> = {
+  football: "stadium",
+  pilgrimage: "landmark",
+  attraction: "museum",
+  food: "food",
+  "thai-food": "food",
+  coffee: "coffee",
+  pub: "pub",
+  shopping: "shop",
+};
+
 function toItem(place: Place, time: string, highlight = false): ItineraryItem {
   return {
+    icon: ICON_BY_KIND[place.kind],
     placeId: place.id,
     time,
     title: place.name,
@@ -129,14 +148,15 @@ export type ItineraryInput = {
 
 export function buildItinerary(input: ItineraryInput): ItineraryDay[] {
   const used = new Set<string>();
-  const days: ItineraryDay[] = [];
-  // บินคืนวันแรก ถึงอังกฤษวันถัดไป — วันที่ 1 ของแผนคือวันที่เหยียบอังกฤษ
+  // DAY 1 คือวันที่ออกจากกรุงเทพ (บินกลางคืน) จำนวนวันในแผนจึงเท่ากับความยาวทริปพอดี
+  // ของเดิมเริ่มนับที่วันถึงอังกฤษ ทริป 5 วันเลยขึ้นแค่ DAY 1-4 ซึ่งชวนสับสน
+  const days: ItineraryDay[] = [buildTakeoffDay(input)];
   const arriveDate = addDays(input.departDate, 1);
   const totalDays = input.length - 1;
 
   for (let offset = 0; offset < totalDays; offset += 1) {
     const date = addDays(arriveDate, offset);
-    const dayNumber = offset + 1;
+    const dayNumber = offset + 2;
     const isLast = offset === totalDays - 1;
     const isMatchDay = input.matchDate === date;
 
@@ -162,12 +182,53 @@ export function buildItinerary(input: ItineraryInput): ItineraryDay[] {
   return days;
 }
 
+/** วันออกเดินทางจากกรุงเทพ — ไฟลต์ไป UK เกือบทั้งหมดออกดึกและถึงเช้าอีกวัน */
+function buildTakeoffDay(input: ItineraryInput): ItineraryDay {
+  const items: ItineraryItem[] = [
+    {
+      icon: "hotel",
+      time: "18:00",
+      title: "เก็บของให้เรียบร้อย เช็กพาสปอร์ตและตั๋ว",
+      detail: "พาสปอร์ตต้องเหลืออายุเกิน 6 เดือน · ปรินต์ที่อยู่โรงแรมและตั๋วเข้าสนามไว้เผื่อ ตม. ขอดู",
+      durationMinutes: 60,
+      costThb: 0,
+    },
+    {
+      icon: "transport",
+      time: "20:00",
+      title: "ออกจากบ้านไปสุวรรณภูมิ",
+      detail: "เผื่อถึงสนามบินก่อนเครื่องออก 3 ชั่วโมงสำหรับไฟลต์ระหว่างประเทศ",
+      durationMinutes: 90,
+      costThb: 400,
+    },
+    {
+      icon: "plane",
+      time: "23:30",
+      title: "ขึ้นเครื่อง — บินข้ามคืน",
+      detail: "บิน 12–17 ชั่วโมงแล้วแต่บินตรงหรือแวะ · อังกฤษช้ากว่าไทย 6–7 ชั่วโมง ปรับนาฬิกาตั้งแต่ขึ้นเครื่องจะปรับตัวง่ายกว่า",
+      durationMinutes: 780,
+      costThb: 0,
+      highlight: true,
+    },
+  ];
+  return {
+    dayNumber: 1,
+    date: input.departDate,
+    theme: "takeoff",
+    title: THEME_TITLE.takeoff,
+    summary: "ไฟลต์ไปอังกฤษเกือบทั้งหมดออกดึกและถึงเช้าอีกวัน — คืนนี้อยู่บนเครื่อง",
+    items,
+    costThb: sumCost(items),
+  };
+}
+
 function buildArrivalDay(dayNumber: number, date: string, input: ItineraryInput, used: Set<string>): ItineraryDay {
   const start = input.arrivesMorning ? "07:30" : "13:30";
   const cursor = clockToMinutes(start);
   const items: ItineraryItem[] = [
     {
       time: minutesToClock(cursor),
+      icon: "plane",
       title: "ลงเครื่อง + ผ่านตรวจคนเข้าเมือง",
       detail: "เผื่อเวลา 60–90 นาทีสำหรับคิว ตม. และรับกระเป๋า",
       durationMinutes: 90,
@@ -175,6 +236,7 @@ function buildArrivalDay(dayNumber: number, date: string, input: ItineraryInput,
     },
     {
       time: minutesToClock(cursor + 90),
+      icon: "hotel",
       title: "รถไฟ/รถรับส่งเข้าเมือง แล้วเช็กอินโรงแรม",
       detail: "เก็บของแล้วอาบน้ำก่อน อย่าเพิ่งนอน — กดให้ถึงค่ำจะปรับเวลาได้เร็วกว่า",
       durationMinutes: 90,
@@ -227,6 +289,7 @@ function buildMatchDay(dayNumber: number, date: string, input: ItineraryInput, u
   const items: ItineraryItem[] = [
     {
       time: minutesToClock(Math.min(leaveHotel - 150, 9 * 60)),
+      icon: "food",
       title: "มื้อเช้าแบบไม่รีบ",
       detail: "กินให้อิ่มก่อนออก ของกินในสนามคิวยาวและราคาสูง",
       durationMinutes: 60,
@@ -234,6 +297,7 @@ function buildMatchDay(dayNumber: number, date: string, input: ItineraryInput, u
     },
     {
       time: minutesToClock(leaveHotel),
+      icon: "transport",
       title: "ออกจากโรงแรมไปสนาม",
       detail: `เผื่อเวลาเดินทาง ${input.minutesToStadium} นาที + 15 นาทีสำรอง วันแข่งรถไฟแน่นกว่าปกติมาก`,
       durationMinutes: travelMinutes,
@@ -252,6 +316,7 @@ function buildMatchDay(dayNumber: number, date: string, input: ItineraryInput, u
   items.push(
     {
       time: minutesToClock(arriveStadium),
+      icon: "ticket",
       title: `ถึง${input.stadium ?? "สนาม"} — เข้าประตูและหาที่นั่ง`,
       detail: "เช็กกฎกระเป๋าของสนามก่อนออกจากโรงแรม ส่วนใหญ่ห้ามกระเป๋าใหญ่กว่า A4",
       durationMinutes: 75,
@@ -260,6 +325,7 @@ function buildMatchDay(dayNumber: number, date: string, input: ItineraryInput, u
     },
     {
       time: minutesToClock(kickoff),
+      icon: "stadium",
       title: "คิกออฟ",
       detail: "90 นาที + ทดเวลา · เผื่อรวมพักครึ่งประมาณ 2 ชั่วโมง",
       durationMinutes: 120,
@@ -268,6 +334,7 @@ function buildMatchDay(dayNumber: number, date: string, input: ItineraryInput, u
     },
     {
       time: minutesToClock(kickoff + 130),
+      icon: "transport",
       title: "ออกจากสนาม — รอให้คนบางลงก่อน",
       detail: "รถไฟหลังเกมแน่นมาก รอ 20–30 นาทีสบายกว่าเบียดออกทันที",
       durationMinutes: 45,
@@ -317,6 +384,7 @@ function buildDepartureDay(dayNumber: number, date: string, input: ItineraryInpu
   const items: ItineraryItem[] = [
     {
       time: "08:30",
+      icon: "hotel",
       title: "มื้อเช้า + เก็บกระเป๋า",
       detail: "เช็กเอาต์ส่วนใหญ่ก่อน 11:00 ฝากกระเป๋าไว้ที่โรงแรมได้ถ้าไฟลต์เย็น",
       durationMinutes: 75,
@@ -326,6 +394,7 @@ function buildDepartureDay(dayNumber: number, date: string, input: ItineraryInpu
   if (last) items.push(toItem(last, "10:15"));
   items.push({
     time: "13:00",
+    icon: "plane",
     title: "เดินทางไปสนามบิน",
     detail: "เผื่อถึงสนามบินก่อนเครื่องออก 3 ชั่วโมงสำหรับไฟลต์ระหว่างประเทศ",
     durationMinutes: 90,
@@ -360,9 +429,10 @@ export function detectConflicts(days: ItineraryDay[], input: ItineraryInput) {
     if (leave && clockToMinutes(leave.time) < 7 * 60) {
       issues.push("ต้องออกจากโรงแรมก่อน 07:00 เพื่อให้ทันเกม — ลองหาที่พักใกล้สนามกว่านี้");
     }
-    const before = days.find((day) => day.dayNumber === matchDay.dayNumber - 1);
-    if (before?.theme === "arrival") {
-      issues.push("ถึงอังกฤษก่อนวันแข่งแค่ 1 วัน เจ็ตแล็กยังหนัก — เพิ่มวันหรือเลื่อนไฟลต์ให้เร็วขึ้น");
+    // วันแข่งอยู่ติดกับวันที่เพิ่งลงเครื่อง = แทบไม่มีเวลาปรับเจ็ตแล็ก
+    const arrivalDay = days.find((day) => day.theme === "arrival");
+    if (arrivalDay && matchDay.dayNumber - arrivalDay.dayNumber <= 1) {
+      issues.push("ถึงอังกฤษก่อนวันแข่งไม่ถึง 1 วันเต็ม เจ็ตแล็กยังหนัก — เลื่อนไฟลต์ให้เร็วขึ้นหรือเพิ่มวัน");
     }
   }
 
