@@ -16,6 +16,7 @@ import {
   type PricingModel,
 } from "@/lib/server/partners";
 import { fetchMatchWeather } from "@/services/weather";
+import { gbpToThb } from "@/lib/server/fx";
 import { generateDailyDigest, runIngest, translateStories } from "@/lib/server/pipeline";
 import { getChannelAnalytics } from "@/lib/server/channel-analytics";
 import {
@@ -243,6 +244,13 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
     const date = url.searchParams.get("date") ?? "";
     const weather = await fetchMatchWeather(city, date);
     return json(weather ? { ok: true, weather } : { ok: false, error: "unavailable" }, weather ? 200 : 404);
+  }
+
+  // ── อัตราแลกเปลี่ยน GBP → THB (STEP 43) ──────────────────────────────
+  // ค่าธรรมเนียมวีซ่าเป็นปอนด์ หน้าเว็บจึงต้องได้เรตจริงมาคิดเป็นบาท
+  // แคชฝั่ง Cloudflare 6 ชม. · cache-control ให้เบราว์เซอร์เก็บได้ 1 ชม.
+  if (url.pathname === "/api/fx" && request.method === "GET") {
+    return json({ ok: true, ...(await gbpToThb()) }, 200, { "cache-control": "public, max-age=3600" });
   }
 
   // ── GOG Partner Network ──────────────────────────────────────────────

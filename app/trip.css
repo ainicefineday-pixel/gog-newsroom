@@ -280,6 +280,9 @@ a.trip-cta { text-decoration: none; }
 .trip-fixture-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .trip-fixture-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .trip-fixture-reason { color: #9aa0a8; font: 400 10px/1.6 "Kanit",sans-serif; margin-top: 6px; }
+.trip-fixture-rail { display: block; margin-top: 4px; color: #7dabff; font: 600 9.5px/1.5 "Kanit",sans-serif; }
+.fixture-more { width: 100%; margin-top: 12px; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; background: transparent; color: #b7bbc2; font: 700 11.5px/1.45 "Kanit",sans-serif; cursor: pointer; }
+.fixture-more:hover { border-color: #f0a500; color: #f0a500; }
 .trip-fixture.special { border-color: rgba(240,165,0,.55); background: linear-gradient(140deg, rgba(240,165,0,.12), #0c0e12 62%); box-shadow: inset 3px 0 0 #f0a500; }
 .trip-fixture.special.active { border-color: #f0a500; }
 .trip-fixture.special.manchester { box-shadow: inset 3px 0 0 #f0a500; }
@@ -309,8 +312,95 @@ a.trip-cta { text-decoration: none; }
 /* ═══ หัวข้อหลักให้หนาชัด — Kanit 800 (โหลดไว้แล้วบรรทัดแรกของ globals.css) ═══ */
 .trip-block-head h3, .itinerary-day h4 { font-weight: 800; }
 
+/* ═══ ปฏิทินช่วงเดินทาง + วันลา (STEP 45) ══════════════════════════════ */
+.calendar-block { border-color: rgba(240,165,0,.25); }
+.leave-summary { display: flex; gap: 16px; flex-wrap: wrap; }
+.leave-summary span { color: var(--muted); font: 600 10.5px/1.5 "Kanit",sans-serif; }
+.leave-summary b { color: #f0a500; font: 800 15px/1.3 "Kanit",sans-serif; margin-right: 4px; font-variant-numeric: tabular-nums; }
+
+.trip-calendar { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.trip-calendar-month { min-width: 232px; }
+.trip-calendar-month > strong { display: block; margin-bottom: 9px; color: #e7e9ec; font: 800 12px/1.5 "Kanit",sans-serif; }
+.trip-calendar-grid { display: grid; grid-template-columns: repeat(7,30px); gap: 3px; }
+.trip-calendar-head { display: grid; place-items: center; height: 20px; color: #6b7078; font: 700 8.5px/1.4 "Kanit",sans-serif; }
+.trip-calendar-day { display: grid; place-items: center; height: 30px; border-radius: 7px; border: 1px solid transparent; color: #7b818a; font: 600 10.5px/1.4 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.trip-calendar-day.weekend { color: #9aa0a8; }
+.trip-calendar-day.holiday { color: #ffb4ac; }
+.trip-calendar-day.in-trip { background: rgba(240,165,0,.14); border-color: rgba(240,165,0,.3); color: #f5d089; }
+.trip-calendar-day.in-trip.leave { background: rgba(59,130,246,.2); border-color: rgba(59,130,246,.45); color: #cfe0ff; }
+.trip-calendar-day.in-trip.holiday { background: rgba(74,222,128,.16); border-color: rgba(74,222,128,.4); color: #9bebbb; }
+.trip-calendar-day.start, .trip-calendar-day.end { box-shadow: inset 0 -2px 0 #f0a500; }
+.trip-calendar-day.match { background: var(--red); border-color: transparent; color: #fff; font-weight: 800; }
+.trip-calendar-day.lodge { outline: 2px dashed rgba(240,165,0,.75); outline-offset: -2px; }
+.trip-calendar-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; align-self: center; }
+.trip-calendar-legend li { display: flex; align-items: center; gap: 8px; color: var(--muted); font: 600 10px/1.45 "Kanit",sans-serif; }
+.trip-calendar-legend .dot { width: 11px; height: 11px; border-radius: 4px; flex-shrink: 0; }
+.trip-calendar-legend .dot.trip { background: rgba(240,165,0,.4); }
+.trip-calendar-legend .dot.match { background: var(--red); }
+.trip-calendar-legend .dot.holiday { background: rgba(74,222,128,.5); }
+.trip-calendar-legend .dot.leave { background: rgba(59,130,246,.6); }
+.trip-calendar-legend .dot.lodge { border: 2px dashed rgba(240,165,0,.8); }
+
+/* เรียงแมตช์ + ข้อมูลวันลาบนการ์ด */
+.fixture-sort { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 13px; }
+.fixture-sort > span { color: var(--muted); font: 700 9.5px/1.45 "Kanit",sans-serif; letter-spacing: .06em; }
+.fixture-sort button { background: #0c0e12; border: 1px solid var(--line); border-radius: 99px; color: #a9aeb6; font: 700 10.5px/1.45 "Kanit",sans-serif; padding: 7px 13px; cursor: pointer; }
+.fixture-sort button.active { background: var(--red); border-color: transparent; color: #fff; }
+.trip-fixture-leave { display: block; margin-top: 5px; color: #6b7078; font: 500 9.5px/1.55 "Kanit",sans-serif; }
+.trip-fixture-leave b { color: #cfd3da; font-weight: 800; }
+.trip-fixture-leave b.good { color: #4ade80; }
+.fixture-holiday { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 99px; background: rgba(74,222,128,.14); color: #4ade80; font: 700 8.5px/1.5 "Kanit",sans-serif; font-style: normal; }
+.trip-fixture-price { display: block; margin-top: 5px; color: #f0a500; font: 800 11px/1.5 "Kanit",sans-serif; }
+
 /* ═══ วีซ่าอังกฤษ (STEP 41) ═════════════════════════════════════════════ */
 .visa-block { border-color: rgba(59,130,246,.3); background: linear-gradient(135deg, rgba(59,130,246,.05), #0f1115 55%); }
+.visa-block.closed { padding-bottom: 20px; }
+
+/* หัวข้อพับได้ — ทั้งแถบกดได้ */
+.visa-toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; padding: 0; border: none; background: none; text-align: left; cursor: pointer; }
+.visa-block.open .visa-toggle { margin-bottom: 18px; }
+.visa-toggle-copy strong { display: flex; align-items: center; gap: 8px; color: #fff; font: 800 18px/1.45 "Kanit",sans-serif; }
+.visa-toggle-copy small { display: block; margin-top: 5px; color: var(--muted); font: 500 11px/1.6 "Kanit",sans-serif; }
+.visa-toggle-icon { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 10px; color: #9aa0a8; transition: transform .16s; }
+.visa-toggle:hover .visa-toggle-icon { border-color: #7dabff; color: #7dabff; }
+.visa-toggle-icon.open { transform: rotate(180deg); }
+
+/* ถามก่อนว่ามีพาสปอร์ตหรือยัง */
+.passport-gate { display: grid; grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); gap: 10px; }
+.passport-gate-option { display: flex; align-items: flex-start; gap: 11px; text-align: left; padding: 14px 15px; border: 1px solid var(--line); border-radius: 11px; background: #0c0e12; color: #d5d8dd; cursor: pointer; }
+.passport-gate-option:hover { border-color: #6b7078; }
+.passport-gate-option.active { border-color: #4ade80; background: rgba(74,222,128,.08); }
+.passport-gate-mark { display: grid; place-items: center; width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; border: 1px solid var(--line); border-radius: 50%; color: #17130a; }
+.passport-gate-option.active .passport-gate-mark { background: #4ade80; border-color: transparent; }
+.passport-gate-option strong { display: block; color: #e7e9ec; font: 700 11.5px/1.5 "Kanit",sans-serif; }
+.passport-gate-option small { display: block; margin-top: 3px; color: #9aa0a8; font: 400 10px/1.65 "Kanit",sans-serif; }
+.passport-ok { display: flex; align-items: flex-start; gap: 9px; margin: 12px 0 0; padding: 12px 15px; border: 1px solid rgba(74,222,128,.3); border-radius: 11px; background: rgba(74,222,128,.06); color: #b7bbc2; font: 500 11px/1.7 "Kanit",sans-serif; }
+.passport-ok svg { color: #4ade80; flex-shrink: 0; margin-top: 3px; }
+
+/* สรุปแยกค่าราชการ / ค่าดำเนินการ */
+.visa-summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 11px; }
+.visa-summary-col { border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 15px 17px; display: flex; flex-direction: column; }
+.visa-summary-tag { align-self: flex-start; padding: 4px 10px; border-radius: 99px; font: 800 9px/1.5 "Kanit",sans-serif; letter-spacing: .08em; }
+.visa-summary-tag.gov { background: rgba(59,130,246,.16); color: #7dabff; }
+.visa-summary-tag.svc { background: rgba(168,85,247,.18); color: #c99cff; }
+.visa-summary-col > p { margin: 9px 0 11px; color: #6b7078; font: 400 10px/1.7 "Kanit",sans-serif; }
+.visa-summary-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.visa-summary-col li { display: flex; justify-content: space-between; gap: 12px; color: #b7bbc2; font: 500 11px/1.55 "Kanit",sans-serif; }
+.visa-summary-col li b { color: #e7e9ec; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.visa-summary-col li.empty { color: #5d626b; }
+.visa-summary-col li.gog b, .visa-summary-col li.gog span { color: #c99cff; }
+.visa-summary-total { display: flex; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 11px; border-top: 1px solid #ffffff0d; color: var(--muted); font: 700 11px/1.5 "Kanit",sans-serif; }
+.visa-summary-total b { color: #f0a500; font: 800 14px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+
+/* GOG VISA UK — สีม่วงของบริษัทเสริม แยกจากค่าธรรมเนียมราชการชัดเจน */
+.visa-subhead.gog strong { color: #c99cff; }
+.gog-grid { padding: 15px; border: 1px solid rgba(168,85,247,.28); border-radius: 14px; background: linear-gradient(135deg, rgba(168,85,247,.09), transparent 62%); }
+.gog-card { border-color: rgba(168,85,247,.3); }
+.gog-card:hover { border-color: rgba(168,85,247,.6); }
+.gog-card.active { border-color: #a855f7; background: linear-gradient(140deg, rgba(168,85,247,.16), #0c0e12 62%); box-shadow: inset 3px 0 0 #a855f7; }
+.gog-card .visa-card-tagline { color: #c99cff; }
+.gog-card.active .visa-add { background: #a855f7; }
+.gog-card .visa-card-price b { color: #c99cff; }
 .visa-lead { margin: 0 0 15px; color: #9aa0a8; font: 400 11.5px/1.75 "Kanit",sans-serif; max-width: 78ch; }
 .visa-lead b { color: #cfd3da; }
 
@@ -350,19 +440,74 @@ a.trip-cta { text-decoration: none; }
 .visa-steps strong { display: block; color: #e7e9ec; font: 700 11.5px/1.5 "Kanit",sans-serif; }
 .visa-steps p { margin: 2px 0 0; color: #9aa0a8; font: 400 10.5px/1.7 "Kanit",sans-serif; }
 
+/* เรตปอนด์ + คำแนะนำสั้น */
+.visa-fx { margin: 0 0 15px; padding: 9px 13px; border: 1px dashed var(--line); border-radius: 9px; color: #9aa0a8; font: 500 10.5px/1.6 "Kanit",sans-serif; }
+.visa-fx b { color: #4ade80; font-weight: 800; }
+.visa-advice { margin: 11px 0 0; padding: 11px 14px; border-radius: 10px; background: #ffffff08; color: #b7bbc2; font: 400 11px/1.75 "Kanit",sans-serif; }
+
+/* กล่องเอกสารย่อย (พาสปอร์ต / ใบขับขี่สากล) */
+.visa-mini { margin-top: 11px; border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 15px 17px; }
+.visa-mini.inline { margin-top: 0; }
+.visa-mini > strong { display: block; color: #fff; font: 800 11.5px/1.5 "Kanit",sans-serif; margin-bottom: 9px; }
+.visa-mini ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.visa-mini li { color: #9aa0a8; font: 400 10.5px/1.65 "Kanit",sans-serif; padding-left: 13px; position: relative; }
+.visa-mini li::before { content: "·"; position: absolute; left: 3px; color: #f0a500; font-weight: 800; }
+.visa-mini li b { color: #e7e9ec; font-weight: 600; }
+.visa-mini p { margin: 10px 0 0; padding-top: 9px; border-top: 1px solid #ffffff0d; color: #f0a500; font: 500 10px/1.7 "Kanit",sans-serif; }
+
+/* 4 วันสำคัญ — ยื่น / รู้ผล / ออกตั๋ว / บิน */
+.visa-anchor { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 1px; margin-bottom: 13px; background: var(--line); border: 1px solid rgba(74,222,128,.35); border-radius: 12px; overflow: hidden; }
+.visa-anchor.blocked { border-color: rgba(248,113,113,.45); }
+.visa-anchor > div { padding: 13px 15px; background: #0c0e12; }
+.visa-anchor small { display: block; color: var(--muted); font: 700 9px/1.5 "Kanit",sans-serif; letter-spacing: .07em; }
+.visa-anchor b { display: block; margin-top: 5px; color: #fff; font: 800 14px/1.4 "Kanit",sans-serif; }
+.visa-anchor em { display: block; margin-top: 3px; color: #4ade80; font: 600 9.5px/1.5 "Kanit",sans-serif; font-style: normal; }
+.visa-anchor.blocked em { color: #f87171; }
+
+/* แผนลงวัน — ทำอะไรวันไหน */
+.visa-plan { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.visa-plan li { display: grid; grid-template-columns: 116px 1fr; gap: 13px; align-items: start; padding: 12px 15px; border: 1px solid var(--line); border-left: 3px solid #3b82f6; border-radius: 10px; background: #0c0e12; }
+.visa-plan li.critical { border-left-color: var(--red); }
+.visa-plan li.late { opacity: .55; border-left-color: #6b7078; }
+.visa-plan-date b { display: block; color: #fff; font: 800 12px/1.45 "Kanit",sans-serif; }
+.visa-plan-date small { display: block; margin-top: 2px; color: var(--muted); font: 600 9.5px/1.5 "Kanit",sans-serif; }
+.visa-plan li.late .visa-plan-date small { color: #f87171; }
+.visa-plan-body strong { display: block; color: #e7e9ec; font: 700 11.5px/1.5 "Kanit",sans-serif; }
+.visa-plan-body p { margin: 3px 0 0; color: #9aa0a8; font: 400 10.5px/1.7 "Kanit",sans-serif; }
+
+/* ศูนย์รับยื่นวีซ่า */
+.visa-centres { display: grid; grid-template-columns: repeat(auto-fill,minmax(300px,1fr)); gap: 11px; }
+.visa-centre { border: 1px solid var(--line); border-left: 3px solid #3b82f6; border-radius: 12px; background: #0c0e12; padding: 15px 17px; }
+.visa-centre-city { display: inline-block; padding: 3px 9px; border-radius: 99px; background: rgba(59,130,246,.16); color: #7dabff; font: 800 9px/1.5 "Kanit",sans-serif; letter-spacing: .08em; }
+.visa-centre h5 { margin: 8px 0 0; color: #fff; font: 800 13px/1.5 "Kanit",sans-serif; }
+.visa-centre-floor { margin: 6px 0 0; display: inline-flex; align-items: center; gap: 5px; color: #f0a500; font: 700 11px/1.5 "Kanit",sans-serif; }
+.visa-centre-address { margin: 7px 0 0; color: #b7bbc2; font: 400 10.5px/1.7 "Kanit",sans-serif; }
+.visa-centre-line { margin: 7px 0 0; color: #9aa0a8; font: 400 10.5px/1.7 "Kanit",sans-serif; }
+.visa-centre-line b { color: #e7e9ec; font-weight: 700; }
+.visa-centre-note { margin: 9px 0 0; padding: 8px 11px; border-radius: 8px; background: rgba(240,165,0,.08); color: #f0a500; font: 500 10px/1.7 "Kanit",sans-serif; }
+.visa-centre a { display: inline-block; margin-top: 10px; color: #7dabff; font: 700 10.5px/1.5 "Kanit",sans-serif; text-decoration: underline; }
+
+/* ลิงก์ทางการ */
+.visa-links { display: grid; grid-template-columns: repeat(auto-fill,minmax(268px,1fr)); gap: 9px; }
+.visa-links a { display: block; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #0c0e12; color: #e7e9ec; font: 600 11px/1.5 "Kanit",sans-serif; }
+.visa-links a:hover { border-color: #7dabff; color: #7dabff; }
+.visa-links a small { display: block; margin-top: 4px; color: #6b7078; font: 500 9.5px/1.5 "Kanit",sans-serif; }
+
 /* เช็กลิสต์เอกสาร — ติ๊กแล้วจำไว้ในเครื่อง */
 .visa-docs { display: grid; grid-template-columns: repeat(auto-fill,minmax(288px,1fr)); gap: 11px; }
 .visa-doc-group { border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 15px 17px; }
 .visa-doc-group > h5 { margin: 0; color: #fff; font: 800 12px/1.5 "Kanit",sans-serif; display: flex; align-items: center; justify-content: space-between; gap: 9px; }
 .visa-doc-count { color: var(--muted); font: 700 9.5px/1.5 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
 .visa-doc-note { margin: 7px 0 0; color: #f0a500; font: 500 10px/1.7 "Kanit",sans-serif; }
-.visa-doc-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
-.visa-doc-list li { border-top: 1px solid #ffffff0d; padding-top: 8px; }
-.visa-doc-list li:first-child { border-top: none; padding-top: 0; }
-.visa-doc-check { display: grid; grid-template-columns: 17px 1fr; gap: 2px 9px; align-items: start; cursor: pointer; }
-.visa-doc-check input { grid-row: 1 / span 2; width: 16px; height: 16px; margin-top: 2px; accent-color: #3b82f6; }
+/* ทั้งแถบกดได้ ไม่ต้องเล็งช่องติ๊ก — ติ๊กแล้วทั้งบาร์เปลี่ยนสีเขียว */
+.visa-doc-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.visa-doc-list li { border: 1px solid var(--line); border-radius: 9px; background: #0f1218; transition: background .12s, border-color .12s; }
+.visa-doc-list li:hover { border-color: #6b7078; }
+.visa-doc-list li.done { border-color: rgba(74,222,128,.42); background: rgba(74,222,128,.09); }
+.visa-doc-check { display: grid; grid-template-columns: 17px 1fr; gap: 2px 9px; align-items: start; cursor: pointer; padding: 10px 12px; }
+.visa-doc-check input { grid-row: 1 / span 2; width: 16px; height: 16px; margin-top: 2px; accent-color: #4ade80; cursor: pointer; }
 .visa-doc-check strong { color: #e7e9ec; font: 600 11.5px/1.55 "Kanit",sans-serif; }
-.visa-doc-check.done strong { color: #6b7078; text-decoration: line-through; }
+.visa-doc-check.done strong { color: #7fd8a3; text-decoration: line-through; }
 .visa-doc-check p { margin: 0; color: #9aa0a8; font: 400 10px/1.65 "Kanit",sans-serif; }
 .visa-from-trip { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 99px; background: rgba(74,222,128,.14); color: #4ade80; font: 700 8.5px/1.5 "Kanit",sans-serif; vertical-align: middle; }
 

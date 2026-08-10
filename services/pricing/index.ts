@@ -3,7 +3,10 @@
 
 import type { BudgetStyle, CostLine, DestinationCity, TripEstimate, TripLength } from "@/services/trip/types";
 
-/** อัตราแลกเปลี่ยนอ้างอิงสำหรับสลับหน่วยแสดงผล — ไม่ใช่เรตซื้อขายจริง */
+/**
+ * เรตสำรองสำหรับสลับหน่วยแสดงผล — ใช้เมื่อดึงเรตจริงจาก /api/fx ไม่ได้
+ * ของจริงมาจาก lib/server/fx.ts แล้วส่งเข้าฟังก์ชันด้านล่างเป็นพารามิเตอร์
+ */
 export const GBP_TO_THB = 44;
 
 type DailyRates = {
@@ -114,14 +117,24 @@ export function estimateTrip(input: EstimateInput): TripEstimate {
   };
 }
 
+/**
+ * ค่ารถไฟไป-กลับในวันแข่ง เมื่อสนามอยู่คนละเมืองกับที่พัก (STEP 44)
+ * ประมาณจากระยะทางเส้นทางรถไฟ — ตั๋วจองล่วงหน้าถูกกว่าซื้อหน้าเคาน์เตอร์มาก
+ * ระดับ Premium คิดแบบ first class เพราะวันแข่งขบวนแน่นจนยืนตลอดทาง
+ */
+export function railDayTripThb(distanceKm: number, budget: BudgetStyle) {
+  const perKm = budget === "saver" ? 4 : budget === "comfort" ? 6 : 11;
+  return Math.max(500, Math.round((distanceKm * 2 * perKm) / 50) * 50);
+}
+
 export function formatThb(amount: number) {
   return `฿${Math.round(amount).toLocaleString("th-TH")}`;
 }
 
-export function formatGbp(amountThb: number) {
-  return `£${Math.round(amountThb / GBP_TO_THB).toLocaleString("en-GB")}`;
+export function formatGbp(amountThb: number, rate = GBP_TO_THB) {
+  return `£${Math.round(amountThb / rate).toLocaleString("en-GB")}`;
 }
 
-export function formatMoney(amountThb: number, currency: "THB" | "GBP") {
-  return currency === "THB" ? formatThb(amountThb) : formatGbp(amountThb);
+export function formatMoney(amountThb: number, currency: "THB" | "GBP", rate = GBP_TO_THB) {
+  return currency === "THB" ? formatThb(amountThb) : formatGbp(amountThb, rate);
 }

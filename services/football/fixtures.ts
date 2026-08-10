@@ -10,17 +10,19 @@ export type PlannableFixture = MuFixture & {
   key: string;
   isHome: boolean;
   opponent: string;
-  /** เมืองปลายทางที่ต้องบินไป — รองรับแค่ลอนดอน/แมนเชสเตอร์ในเวอร์ชันนี้ */
-  destination: DestinationCity | null;
+  /** เมืองฐานที่บินลงและใช้เป็นที่พักตลอดทริป */
+  destination: DestinationCity;
+  /** true = สนามไม่ได้อยู่ในเมืองฐาน ต้องนั่งรถไฟไปกลับในวันแข่ง */
+  railDay: boolean;
+  /** ชื่อเมืองที่สนามตั้งอยู่จริง — ใช้บอกผู้ใช้ว่าต้องเดินทางต่อไปไหน */
+  venueCity: string;
 };
 
+/** สนามในลอนดอนใช้ลอนดอนเป็นฐาน — ที่เหลือทั้งประเทศบินลงแมนเชสเตอร์แล้วต่อรถไฟ */
 const LONDON_CITIES = new Set(["London"]);
-const MANCHESTER_CITIES = new Set(["Manchester"]);
 
-function destinationOf(fixture: MuFixture): DestinationCity | null {
-  if (MANCHESTER_CITIES.has(fixture.city)) return "Manchester";
-  if (LONDON_CITIES.has(fixture.city)) return "London";
-  return null;
+function destinationOf(fixture: MuFixture): DestinationCity {
+  return LONDON_CITIES.has(fixture.city) ? "London" : "Manchester";
 }
 
 export function fixtureKey(fixture: MuFixture) {
@@ -29,20 +31,26 @@ export function fixtureKey(fixture: MuFixture) {
 
 export function toPlannable(fixture: MuFixture): PlannableFixture {
   const isHome = fixture.home === "Manchester United";
+  const destination = destinationOf(fixture);
   return {
     ...fixture,
     key: fixtureKey(fixture),
     isHome,
     opponent: isHome ? fixture.away : fixture.home,
-    destination: destinationOf(fixture),
+    destination,
+    railDay: fixture.city !== destination,
+    venueCity: fixture.city,
   };
 }
 
-/** นัดที่วางแผนเดินทางได้จริง = ยังไม่เตะ และอยู่ในเมืองที่ระบบรองรับ */
+/**
+ * นัดที่วางแผนเดินทางได้ = ทุกนัดที่ยังไม่เตะ
+ * สนามนอกแมนเชสเตอร์/ลอนดอนไม่ถูกตัดทิ้งแล้ว — บินลงเมืองฐานแล้วนั่งรถไฟไปวันแข่ง
+ * (ระยะเวลาและเส้นทางรถไฟอยู่ใน config/stadium-travel.ts ครบทั้ง 20 สนาม)
+ */
 export function listPlannableFixtures(now = Date.now()) {
   return MU_PREMIER_LEAGUE_FIXTURES
     .map(toPlannable)
-    .filter((fixture) => fixture.destination !== null)
     .filter((fixture) => new Date(fixture.kickoffUtc).getTime() > now);
 }
 

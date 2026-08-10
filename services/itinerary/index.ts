@@ -140,10 +140,14 @@ export type ItineraryInput = {
   matchDate: string | null;
   kickoffUtc: string | null;
   stadium: string | null;
-  /** นาทีจากโรงแรมถึงสนาม จาก services/hotels */
+  /** นาทีจากโรงแรมถึงสนาม จาก services/hotels — วันแข่งต่างเมืองใช้เวลารถไฟแทน */
   minutesToStadium: number;
   /** ไฟลต์ลงจอดตอนเช้าหรือบ่าย — มีผลกับกิจกรรมวันแรก */
   arrivesMorning: boolean;
+  /** สนามอยู่คนละเมืองกับที่พัก — วันแข่งเป็นทริปรถไฟไป-กลับ ไม่ใช่เดินจากโรงแรม */
+  awayDay?: boolean;
+  /** เมืองที่สนามตั้งอยู่ ใช้เขียนรายละเอียดวันแข่งให้ตรง */
+  venueCity?: string;
 };
 
 export function buildItinerary(input: ItineraryInput): ItineraryDay[] {
@@ -282,7 +286,8 @@ function buildMatchDay(dayNumber: number, date: string, input: ItineraryInput, u
   const travelMinutes = input.minutesToStadium + 15;
   // หมุด pilgrimage รอบสนาม (อนุสรณ์มิวนิก / รูปปั้น Trinity) แวะก่อนเข้าประตู
   // จึงต้องออกจากโรงแรมเผื่อเวลาส่วนนี้เพิ่ม ไม่ใช่ไปแทรกหลังออกจากโรงแรมแล้ว
-  const pre = pick(input.city, ["pilgrimage"], used, 1)[0];
+  // วันแข่งต่างเมืองไม่แวะ เพราะหมุดพวกนี้อยู่รอบโอลด์ แทรฟฟอร์ด คนละเมืองกับสนามวันนั้น
+  const pre = input.awayDay ? undefined : pick(input.city, ["pilgrimage"], used, 1)[0];
   const preMinutes = pre ? pre.durationMinutes + 10 : 0;
   const leaveHotel = arriveStadium - travelMinutes - preMinutes;
 
@@ -298,8 +303,10 @@ function buildMatchDay(dayNumber: number, date: string, input: ItineraryInput, u
     {
       time: minutesToClock(leaveHotel),
       icon: "transport",
-      title: "ออกจากโรงแรมไปสนาม",
-      detail: `เผื่อเวลาเดินทาง ${input.minutesToStadium} นาที + 15 นาทีสำรอง วันแข่งรถไฟแน่นกว่าปกติมาก`,
+      title: input.awayDay ? `นั่งรถไฟไป${input.venueCity ?? "สนาม"}` : "ออกจากโรงแรมไปสนาม",
+      detail: input.awayDay
+        ? `เผื่อเวลาไปกลับสถานี + นั่งรถไฟรวม ${input.minutesToStadium} นาที + 15 นาทีสำรอง — จองตั๋วล่วงหน้าถูกกว่าและได้ที่นั่งแน่นอน`
+        : `เผื่อเวลาเดินทาง ${input.minutesToStadium} นาที + 15 นาทีสำรอง วันแข่งรถไฟแน่นกว่าปกติมาก`,
       durationMinutes: travelMinutes,
       costThb: 150,
       highlight: true,
@@ -335,15 +342,19 @@ function buildMatchDay(dayNumber: number, date: string, input: ItineraryInput, u
     {
       time: minutesToClock(kickoff + 130),
       icon: "transport",
-      title: "ออกจากสนาม — รอให้คนบางลงก่อน",
-      detail: "รถไฟหลังเกมแน่นมาก รอ 20–30 นาทีสบายกว่าเบียดออกทันที",
-      durationMinutes: 45,
+      title: input.awayDay ? `ออกจากสนาม — นั่งรถไฟกลับ${input.city === "Manchester" ? "แมนเชสเตอร์" : "ลอนดอน"}` : "ออกจากสนาม — รอให้คนบางลงก่อน",
+      detail: input.awayDay
+        ? "เช็กเที่ยวสุดท้ายของวันก่อนออกจากที่พักตอนเช้า เกมค่ำบางนัดรถไฟกลับหมดก่อนเกมเลิก"
+        : "รถไฟหลังเกมแน่นมาก รอ 20–30 นาทีสบายกว่าเบียดออกทันที",
+      durationMinutes: input.awayDay ? input.minutesToStadium : 45,
       costThb: 150,
     },
   );
 
+  // วันแข่งต่างเมืองกว่าจะกลับถึงเมืองฐานก็ดึก มื้อค่ำจึงเลื่อนตามเวลารถไฟขากลับ
+  const afterOffset = input.awayDay ? 130 + input.minutesToStadium + 20 : 190;
   const after = pick(input.city, ["pub", "food"], used, 1)[0];
-  if (after) items.push(toItem(after, minutesToClock(kickoff + 190)));
+  if (after) items.push(toItem(after, minutesToClock(kickoff + afterOffset)));
 
   items.sort((a, b) => clockToMinutes(a.time) - clockToMinutes(b.time));
 
