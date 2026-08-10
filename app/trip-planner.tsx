@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from "react";
 import {
-  ArrowRight,
   CalendarDays,
+  Clock,
   Coins,
   Hotel,
+  Landmark,
   MapPin,
   Plane,
+  Ticket,
   TriangleAlert,
   Users,
 } from "lucide-react";
@@ -15,6 +17,8 @@ import { listPlannableFixtures, recommendTripDates, hotelNights, type PlannableF
 import { ARRIVAL_AIRPORTS, BANGKOK, arrivalWarning, listFlights, type FlightSort } from "@/services/flights";
 import { defaultHotel, listHotels } from "@/services/hotels";
 import { estimateTrip, formatMoney } from "@/services/pricing";
+import { buildItinerary, detectConflicts, type ItineraryDay } from "@/services/itinerary";
+import { pilgrimageIn } from "@/services/places";
 import { BUDGET_LABELS, type BudgetStyle, type DestinationCity, type TripLength } from "@/services/trip/types";
 
 const BUDGET_ORDER: BudgetStyle[] = ["saver", "comfort", "premium"];
@@ -58,6 +62,38 @@ function addDays(ymd: string, days: number) {
   const date = new Date(`${ymd}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
+}
+
+function ItineraryDayCard({ day, money }: { day: ItineraryDay; money: (amount: number) => string }) {
+  return (
+    <article className={`itinerary-day ${day.theme}`}>
+      <header>
+        <span className="itinerary-day-no">DAY {day.dayNumber}</span>
+        <div>
+          <h4>{day.title}</h4>
+          <span className="itinerary-day-date">{thaiDate(day.date)}</span>
+        </div>
+        <b>{money(day.costThb)}</b>
+      </header>
+      <p className="itinerary-day-summary">{day.summary}</p>
+      <ol className="itinerary-timeline">
+        {day.items.map((item, index) => (
+          <li key={`${item.time}-${index}`} className={item.highlight ? "highlight" : ""}>
+            <time>{item.time}</time>
+            <div>
+              <strong>{item.title}{item.booking ? <em className="need-booking">ต้องจองล่วงหน้า</em> : null}</strong>
+              <p>{item.detail}</p>
+              <small>
+                {item.area ? `${item.area} · ` : ""}
+                ใช้เวลา {item.durationMinutes} นาที
+                {item.costThb > 0 ? ` · ${money(item.costThb)}` : " · ไม่มีค่าใช้จ่าย"}
+              </small>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </article>
+  );
 }
 
 export function TripPlanner() {
@@ -141,6 +177,29 @@ export function TripPlanner() {
     if (venueFilter === "away" && item.isHome) return false;
     return true;
   });
+
+  // ── STEP 11/12/21 · แผนเที่ยวรายวัน ─────────────────────────────────
+  const itineraryInput = {
+    city,
+    departDate,
+    length,
+    matchDate,
+    kickoffUtc: fixture?.kickoffUtc ?? null,
+    stadium: fixture?.stadium ?? null,
+    minutesToStadium: selectedHotel?.minutesToStadium ?? 30,
+    arrivesMorning: selectedFlight?.arrivesMorning ?? false,
+  };
+  const itinerary = useMemo(
+    () => (departDate ? buildItinerary(itineraryInput) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [city, departDate, length, matchDate, fixture?.kickoffUtc, fixture?.stadium, selectedHotel?.minutesToStadium, selectedFlight?.arrivesMorning],
+  );
+  const conflicts = useMemo(
+    () => (itinerary.length ? detectConflicts(itinerary, itineraryInput) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [itinerary],
+  );
+  const pilgrimage = useMemo(() => pilgrimageIn(city), [city]);
 
   const money = (amount: number) => formatMoney(amount, currency);
   const maxLine = Math.max(...estimate.lines.map((line) => line.amount), 1);
@@ -386,6 +445,57 @@ export function TripPlanner() {
             </div>
           </section>
 
+          {/* ── STEP 11/12/21 · แผนเที่ยวรายวัน ──────────────────────────── */}
+          <section className="trip-block" id="itinerary">
+            <header className="trip-block-head">
+              <div>
+                <span className="eyebrow">STEP 5</span>
+                <h3><Clock size={15} aria-hidden="true" /> แผนเที่ยว {length} วัน</h3>
+              </div>
+            </header>
+
+            {conflicts.length > 0 && (
+              <div className="itinerary-issues">
+                {conflicts.map((issue) => (
+                  <p key={issue}><TriangleAlert size={13} aria-hidden="true" /> {issue}</p>
+                ))}
+              </div>
+            )}
+
+            <div className="itinerary-days">
+              {itinerary.map((day) => <ItineraryDayCard key={day.date} day={day} money={money} />)}
+            </div>
+            <p className="trip-disclaimer">
+              เวลาในแผนเป็นเวลาอังกฤษ · จัดวันแข่งโดยถอยหลังจากเวลาเตะ เผื่อถึงสนามก่อน 75 นาที
+              และเผื่อเวลาเดินทางจากโรงแรม {selectedHotel?.minutesToStadium ?? 30} นาที + สำรองอีก 15 นาที
+            </p>
+          </section>
+
+          {/* ── STEP 14 · Football Pilgrimage ────────────────────────────── */}
+          {pilgrimage.length > 0 && (
+            <section className="trip-block">
+              <header className="trip-block-head">
+                <div>
+                  <span className="eyebrow">FOOTBALL PILGRIMAGE</span>
+                  <h3><Landmark size={15} aria-hidden="true" /> หมุดที่แฟนบอลตัวจริงควรไป</h3>
+                </div>
+              </header>
+              <div className="pilgrimage-list">
+                {pilgrimage.map((place) => (
+                  <article className="pilgrimage-card" key={place.id}>
+                    <h4>{place.name}</h4>
+                    <span className="pilgrimage-area"><MapPin size={11} aria-hidden="true" /> {place.area}</span>
+                    <p>{place.significance ?? place.why}</p>
+                    <div className="pilgrimage-meta">
+                      <span>เผื่อเวลา {place.durationMinutes} นาที</span>
+                      <span>{place.costThb === 0 ? "เข้าฟรี" : money(place.costThb)}</span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* ── STEP 6 · แจกแจงค่าใช้จ่าย ────────────────────────────────── */}
           <section className="trip-block">
             <header className="trip-block-head">
@@ -437,10 +547,12 @@ export function TripPlanner() {
               <strong>{money(estimate.perPerson)}</strong>
               <small>ต่อคน · ทั้งกลุ่ม {money(estimate.total)}</small>
             </div>
-            <button type="button" className="trip-cta">
-              สร้างแผนเที่ยวรายวัน <ArrowRight size={14} aria-hidden="true" />
-            </button>
-            <p className="trip-summary-note">แผนเที่ยวรายวัน (ไอเทนเนอรารี 5/8 วัน) กำลังพัฒนาในเฟสถัดไป</p>
+            <a className="trip-cta" href="#itinerary">
+              ดูแผนเที่ยว {length} วัน <Ticket size={14} aria-hidden="true" />
+            </a>
+            <p className="trip-summary-note">
+              ราคาเป็นการประมาณการเพื่อวางแผน ยังไม่ได้เชื่อมระบบจองจริง
+            </p>
           </div>
         </aside>
       </div>
