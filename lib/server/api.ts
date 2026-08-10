@@ -1,5 +1,6 @@
 import { CATEGORIES } from "@/lib/types";
-import { ensureDatabase, getLatestSync, listStories, type RuntimeEnv } from "@/lib/server/database";
+import { ensureDatabase, getLatestSync, getTripPlan, listStories, saveTripPlan, type RuntimeEnv } from "@/lib/server/database";
+import { askTripAssistant } from "@/lib/server/trip-assistant";
 import { generateDailyDigest, runIngest, translateStories } from "@/lib/server/pipeline";
 import { getChannelAnalytics } from "@/lib/server/channel-analytics";
 import {
@@ -218,6 +219,51 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
       return json({ ok: true, ...(await runIngest(env)) });
     } catch (error) {
       return json({ ok: false, error: error instanceof Error ? error.message : "Ingestion failed" }, 502);
+    }
+  }
+
+  // ── ทริปที่บันทึกไว้ (STEP 27) ───────────────────────────────────────
+  if (url.pathname === "/api/trips" && request.method === "POST") {
+    let body: { id?: unknown; title?: unknown; payload?: unknown } = {};
+    try { body = (await request.json()) as typeof body; } catch { return json({ error: "invalid_body" }, 400); }
+    if (!body.payload || typeof body.payload !== "object") return json({ error: "payload_required" }, 400);
+    // id สั้นพอให้พิมพ์ตามได้ และสุ่มพอให้เดาไม่ถูก
+    const id = typeof body.id === "string" && /^[a-z0-9]{6,24}$/.test(body.id)
+      ? body.id
+      : Array.from(crypto.getRandomValues(new Uint8Array(6)))
+          .map((byte) => byte.toString(36).padStart(2, "0"))
+          .join("")
+          .slice(0, 10);
+    const title = typeof body.title === "string" ? body.title : "";
+    return json({ ok: true, ...(await saveTripPlan(env.DB, id, title, body.payload)) });
+  }
+
+  const tripMatch = url.pathname.match(/^\/api\/trips\/([a-z0-9]{6,24})$/);
+  if (tripMatch && request.method === "GET") {
+    const plan = await getTripPlan(env.DB, tripMatch[1]);
+    if (!plan) return json({ error: "not_found" }, 404);
+    return json({ ok: true, ...plan });
+  }
+
+  // ── ASK GOG · ผู้ช่วยปรับทริป (STEP 39) ──────────────────────────────
+  if (url.pathname === "/api/trip-assistant" && request.method === "POST") {
+    let body: { question?: unknown; trip?: unknown; catalogue?: unknown } = {};
+    try { body = (await request.json()) as typeof body; } catch { return json({ error: "invalid_body" }, 400); }
+    const question = typeof body.question === "string" ? body.question.trim().slice(0, 600) : "";
+    if (!question) return json({ error: "question_required" }, 400);
+    try {
+      const result = await askTripAssistant(env, {
+        question,
+        trip: body.trip ?? {},
+        catalogue: body.catalogue ?? {},
+      });
+      if ("error" in result) {
+        const status = result.error === "assistant_not_configured" ? 503 : 502;
+        return json({ ok: false, ...result }, status);
+      }
+      return json({ ok: true, ...result });
+    } catch (error) {
+      return json({ ok: false, error: error instanceof Error ? error.message : "assistant_failed" }, 502);
     }
   }
 

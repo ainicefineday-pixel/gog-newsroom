@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CalendarDays,
   Clock,
@@ -9,16 +9,21 @@ import {
   Landmark,
   MapPin,
   Plane,
+  Share2,
+  Sparkles,
   Ticket,
   TriangleAlert,
   Users,
+  Wand2,
 } from "lucide-react";
 import { listPlannableFixtures, recommendTripDates, hotelNights, type PlannableFixture } from "@/services/football/fixtures";
 import { ARRIVAL_AIRPORTS, BANGKOK, arrivalWarning, listFlights, type FlightSort } from "@/services/flights";
 import { defaultHotel, listHotels } from "@/services/hotels";
 import { estimateTrip, formatMoney } from "@/services/pricing";
 import { buildItinerary, detectConflicts, type ItineraryDay } from "@/services/itinerary";
-import { pilgrimageIn } from "@/services/places";
+import { pilgrimageIn, PLACES } from "@/services/places";
+import { FLIGHT_OPTIONS } from "@/services/flights";
+import { HOTEL_OPTIONS } from "@/services/hotels";
 import { BUDGET_LABELS, type BudgetStyle, type DestinationCity, type TripLength } from "@/services/trip/types";
 
 const BUDGET_ORDER: BudgetStyle[] = ["saver", "comfort", "premium"];
@@ -64,7 +69,11 @@ function addDays(ymd: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-function ItineraryDayCard({ day, money }: { day: ItineraryDay; money: (amount: number) => string }) {
+function ItineraryDayCard({ day, money, onRemove }: {
+  day: ItineraryDay;
+  money: (amount: number) => string;
+  onRemove: (placeId: string) => void;
+}) {
   return (
     <article className={`itinerary-day ${day.theme}`}>
       <header>
@@ -88,6 +97,11 @@ function ItineraryDayCard({ day, money }: { day: ItineraryDay; money: (amount: n
                 ใช้เวลา {item.durationMinutes} นาที
                 {item.costThb > 0 ? ` · ${money(item.costThb)}` : " · ไม่มีค่าใช้จ่าย"}
               </small>
+              {item.placeId && (
+                <button type="button" className="item-remove" onClick={() => onRemove(item.placeId!)}>
+                  ตัดออกจากแผน
+                </button>
+              )}
             </div>
           </li>
         ))}
@@ -112,6 +126,13 @@ export function TripPlanner() {
   const [flightSort, setFlightSort] = useState<FlightSort>("best");
   const [cityFilter, setCityFilter] = useState<DestinationCity | "All">("All");
   const [venueFilter, setVenueFilter] = useState<"all" | "home" | "away">("all");
+  const [removedPlaceIds, setRemovedPlaceIds] = useState<string[]>([]);
+  const [shareUrl, setShareUrl] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [assistantQuestion, setAssistantQuestion] = useState("");
+  const [assistantBusy, setAssistantBusy] = useState(false);
+  const [assistantReply, setAssistantReply] = useState<{ reply: string; changed: string[] } | null>(null);
+  const [tripError, setTripError] = useState("");
 
   const fixture = useMemo(() => fixtures.find((item) => item.key === fixtureKey) ?? null, [fixtures, fixtureKey]);
   const city: DestinationCity = fixture?.destination ?? "Manchester";
@@ -194,12 +215,176 @@ export function TripPlanner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [city, departDate, length, matchDate, fixture?.kickoffUtc, fixture?.stadium, selectedHotel?.minutesToStadium, selectedFlight?.arrivesMorning],
   );
+  const visibleItinerary = useMemo(
+    () => itinerary.map((day) => {
+      const items = day.items.filter((item) => !removedPlaceIds.includes(item.placeId ?? ""));
+      return { ...day, items, costThb: items.reduce((sum, item) => sum + item.costThb, 0) };
+    }),
+    [itinerary, removedPlaceIds],
+  );
   const conflicts = useMemo(
     () => (itinerary.length ? detectConflicts(itinerary, itineraryInput) : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [itinerary],
   );
   const pilgrimage = useMemo(() => pilgrimageIn(city), [city]);
+
+  // สรุปสถานะทริปปัจจุบัน — ใช้ทั้งตอนบันทึกและตอนส่งให้ผู้ช่วย
+  const tripState = useMemo(() => ({
+    fixtureKey, length, budget, travellers, currency,
+    departDate, returnDate, flightId: selectedFlight?.id ?? "", hotelId: selectedHotel?.id ?? "",
+    removedPlaceIds,
+  }), [fixtureKey, length, budget, travellers, currency, departDate, returnDate, selectedFlight?.id, selectedHotel?.id, removedPlaceIds]);
+
+  // โหลดทริปที่แชร์มาจาก ?trip=<id> ครั้งเดียวตอนเปิดหน้า
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("trip");
+    if (!id) return;
+    let alive = true;
+    fetch(`/api/trips/${id}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { payload?: typeof tripState } | null) => {
+        const saved = payload?.payload;
+        if (!alive || !saved) return;
+        if (saved.fixtureKey) setFixtureKey(saved.fixtureKey);
+        if (saved.length) setLength(saved.length);
+        if (saved.budget) setBudget(saved.budget);
+        if (saved.travellers) setTravellers(saved.travellers);
+        if (saved.currency) setCurrency(saved.currency);
+        if (saved.flightId) setFlightId(saved.flightId);
+        if (saved.hotelId) setHotelId(saved.hotelId);
+        if (saved.removedPlaceIds) setRemovedPlaceIds(saved.removedPlaceIds);
+        if (saved.departDate && saved.returnDate) {
+          setDateOverride({ sig: `${saved.fixtureKey}-${saved.length}`, depart: saved.departDate, back: saved.returnDate });
+        }
+      })
+      .catch(() => { /* ลิงก์เสีย = เริ่มวางแผนใหม่ตามปกติ */ });
+    return () => { alive = false; };
+  }, []);
+
+  const saveTrip = useCallback(async () => {
+    setSaving(true);
+    setTripError("");
+    try {
+      const title = fixture ? `${fixture.home} v ${fixture.away} · ${length} วัน` : `ทริป ${length} วัน`;
+      const response = await fetch("/api/trips", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ title, payload: tripState }),
+      });
+      const payload = await response.json() as { ok?: boolean; id?: string; error?: string };
+      if (!response.ok || !payload.ok || !payload.id) throw new Error(payload.error || "บันทึกไม่สำเร็จ");
+      const link = `${window.location.origin}${window.location.pathname}?trip=${payload.id}`;
+      setShareUrl(link);
+      try { await navigator.clipboard.writeText(link); } catch { /* คลิปบอร์ดถูกบล็อก */ }
+    } catch (error) {
+      setTripError(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ");
+    } finally {
+      setSaving(false);
+    }
+  }, [fixture, length, tripState]);
+
+  const kickoffUtc = fixture?.kickoffUtc ?? null;
+  const askGog = useCallback(async (question: string) => {
+    if (!question.trim()) return;
+    setAssistantBusy(true);
+    setTripError("");
+    setAssistantReply(null);
+    try {
+      const catalogue = {
+        flights: FLIGHT_OPTIONS.filter((item) => airportsForCity.some((airport) => airport.code === item.arrivalCode))
+          .map((item) => ({ id: item.id, airline: item.airline, to: item.arrivalCode, stops: item.stops, arrivesMorning: item.arrivesMorning })),
+        hotels: HOTEL_OPTIONS.filter((item) => item.city === city)
+          .map((item) => ({ id: item.id, name: item.name, area: item.area, stars: item.stars, nightlyThb: item.nightlyThb, bestFor: item.bestFor })),
+        places: PLACES.filter((item) => item.city === city)
+          .map((item) => ({ id: item.id, name: item.name, kind: item.kind, area: item.area, costThb: item.costThb })),
+      };
+      const response = await fetch("/api/trip-assistant", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          question,
+          trip: { ...tripState, city, matchDate: kickoffUtc ? kickoffUtc.slice(0, 10) : null },
+          catalogue,
+        }),
+      });
+      const payload = await response.json() as {
+        ok?: boolean; error?: string; reply?: string; changed?: string[];
+        patch?: { budget?: BudgetStyle; length?: TripLength; travellers?: number; flightId?: string; hotelId?: string; removePlaceIds?: string[]; addPlaceIds?: string[] };
+      };
+      if (!response.ok || !payload.ok) {
+        throw new Error(payload.error === "assistant_not_configured"
+          ? "ยังไม่ได้ตั้งค่า ANTHROPIC_API_KEY บน Worker"
+          : payload.error || "ผู้ช่วยตอบไม่ได้");
+      }
+      const patch = payload.patch ?? {};
+      if (patch.budget) setBudget(patch.budget);
+      if (patch.length) setLength(patch.length);
+      if (patch.travellers) setTravellers(Math.min(Math.max(patch.travellers, 1), 12));
+      if (patch.flightId) setFlightId(patch.flightId);
+      if (patch.hotelId) setHotelId(patch.hotelId);
+      if (patch.removePlaceIds?.length || patch.addPlaceIds?.length) {
+        setRemovedPlaceIds((current) => {
+          const next = new Set([...current, ...(patch.removePlaceIds ?? [])]);
+          for (const id of patch.addPlaceIds ?? []) next.delete(id);
+          return [...next];
+        });
+      }
+      setAssistantReply({ reply: payload.reply ?? "", changed: payload.changed ?? [] });
+      setAssistantQuestion("");
+    } catch (error) {
+      setTripError(error instanceof Error ? error.message : "ผู้ช่วยตอบไม่ได้");
+    } finally {
+      setAssistantBusy(false);
+    }
+  }, [airportsForCity, city, kickoffUtc, tripState]);
+
+  // ── STEP 24 · จำลอง "ถ้าเปลี่ยนแบบนี้" — คิดจาก service ตัวเดียวกับราคาจริง
+  const whatIf = (over: { length?: TripLength; budget?: BudgetStyle; nights?: number }) => {
+    const nextLength = over.length ?? length;
+    const nextBudget = over.budget ?? budget;
+    const nextNights = over.nights ?? (over.length ? over.length - 1 : nights);
+    const flight = listFlights(airportsForCity.map((airport) => airport.code), nextBudget, "best")[0];
+    const hotel = defaultHotel(city, nextBudget);
+    return estimateTrip({
+      length: nextLength,
+      nights: nextNights,
+      city,
+      budget: nextBudget,
+      travellers,
+      flightFare: flight?.estimatedFare[nextBudget] ?? 0,
+      hotelNightly: hotel?.nightlyThb ?? 0,
+      includeMatch: Boolean(fixture),
+    }).perPerson;
+  };
+
+  const whatIfs = [
+    {
+      label: length === 5 ? "ไป 8 วันแทน 5 วัน" : "ไป 5 วันแทน 8 วัน",
+      delta: whatIf({ length: length === 5 ? 8 : 5 }) - estimate.perPerson,
+      apply: () => setLength(length === 5 ? 8 : 5),
+    },
+    {
+      label: "อัปเกรดเป็น Comfort",
+      delta: whatIf({ budget: "comfort" }) - estimate.perPerson,
+      apply: () => setBudget("comfort"),
+    },
+    {
+      label: "อัปเกรดเป็น Premium",
+      delta: whatIf({ budget: "premium" }) - estimate.perPerson,
+      apply: () => setBudget("premium"),
+    },
+    {
+      label: "ลดเหลือ Smart Saver",
+      delta: whatIf({ budget: "saver" }) - estimate.perPerson,
+      apply: () => setBudget("saver"),
+    },
+    {
+      label: "อยู่เพิ่มอีก 1 คืน",
+      delta: whatIf({ nights: nights + 1 }) - estimate.perPerson,
+      apply: () => setReturnDate(addDays(returnDate, 1)),
+    },
+  ];
 
   const money = (amount: number) => formatMoney(amount, currency);
   const maxLine = Math.max(...estimate.lines.map((line) => line.amount), 1);
@@ -454,6 +639,13 @@ export function TripPlanner() {
               </div>
             </header>
 
+            {removedPlaceIds.length > 0 && (
+              <div className="removed-bar">
+                <span>ตัดออกจากแผนแล้ว {removedPlaceIds.length} รายการ</span>
+                <button type="button" onClick={() => setRemovedPlaceIds([])}>เอากลับทั้งหมด</button>
+              </div>
+            )}
+
             {conflicts.length > 0 && (
               <div className="itinerary-issues">
                 {conflicts.map((issue) => (
@@ -463,7 +655,14 @@ export function TripPlanner() {
             )}
 
             <div className="itinerary-days">
-              {itinerary.map((day) => <ItineraryDayCard key={day.date} day={day} money={money} />)}
+              {visibleItinerary.map((day) => (
+                <ItineraryDayCard
+                  key={day.date}
+                  day={day}
+                  money={money}
+                  onRemove={(placeId) => setRemovedPlaceIds((current) => [...new Set([...current, placeId])])}
+                />
+              ))}
             </div>
             <p className="trip-disclaimer">
               เวลาในแผนเป็นเวลาอังกฤษ · จัดวันแข่งโดยถอยหลังจากเวลาเตะ เผื่อถึงสนามก่อน 75 นาที
@@ -495,6 +694,75 @@ export function TripPlanner() {
               </div>
             </section>
           )}
+
+          {/* ── STEP 39 · ASK GOG ────────────────────────────────────────── */}
+          <section className="trip-block ask-gog">
+            <header className="trip-block-head">
+              <div>
+                <span className="eyebrow">AI CONCIERGE</span>
+                <h3><Sparkles size={15} aria-hidden="true" /> ASK GOG</h3>
+              </div>
+            </header>
+            <p className="ask-gog-lead">บอกสิ่งที่อยากได้เป็นภาษาคนปกติ — ผู้ช่วยจะแก้ทริปให้จริง ไม่ใช่แค่ตอบกลับ</p>
+            <div className="ask-gog-suggestions">
+              {[
+                "ทำทริปนี้ให้ถูกลง",
+                "อยากได้ประวัติศาสตร์บอลเยอะกว่านี้",
+                "ผมชอบกาแฟ specialty",
+                "ขอไปแบบ 8 วันแทน",
+                "หาโรงแรมใกล้สนามกว่านี้",
+                "ขอร้านอาหารไทยเพิ่ม",
+              ].map((prompt) => (
+                <button key={prompt} type="button" disabled={assistantBusy} onClick={() => askGog(prompt)}>{prompt}</button>
+              ))}
+            </div>
+            <form
+              className="ask-gog-form"
+              onSubmit={(event) => { event.preventDefault(); askGog(assistantQuestion); }}
+            >
+              <input
+                value={assistantQuestion}
+                onChange={(event) => setAssistantQuestion(event.target.value)}
+                placeholder="เช่น ไม่อยากตื่นเช้า อยากดูบอลสองนัด"
+                disabled={assistantBusy}
+              />
+              <button type="submit" disabled={assistantBusy || !assistantQuestion.trim()}>
+                <Wand2 size={13} aria-hidden="true" /> {assistantBusy ? "กำลังปรับทริป…" : "ปรับทริปให้"}
+              </button>
+            </form>
+            {assistantReply && (
+              <div className="ask-gog-reply">
+                <p>{assistantReply.reply}</p>
+                {assistantReply.changed.length > 0 && (
+                  <>
+                    <span className="ask-gog-changed-label">สิ่งที่เปลี่ยนไป</span>
+                    <ul>{assistantReply.changed.map((line) => <li key={line}>{line}</li>)}</ul>
+                  </>
+                )}
+              </div>
+            )}
+            {tripError && <p className="ask-gog-error">{tripError}</p>}
+          </section>
+
+          {/* ── STEP 24 · What if? ───────────────────────────────────────── */}
+          <section className="trip-block">
+            <header className="trip-block-head">
+              <div>
+                <span className="eyebrow">STEP 24</span>
+                <h3>ถ้าเปลี่ยนแบบนี้ ราคาขยับเท่าไหร่?</h3>
+              </div>
+            </header>
+            <div className="whatif-grid">
+              {whatIfs.map((option) => (
+                <button key={option.label} type="button" className="whatif-card" onClick={option.apply} disabled={!option.apply}>
+                  <span>{option.label}</span>
+                  <b className={option.delta > 0 ? "up" : option.delta < 0 ? "down" : ""}>
+                    {option.delta === 0 ? "เท่าเดิม" : `${option.delta > 0 ? "+" : "−"}${money(Math.abs(option.delta))}`}
+                  </b>
+                </button>
+              ))}
+            </div>
+          </section>
 
           {/* ── STEP 6 · แจกแจงค่าใช้จ่าย ────────────────────────────────── */}
           <section className="trip-block">
@@ -550,6 +818,10 @@ export function TripPlanner() {
             <a className="trip-cta" href="#itinerary">
               ดูแผนเที่ยว {length} วัน <Ticket size={14} aria-hidden="true" />
             </a>
+            <button type="button" className="trip-save" onClick={saveTrip} disabled={saving}>
+              <Share2 size={13} aria-hidden="true" /> {saving ? "กำลังบันทึก…" : "บันทึก + คัดลอกลิงก์แชร์"}
+            </button>
+            {shareUrl && <p className="trip-share-url">คัดลอกลิงก์แล้ว: <code>{shareUrl}</code></p>}
             <p className="trip-summary-note">
               ราคาเป็นการประมาณการเพื่อวางแผน ยังไม่ได้เชื่อมระบบจองจริง
             </p>

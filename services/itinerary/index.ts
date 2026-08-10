@@ -13,6 +13,8 @@ import type { DestinationCity, TripLength } from "@/services/trip/types";
 export type DayTheme = "arrival" | "football" | "matchday" | "city" | "daytrip" | "departure";
 
 export type ItineraryItem = {
+  /** id ของสถานที่ต้นทาง — มีเฉพาะรายการที่มาจากคลังสถานที่ (ใช้ตอนตัดออก/เพิ่มกลับ) */
+  placeId?: string;
   /** เวลาแบบ HH:MM ตามเวลาท้องถิ่นอังกฤษ */
   time: string;
   title: string;
@@ -85,6 +87,7 @@ function pick(city: DestinationCity, kinds: Place["kind"][], used: Set<string>, 
 
 function toItem(place: Place, time: string, highlight = false): ItineraryItem {
   return {
+    placeId: place.id,
     time,
     title: place.name,
     detail: place.why,

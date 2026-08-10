@@ -133,6 +133,13 @@ export async function ensureDatabase(db: D1Database) {
       error_code TEXT,
       error_message TEXT
     )`),
+    db.prepare(`CREATE TABLE IF NOT EXISTS trip_plans (
+      id TEXT PRIMARY KEY,
+      payload_json TEXT NOT NULL,
+      title TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_stories_published_at ON stories(published_at)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_stories_category_credibility ON stories(category, credibility)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_stories_verified_date ON stories(verified, story_date)"),
@@ -186,6 +193,36 @@ export function rowToStory(row: StoryRow): Story {
     angles: safeJson(row.angle_suggestions_json, []),
     topicTerms: safeJson(row.topic_terms_json, []),
   };
+}
+
+// ── ทริปที่ผู้ใช้บันทึกไว้ (STEP 27) ────────────────────────────────────
+// เก็บเป็น JSON ก้อนเดียว เพราะโครงทริปยังเปลี่ยนบ่อยระหว่างพัฒนา
+// ถ้าโครงนิ่งแล้วค่อยแตกเป็นคอลัมน์ทีหลัง
+export async function saveTripPlan(db: D1Database, id: string, title: string, payload: unknown) {
+  const now = new Date().toISOString();
+  await db
+    .prepare(`INSERT INTO trip_plans (id, payload_json, title, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        payload_json = excluded.payload_json,
+        title = excluded.title,
+        updated_at = excluded.updated_at`)
+    .bind(id, JSON.stringify(payload), title.slice(0, 160), now, now)
+    .run();
+  return { id, title, updatedAt: now };
+}
+
+export async function getTripPlan(db: D1Database, id: string) {
+  const row = await db
+    .prepare("SELECT id, payload_json, title, created_at, updated_at FROM trip_plans WHERE id = ?")
+    .bind(id)
+    .first<{ id: string; payload_json: string; title: string; created_at: string; updated_at: string }>();
+  if (!row) return null;
+  try {
+    return { id: row.id, title: row.title, payload: JSON.parse(row.payload_json) as unknown, updatedAt: row.updated_at };
+  } catch {
+    return null;
+  }
 }
 
 export async function listStories(

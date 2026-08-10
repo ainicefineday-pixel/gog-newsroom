@@ -146,3 +146,38 @@ a.trip-cta { text-decoration: none; }
   .itinerary-timeline li { grid-template-columns: 46px 1fr; gap: 10px; }
   .itinerary-day { padding: 14px 13px; }
 }
+
+/* ═══ ปรับแผนเอง / What if? / ASK GOG / แชร์ทริป (STEP 19, 24, 27, 39) ═══ */
+.item-remove { margin-top: 7px; background: transparent; border: 1px solid var(--line); border-radius: 7px; color: #6b7078; font: 600 9.5px/1 "Kanit",sans-serif; padding: 5px 9px; cursor: pointer; }
+.item-remove:hover { border-color: #ef4444; color: #f87171; }
+.removed-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 13px; padding: 9px 13px; border: 1px dashed var(--line); border-radius: 9px; color: var(--muted); font: 600 11px/1 "Kanit",sans-serif; }
+.removed-bar button { background: transparent; border: none; color: #f0a500; font: 700 11px/1 "Kanit",sans-serif; cursor: pointer; text-decoration: underline; }
+
+.whatif-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(210px,1fr)); gap: 10px; }
+.whatif-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; padding: 14px 15px; border: 1px solid var(--line); border-radius: 11px; background: #0c0e12; color: #d5d8dd; cursor: pointer; font: 600 11.5px/1.4 "Kanit",sans-serif; }
+.whatif-card:hover { border-color: #6b7078; }
+.whatif-card b { font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--muted); flex-shrink: 0; }
+.whatif-card b.up { color: #f87171; }
+.whatif-card b.down { color: #4ade80; }
+
+.ask-gog { border-color: rgba(240,165,0,.3); background: linear-gradient(135deg, rgba(240,165,0,.05), #0f1115 55%); }
+.ask-gog-lead { margin: 0 0 13px; color: #9aa0a8; font: 400 11.5px/1.7 "Kanit",sans-serif; }
+.ask-gog-suggestions { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 13px; }
+.ask-gog-suggestions button { background: #0c0e12; border: 1px solid var(--line); border-radius: 99px; color: #b7bbc2; font: 600 10.5px/1 "Kanit",sans-serif; padding: 8px 13px; cursor: pointer; }
+.ask-gog-suggestions button:hover:not(:disabled) { border-color: #f0a500; color: #f0a500; }
+.ask-gog-suggestions button:disabled { opacity: .45; cursor: not-allowed; }
+.ask-gog-form { display: flex; gap: 8px; flex-wrap: wrap; }
+.ask-gog-form input { flex: 1; min-width: 200px; background: #0c0e12; border: 1px solid var(--line); border-radius: 9px; color: #e7e9ec; font: 500 12px/1 "Kanit",sans-serif; padding: 12px 13px; }
+.ask-gog-form button { display: inline-flex; align-items: center; gap: 7px; background: #f0a500; border: none; border-radius: 9px; color: #17130a; font: 800 12px/1 "Kanit",sans-serif; padding: 12px 18px; cursor: pointer; }
+.ask-gog-form button:disabled { opacity: .5; cursor: not-allowed; }
+.ask-gog-reply { margin-top: 14px; padding: 14px 16px; border: 1px solid rgba(240,165,0,.28); border-radius: 11px; background: rgba(240,165,0,.06); }
+.ask-gog-reply p { margin: 0; color: #e7e9ec; font: 400 12px/1.8 "Kanit",sans-serif; }
+.ask-gog-changed-label { display: block; margin-top: 11px; color: #f0a500; font: 800 9px/1 "Kanit",sans-serif; letter-spacing: .12em; }
+.ask-gog-reply ul { margin: 7px 0 0; padding-left: 18px; color: #b7bbc2; font: 400 11.5px/1.75 "Kanit",sans-serif; }
+.ask-gog-error { margin: 12px 0 0; color: #f87171; font: 600 11.5px/1.6 "Kanit",sans-serif; }
+
+.trip-save { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: transparent; border: 1px solid var(--line); border-radius: 9px; color: #d5d8dd; font: 700 11.5px/1 "Kanit",sans-serif; padding: 11px; cursor: pointer; }
+.trip-save:hover:not(:disabled) { border-color: #f0a500; color: #f0a500; }
+.trip-save:disabled { opacity: .5; cursor: not-allowed; }
+.trip-share-url { margin: 0; color: var(--muted); font: 500 9.5px/1.6 "Kanit",sans-serif; word-break: break-all; }
+.trip-share-url code { color: #4ade80; font-size: 9.5px; }
