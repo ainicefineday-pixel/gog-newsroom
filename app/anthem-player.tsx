@@ -1,10 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ANTHEM_LYRICS, ANTHEM_TRACK, type LyricLine } from "@/config/anthem-lyrics";
+import { Download, Pause, Play, RotateCcw, RotateCw, SkipBack, SkipForward } from "lucide-react";
+import { ANTHEM_LYRICS, ANTHEM_TRACK, ANTHEM_TRACKS, type LyricLine } from "@/config/anthem-lyrics";
 
 const BAR_COUNT = 44;
 const SYNC_STORAGE_KEY = "gog-anthem-sync";
+/** ก้าวถอยหลัง/เดินหน้าเวลากดปุ่มกรอ */
+const SEEK_STEP = 10;
+const SPEEDS = [0.75, 1, 1.25, 1.5] as const;
 
 function formatClock(seconds: number) {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -39,6 +43,7 @@ export function AnthemPlayer() {
   const [captured, setCaptured] = useState<Record<number, number>>({});
   const [syncCursor, setSyncCursor] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [speed, setSpeed] = useState(1);
 
   const timedLines = useMemo(() => resolveTimings(captured), [captured]);
   const activeLineId = useMemo(() => {
@@ -243,6 +248,56 @@ export function AnthemPlayer() {
     window.setTimeout(() => setCopied(false), 2200);
   }, [captured]);
 
+  // ไฟล์เดียวมีสองเพลง — แทร็กที่กำลังเล่นคือแทร็กสุดท้ายที่จุดเริ่มยังไม่เกินเวลาปัจจุบัน
+  const trackIndex = useMemo(() => {
+    let index = 0;
+    ANTHEM_TRACKS.forEach((track, position) => {
+      if (currentTime + 0.05 >= track.startSeconds) index = position;
+    });
+    return index;
+  }, [currentTime]);
+  const track = ANTHEM_TRACKS[trackIndex] ?? ANTHEM_TRACKS[0];
+
+  const seekTo = useCallback((seconds: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const limit = audio.duration || duration || ANTHEM_TRACK.durationSeconds;
+    const next = Math.min(Math.max(seconds, 0), Math.max(limit - 0.3, 0));
+    audio.currentTime = next;
+    setCurrentTime(next);
+  }, [duration]);
+
+  /**
+   * ปุ่มย้อนกลับทำสองหน้าที่แบบเครื่องเล่นทั่วไป: กดตอนเพิ่งเริ่มเพลง (ไม่เกิน 3 วิ)
+   * คือถอยไปเพลงก่อนหน้า ถ้าเล่นมาเกินนั้นคือย้อนกลับไปต้นเพลงปัจจุบัน
+   */
+  const goPrevious = useCallback(() => {
+    const elapsedInTrack = currentTime - track.startSeconds;
+    if (elapsedInTrack > 3 || trackIndex === 0) {
+      seekTo(track.startSeconds);
+      return;
+    }
+    seekTo(ANTHEM_TRACKS[trackIndex - 1].startSeconds);
+  }, [currentTime, track, trackIndex, seekTo]);
+
+  const goNext = useCallback(() => {
+    const next = ANTHEM_TRACKS[trackIndex + 1];
+    // เพลงสุดท้ายแล้ววนกลับไปเพลงแรก เพราะไฟล์ตั้ง loop ไว้อยู่แล้ว
+    seekTo(next ? next.startSeconds : ANTHEM_TRACKS[0].startSeconds);
+  }, [trackIndex, seekTo]);
+
+  const cycleSpeed = useCallback(() => {
+    const position = SPEEDS.indexOf(speed as (typeof SPEEDS)[number]);
+    const next = SPEEDS[(position + 1) % SPEEDS.length];
+    setSpeed(next);
+    if (audioRef.current) audioRef.current.playbackRate = next;
+  }, [speed]);
+
+  // ตั้งความเร็วซ้ำหลังเปลี่ยนไฟล์/โหลดใหม่ ไม่งั้นเบราว์เซอร์รีเซ็ตกลับเป็น 1
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.playbackRate = speed;
+  }, [speed]);
+
   const activeLine = ANTHEM_LYRICS.find((line) => line.id === activeLineId) ?? null;
   const pendingLine = syncMode ? ANTHEM_LYRICS[syncCursor] ?? null : null;
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -264,30 +319,82 @@ export function AnthemPlayer() {
       />
 
       <div className="anthem-bar">
-        <button
-          type="button"
-          className="anthem-toggle"
-          onClick={() => (playing ? audioRef.current?.pause() : void startPlayback())}
-          aria-label={playing ? "หยุดเพลงชั่วคราว" : "เล่นเพลง"}
-        >
-          {playing ? "❚❚" : "▶"}
-        </button>
+        <div className="anthem-controls">
+          <button type="button" className="anthem-step" onClick={goPrevious} aria-label="เพลงก่อนหน้า">
+            <SkipBack size={14} aria-hidden="true" />
+          </button>
+          <button type="button" className="anthem-step" onClick={() => seekTo(currentTime - SEEK_STEP)} aria-label={`ถอยหลัง ${SEEK_STEP} วินาที`}>
+            <RotateCcw size={14} aria-hidden="true" />
+            <em>{SEEK_STEP}</em>
+          </button>
+          <button
+            type="button"
+            className="anthem-toggle"
+            onClick={() => (playing ? audioRef.current?.pause() : void startPlayback())}
+            aria-label={playing ? "หยุดเพลงชั่วคราว" : "เล่นเพลง"}
+          >
+            {playing ? <Pause size={15} aria-hidden="true" /> : <Play size={15} aria-hidden="true" />}
+          </button>
+          <button type="button" className="anthem-step" onClick={() => seekTo(currentTime + SEEK_STEP)} aria-label={`เดินหน้า ${SEEK_STEP} วินาที`}>
+            <RotateCw size={14} aria-hidden="true" />
+            <em>{SEEK_STEP}</em>
+          </button>
+          <button type="button" className="anthem-step" onClick={goNext} aria-label="เพลงถัดไป">
+            <SkipForward size={14} aria-hidden="true" />
+          </button>
+        </div>
 
         <div className="anthem-meta">
-          <b>{ANTHEM_TRACK.title}</b>
-          <small>{needsGesture ? "แตะที่ไหนก็ได้เพื่อเริ่มเพลง" : ANTHEM_TRACK.subtitle}</small>
+          <b>{track.title}</b>
+          <small>
+            {needsGesture
+              ? "แตะที่ไหนก็ได้เพื่อเริ่มเพลง"
+              : `${track.subtitle} · เพลงที่ ${trackIndex + 1}/${ANTHEM_TRACKS.length}`}
+          </small>
         </div>
+
+        <button
+          type="button"
+          className="anthem-seek"
+          aria-label="เลื่อนตำแหน่งเพลง"
+          onClick={(event) => {
+            const box = event.currentTarget.getBoundingClientRect();
+            seekTo(((event.clientX - box.left) / box.width) * (duration || ANTHEM_TRACK.durationSeconds));
+          }}
+        >
+          <span className="anthem-seek-track">
+            <i style={{ width: `${progress}%` }} />
+            {ANTHEM_TRACKS.slice(1).map((entry) => (
+              <b key={entry.id} style={{ left: `${(entry.startSeconds / (duration || ANTHEM_TRACK.durationSeconds)) * 100}%` }} />
+            ))}
+          </span>
+          <span className="anthem-clock">{formatClock(currentTime)} / {formatClock(duration)}</span>
+        </button>
 
         <canvas ref={canvasRef} className="anthem-wave" aria-hidden="true" />
 
-        <button
-          type="button"
-          className="anthem-expand"
-          onClick={() => setExpanded((open) => !open)}
-          aria-expanded={expanded}
-        >
-          {expanded ? "ซ่อนเนื้อเพลง" : "เนื้อเพลง"}
-        </button>
+        <div className="anthem-tools">
+          <button type="button" className="anthem-speed" onClick={cycleSpeed} aria-label={`ความเร็ว ${speed} เท่า กดเพื่อเปลี่ยน`}>
+            {speed}×
+          </button>
+          <a
+            className="anthem-download"
+            href={ANTHEM_TRACK.downloadSrc}
+            download={ANTHEM_TRACK.downloadName}
+            aria-label="ดาวน์โหลดเพลง"
+          >
+            <Download size={13} aria-hidden="true" />
+            <span>โหลดเพลง</span>
+          </a>
+          <button
+            type="button"
+            className="anthem-expand"
+            onClick={() => setExpanded((open) => !open)}
+            aria-expanded={expanded}
+          >
+            {expanded ? "ซ่อนเนื้อเพลง" : "เนื้อเพลง"}
+          </button>
+        </div>
       </div>
 
       <div className="anthem-progress" aria-hidden="true"><i style={{ width: `${progress}%` }} /></div>

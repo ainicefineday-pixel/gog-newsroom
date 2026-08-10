@@ -586,21 +586,50 @@ h1, h2, h3, p, li, td, th, b, strong, small { overflow-wrap: break-word; }
   .travel-fixture-select select { min-height: 44px; }
 }
 
-/* ---------- anthem dock ---------- */
+/* ---------- anthem dock — แถบเครื่องเล่นยาวค้างท้ายจอ ---------- */
 .anthem-dock {
-  position: fixed; z-index: 900; right: 18px; bottom: 18px; width: min(392px, calc(100vw - 36px));
-  border: 1px solid #343840; background: rgba(10,12,15,.94); backdrop-filter: blur(16px);
-  box-shadow: 0 18px 44px rgba(0,0,0,.55); overflow: hidden;
+  position: fixed; z-index: 900; left: 0; right: 0; bottom: 0;
+  border-top: 1px solid #343840; background: rgba(10,12,15,.95); backdrop-filter: blur(18px);
+  box-shadow: 0 -14px 40px rgba(0,0,0,.5); overflow: hidden;
   padding-bottom: env(safe-area-inset-bottom);
 }
-.anthem-bar { display: grid; grid-template-columns: 38px minmax(0,1fr) 74px auto; gap: 10px; align-items: center; padding: 11px 12px; }
-.anthem-toggle { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(218,41,28,.5); background: rgba(218,41,28,.14); color: #fff; font-size: 11px; cursor: pointer; }
-.anthem-toggle:hover { background: rgba(218,41,28,.26); }
+/* กันแถบบังเนื้อหาท้ายหน้า */
+.newsroom-shell { padding-bottom: 78px; }
+
+.anthem-bar {
+  display: grid;
+  grid-template-columns: auto minmax(140px,190px) minmax(0,1fr) 74px auto;
+  gap: 16px; align-items: center;
+  padding: 10px max(18px, calc((100vw - 1440px) / 2));
+}
+
+.anthem-controls { display: flex; align-items: center; gap: 5px; }
+.anthem-toggle { width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid rgba(218,41,28,.5); border-radius: 50%; background: rgba(218,41,28,.16); color: #fff; cursor: pointer; }
+.anthem-toggle:hover { background: rgba(218,41,28,.3); }
+.anthem-step { position: relative; width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 9px; background: #15171c; color: #9fa4ac; cursor: pointer; }
+.anthem-step:hover { color: #fff; border-color: rgba(218,41,28,.45); }
+.anthem-step em { position: absolute; inset: 0; display: grid; place-items: center; font: 700 6.5px/1 "Kanit",sans-serif; font-style: normal; color: inherit; }
+
 .anthem-meta { min-width: 0; }
-.anthem-meta b { display: block; font-size: 11px; font-weight: 600; }
+.anthem-meta b { display: block; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .anthem-meta small { display: block; margin-top: 2px; color: #767c85; font-size: 7px; letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* แถบเลื่อนเวลา — กดตรงไหนก็กระโดดไปตรงนั้น ขีดทองคือจุดเริ่มเพลงถัดไป */
+.anthem-seek { display: flex; align-items: center; gap: 11px; min-width: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.anthem-seek-track { position: relative; flex: 1; min-width: 0; height: 5px; border-radius: 99px; background: #22252b; overflow: hidden; }
+.anthem-seek-track i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,var(--red),var(--gold)); }
+.anthem-seek-track b { position: absolute; top: 0; bottom: 0; width: 2px; background: rgba(217,170,73,.85); }
+.anthem-seek:hover .anthem-seek-track { height: 7px; }
+.anthem-clock { color: #767c85; font: 600 8.5px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 .anthem-wave { width: 74px; height: 26px; display: block; }
-.anthem-expand { border: 1px solid var(--line); background: #15171c; color: #9fa4ac; padding: 7px 9px; font-size: 8px; cursor: pointer; white-space: nowrap; }
+
+.anthem-tools { display: flex; align-items: center; gap: 7px; }
+.anthem-speed { min-width: 42px; border: 1px solid var(--line); border-radius: 9px; background: #15171c; color: #9fa4ac; padding: 8px 7px; font: 700 9px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; cursor: pointer; }
+.anthem-speed:hover { color: var(--gold); border-color: rgba(217,170,73,.45); }
+.anthem-download { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 9px; background: #15171c; color: #9fa4ac; padding: 8px 11px; font: 700 8.5px/1.45 "Kanit",sans-serif; white-space: nowrap; }
+.anthem-download:hover { color: #4ade80; border-color: rgba(74,222,128,.45); }
+.anthem-expand { border: 1px solid var(--line); border-radius: 9px; background: #15171c; color: #9fa4ac; padding: 8px 10px; font-size: 8px; cursor: pointer; white-space: nowrap; }
 .anthem-expand:hover { color: #fff; border-color: rgba(218,41,28,.42); }
 .anthem-progress { height: 2px; background: #22252b; }
 .anthem-progress i { display: block; height: 100%; background: var(--red); transition: width .25s linear; }
@@ -625,7 +654,12 @@ h1, h2, h3, p, li, td, th, b, strong, small { overflow-wrap: break-word; }
 .anthem-foot { display: flex; justify-content: space-between; gap: 10px; margin: 0; padding: 8px 12px 11px; border-top: 1px solid var(--line); color: #676c74; font-size: 7px; }
 .anthem-foot em { font-style: normal; color: #8a7a4e; }
 
-.anthem-dock.sync { width: min(520px, calc(100vw - 36px)); }
+/* แถบเป็นเครื่องเล่นเต็มความกว้างแล้ว เนื้อเพลงจึงต้องจำกัดคอลัมน์ไม่ให้ยืดข้ามจอ
+   และจำกัดความสูงไม่ให้กางทีเดียวกินจอเกินครึ่ง */
+.anthem-panel, .anthem-ticker { padding-inline: max(18px, calc((100vw - 1440px) / 2)); }
+.anthem-lyrics { max-width: 760px; margin-inline: auto; max-height: min(34vh, 300px); padding-inline: 0; }
+.anthem-ticker { max-width: 1440px; margin-inline: auto; }
+.anthem-foot { max-width: 760px; margin-inline: auto; }
 .anthem-sync-bar { display: grid; gap: 9px; padding: 11px 12px; border-bottom: 1px solid var(--line); background: #121419; }
 .anthem-sync-bar span { color: var(--red-bright); font-size: 7px; letter-spacing: .14em; }
 .anthem-sync-bar b { display: block; margin: 3px 0; color: #fff; font-size: 12px; line-height: 1.4; }
@@ -635,10 +669,18 @@ h1, h2, h3, p, li, td, th, b, strong, small { overflow-wrap: break-word; }
 .anthem-sync-actions button:disabled { opacity: .4; cursor: not-allowed; }
 .anthem-sync-actions button.primary { border-color: rgba(217,170,73,.4); color: var(--gold-soft); }
 
-@media (max-width: 590px) {
-  .anthem-dock { right: 10px; left: 10px; bottom: 10px; width: auto; }
-  .anthem-bar { grid-template-columns: 36px minmax(0,1fr) auto; gap: 9px; }
+@media (max-width: 1080px) {
+  .anthem-bar { grid-template-columns: auto minmax(0,1fr) 74px auto; row-gap: 9px; }
+  .anthem-seek { grid-column: 1 / -1; order: 3; }
+}
+
+@media (max-width: 640px) {
+  .newsroom-shell { padding-bottom: 112px; }
+  .anthem-bar { grid-template-columns: 1fr auto; gap: 9px; padding-inline: 13px; }
+  .anthem-controls { grid-column: 1 / -1; justify-content: space-between; }
   .anthem-wave { display: none; }
+  .anthem-tools { justify-content: flex-end; }
+  .anthem-download span { display: none; }
   .anthem-lyrics { max-height: 40vh; }
 }
 

@@ -18,10 +18,31 @@ export const ANTHEM_TRACK = {
   // Routed through the Worker so the response supports HTTP range requests,
   // which iOS Safari requires before it will play anything.
   src: "/media/anthem.mp3",
+  // ไฟล์ดิบเสิร์ฟตรงจาก assets — ใช้กับปุ่มดาวน์โหลด เพราะเบราว์เซอร์บางตัว
+  // ไม่ยอมโหลดไฟล์จาก endpoint ที่ตอบ 206 เป็นหลัก
+  downloadSrc: "/gog-anthem.mp3",
+  downloadName: "GOG-anthem-genius-on-the-ground.mp3",
   title: "Genius on the Ground",
   subtitle: "After Hours Football · Live It Like a Local",
   durationSeconds: 357.72,
 };
+
+/**
+ * ไฟล์เดียวแต่เป็นสองเพลงอัดต่อกันในเทคเดียว — เพลงที่สองเริ่มที่ 207.35 วินาที
+ * (ท่อน "Live It Like a Local · Intro" ในเนื้อร้องด้านล่าง) แยกเป็นแทร็กให้
+ * ปุ่มเพลงก่อนหน้า/ถัดไปกระโดดข้ามได้จริง โดยไม่ต้องแยกไฟล์
+ */
+export type AnthemTrack = {
+  id: string;
+  title: string;
+  subtitle: string;
+  startSeconds: number;
+};
+
+export const ANTHEM_TRACKS: readonly AnthemTrack[] = [
+  { id: "gotg", title: "Genius on the Ground", subtitle: "After Hours Football", startSeconds: 0 },
+  { id: "local", title: "Live It Like a Local", subtitle: "Smooth British Flow", startSeconds: 207.35 },
+];
 
 // Two songs recorded back to back in one take. Timings were aligned against a
 // Whisper transcript of the master, so they follow the vocal rather than the
