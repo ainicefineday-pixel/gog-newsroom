@@ -59,6 +59,8 @@ export type EstimateInput = {
   hotelNightly: number;
   /** ใส่ตั๋วเข้าสนามหรือไม่ — ทริปที่ยังไม่ได้เลือกแมตช์จะไม่คิด */
   includeMatch: boolean;
+  /** บรรทัดที่ผู้ใช้กดเพิ่มเข้าทริปเอง เช่น ค่าวีซ่า (บาทต่อคน) — ต่อท้ายรายการมาตรฐาน */
+  extraLines?: CostLine[];
 };
 
 export function estimateTrip(input: EstimateInput): TripEstimate {
@@ -100,6 +102,7 @@ export function estimateTrip(input: EstimateInput): TripEstimate {
     { key: "food", label: "ค่าอาหาร", amount: daily.food * input.length },
     { key: "attractions", label: "ที่เที่ยว/พิพิธภัณฑ์", amount: daily.attractions * input.length },
     { key: "football", label: "กิจกรรมสายบอลเพิ่มเติม", amount: FOOTBALL_EXTRAS[input.budget] },
+    ...(input.extraLines ?? []),
   ];
 
   const perPerson = lines.reduce((sum, line) => sum + line.amount, 0);

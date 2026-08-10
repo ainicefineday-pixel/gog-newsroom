@@ -267,6 +267,7 @@ a.trip-cta { text-decoration: none; }
 
 .fixture-badge { display: inline-block; border-radius: 99px; padding: 3px 9px; font: 700 9px/1.4 "Kanit",sans-serif; white-space: nowrap; }
 .fixture-badge.derby { background: rgba(218,41,28,.18); color: #ff8b80; }
+.fixture-badge.bigmatch { background: rgba(240,165,0,.16); color: #f0a500; border: 1px solid rgba(240,165,0,.32); }
 .fixture-badge.value { background: rgba(74,222,128,.14); color: #4ade80; }
 .fixture-badge.weekend { background: rgba(59,130,246,.14); color: #7dabff; }
 
@@ -304,3 +305,100 @@ a.trip-cta { text-decoration: none; }
 
 /* ™ ในบรรทัดโลโก้สูงกว่าตัวอักษรปกติ ต้องเผื่อ line-height ให้พอ */
 .brand small, .footer-brand small { line-height: 1.4; }
+
+/* ═══ หัวข้อหลักให้หนาชัด — Kanit 800 (โหลดไว้แล้วบรรทัดแรกของ globals.css) ═══ */
+.trip-block-head h3, .itinerary-day h4 { font-weight: 800; }
+
+/* ═══ วีซ่าอังกฤษ (STEP 41) ═════════════════════════════════════════════ */
+.visa-block { border-color: rgba(59,130,246,.3); background: linear-gradient(135deg, rgba(59,130,246,.05), #0f1115 55%); }
+.visa-lead { margin: 0 0 15px; color: #9aa0a8; font: 400 11.5px/1.75 "Kanit",sans-serif; max-width: 78ch; }
+.visa-lead b { color: #cfd3da; }
+
+.visa-subhead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 22px 0 11px; }
+.visa-subhead:first-of-type { margin-top: 0; }
+.visa-subhead strong { color: #fff; font: 800 12.5px/1.5 "Kanit",sans-serif; }
+.visa-subhead span { color: var(--muted); font: 500 10px/1.6 "Kanit",sans-serif; }
+
+/* การ์ดที่กด + เพื่อเพิ่มเข้าทริป — ใช้ร่วมกันทั้ง 3 กลุ่ม */
+.visa-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(232px,1fr)); gap: 11px; }
+.visa-card { position: relative; display: flex; flex-direction: column; gap: 5px; text-align: left; padding: 15px 16px; border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; color: #d5d8dd; cursor: pointer; }
+.visa-card:hover { border-color: #6b7078; }
+.visa-card.active { border-color: #3b82f6; background: linear-gradient(140deg, rgba(59,130,246,.12), #0c0e12 62%); box-shadow: inset 3px 0 0 #3b82f6; }
+.visa-card-name { color: #fff; font: 800 12.5px/1.5 "Kanit",sans-serif; padding-right: 30px; }
+.visa-card-tagline { color: #f0a500; font: 700 10px/1.55 "Kanit",sans-serif; }
+.visa-card-detail { margin: 0; color: #9aa0a8; font: 400 10.5px/1.7 "Kanit",sans-serif; }
+.visa-card-price { margin-top: auto; padding-top: 9px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; border-top: 1px solid #ffffff0d; }
+.visa-card-price b { color: #f0a500; font: 800 13px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.visa-card-price small { color: var(--muted); font-size: 9.5px; }
+.visa-add { position: absolute; top: 12px; right: 12px; width: 25px; height: 25px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 8px; background: #14171d; color: #9aa0a8; }
+.visa-card.active .visa-add { background: #3b82f6; border-color: transparent; color: #fff; }
+.visa-includes { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 5px; }
+.visa-includes li { position: relative; padding-left: 14px; color: #b7bbc2; font: 400 10.5px/1.65 "Kanit",sans-serif; }
+.visa-includes li::before { content: "✓"; position: absolute; left: 0; color: #4ade80; }
+.visa-provider { display: inline-block; align-self: flex-start; padding: 3px 8px; border-radius: 99px; background: #ffffff0d; color: #8d9199; font: 700 8.5px/1.5 "Kanit",sans-serif; letter-spacing: .04em; }
+
+/* แถบไทม์ไลน์ + เส้นตายการยื่น */
+.visa-timing { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 1px; margin: 14px 0 0; background: var(--line); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+.visa-timing div { padding: 12px 14px; background: #0c0e12; }
+.visa-timing small { display: block; color: var(--muted); font: 600 9px/1.5 "Kanit",sans-serif; letter-spacing: .08em; }
+.visa-timing b { display: block; margin-top: 4px; color: #e7e9ec; font: 800 13px/1.45 "Kanit",sans-serif; }
+.visa-timing.late b { color: #f87171; }
+
+.visa-steps { list-style: none; counter-reset: visastep; margin: 0; padding: 0; display: grid; gap: 9px; }
+.visa-steps li { counter-increment: visastep; display: grid; grid-template-columns: 26px 1fr; gap: 11px; align-items: start; }
+.visa-steps li::before { content: counter(visastep); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid rgba(59,130,246,.45); color: #7dabff; font: 800 10px/1.45 "Kanit",sans-serif; }
+.visa-steps strong { display: block; color: #e7e9ec; font: 700 11.5px/1.5 "Kanit",sans-serif; }
+.visa-steps p { margin: 2px 0 0; color: #9aa0a8; font: 400 10.5px/1.7 "Kanit",sans-serif; }
+
+/* เช็กลิสต์เอกสาร — ติ๊กแล้วจำไว้ในเครื่อง */
+.visa-docs { display: grid; grid-template-columns: repeat(auto-fill,minmax(288px,1fr)); gap: 11px; }
+.visa-doc-group { border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 15px 17px; }
+.visa-doc-group > h5 { margin: 0; color: #fff; font: 800 12px/1.5 "Kanit",sans-serif; display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+.visa-doc-count { color: var(--muted); font: 700 9.5px/1.5 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.visa-doc-note { margin: 7px 0 0; color: #f0a500; font: 500 10px/1.7 "Kanit",sans-serif; }
+.visa-doc-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.visa-doc-list li { border-top: 1px solid #ffffff0d; padding-top: 8px; }
+.visa-doc-list li:first-child { border-top: none; padding-top: 0; }
+.visa-doc-check { display: grid; grid-template-columns: 17px 1fr; gap: 2px 9px; align-items: start; cursor: pointer; }
+.visa-doc-check input { grid-row: 1 / span 2; width: 16px; height: 16px; margin-top: 2px; accent-color: #3b82f6; }
+.visa-doc-check strong { color: #e7e9ec; font: 600 11.5px/1.55 "Kanit",sans-serif; }
+.visa-doc-check.done strong { color: #6b7078; text-decoration: line-through; }
+.visa-doc-check p { margin: 0; color: #9aa0a8; font: 400 10px/1.65 "Kanit",sans-serif; }
+.visa-from-trip { display: inline-block; margin-left: 6px; padding: 2px 7px; border-radius: 99px; background: rgba(74,222,128,.14); color: #4ade80; font: 700 8.5px/1.5 "Kanit",sans-serif; vertical-align: middle; }
+
+.visa-selected { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 16px; padding: 13px 16px; border: 1px solid rgba(74,222,128,.3); border-radius: 11px; background: rgba(74,222,128,.05); }
+.visa-selected span { color: #b7bbc2; font: 500 11px/1.6 "Kanit",sans-serif; }
+.visa-selected b { color: #4ade80; font: 800 13px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.visa-selected button { background: transparent; border: 1px solid var(--line); border-radius: 8px; color: #9aa0a8; font: 600 10px/1.45 "Kanit",sans-serif; padding: 7px 11px; cursor: pointer; }
+.visa-selected button:hover { border-color: #ef4444; color: #f87171; }
+
+/* ═══ ไอคอน GOG Network ในตารางเที่ยว ═══════════════════════════════════ */
+.item-actions { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-top: 7px; }
+.item-actions .item-remove { margin-top: 0; }
+.item-gog { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid rgba(240,165,0,.4); border-radius: 7px; background: rgba(240,165,0,.08); color: #f0a500; font: 700 9.5px/1.45 "Kanit",sans-serif; cursor: pointer; }
+.item-gog:hover { border-color: #f0a500; background: rgba(240,165,0,.16); }
+.item-gog.open { background: #f0a500; border-color: transparent; color: #17130a; }
+.item-gog em { font-style: normal; opacity: .75; }
+
+.gog-picker { margin-top: 9px; border: 1px solid rgba(240,165,0,.3); border-radius: 11px; background: #0d0f14; padding: 13px 15px; }
+.gog-picker > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.gog-picker > header strong { color: #f0a500; font: 800 10px/1.5 "Kanit",sans-serif; letter-spacing: .1em; }
+.gog-picker > header button { background: none; border: none; color: #6b7078; font: 700 10px/1.45 "Kanit",sans-serif; cursor: pointer; }
+.gog-option { display: flex; align-items: flex-start; justify-content: space-between; gap: 11px; width: 100%; text-align: left; padding: 10px 0; border: none; border-top: 1px solid #ffffff0d; background: none; color: inherit; cursor: pointer; }
+.gog-option:first-of-type { border-top: none; }
+.gog-option.active { color: #fff; }
+.gog-option-main strong { display: block; color: #e7e9ec; font: 700 11.5px/1.5 "Kanit",sans-serif; }
+.gog-option.active .gog-option-main strong { color: #f0a500; }
+.gog-option-main small { display: block; margin-top: 2px; color: #8d9199; font: 400 10px/1.6 "Kanit",sans-serif; }
+.gog-option-price { color: #f0a500; font: 800 11px/1.45 "Kanit",sans-serif; white-space: nowrap; }
+.gog-book-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 7px; margin-top: 11px; padding-top: 11px; border-top: 1px solid #ffffff0d; }
+.gog-book-form input { background: #0c0e12; border: 1px solid var(--line); border-radius: 8px; color: #e7e9ec; font: 500 11px/1.45 "Kanit",sans-serif; padding: 9px 10px; min-width: 0; }
+.gog-book-form button { background: #f0a500; border: none; border-radius: 8px; color: #17130a; font: 800 11px/1.45 "Kanit",sans-serif; padding: 9px 15px; cursor: pointer; white-space: nowrap; }
+.gog-book-form button:disabled { opacity: .5; cursor: not-allowed; }
+.gog-picker-note { margin: 9px 0 0; color: #6b7078; font: 400 9.5px/1.65 "Kanit",sans-serif; }
+.gog-picker-done { margin: 9px 0 0; color: #4ade80; font: 600 10.5px/1.65 "Kanit",sans-serif; }
+.gog-picker-error { margin: 9px 0 0; color: #f87171; font: 600 10.5px/1.65 "Kanit",sans-serif; }
+
+@media (max-width: 720px) {
+  .gog-book-form { grid-template-columns: 1fr; }
+}

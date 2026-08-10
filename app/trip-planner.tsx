@@ -7,17 +7,21 @@ import {
   Building2,
   Bus,
   CalendarDays,
+  Check,
   Clock,
   CloudSun,
   Coffee,
   Coins,
+  Handshake,
   Hotel,
   Landmark,
   MapPin,
   Plane,
+  Plus,
   Share2,
   ShoppingBag,
   Sparkles,
+  Stamp,
   Star,
   Ticket,
   TriangleAlert,
@@ -25,17 +29,32 @@ import {
   UtensilsCrossed,
   Users,
   Wand2,
+  X,
 } from "lucide-react";
 import { listPlannableFixtures, recommendTripDates, hotelNights, type PlannableFixture } from "@/services/football/fixtures";
 import { ARRIVAL_AIRPORTS, BANGKOK, arrivalWarning, listFlights, type FlightSort } from "@/services/flights";
 import { defaultHotel, listHotels } from "@/services/hotels";
-import { estimateTrip, formatMoney } from "@/services/pricing";
+import { GBP_TO_THB, estimateTrip, formatMoney } from "@/services/pricing";
 import { buildItinerary, detectConflicts, type ItineraryDay } from "@/services/itinerary";
 import { pilgrimageIn, PLACES } from "@/services/places";
 import { recommendFixture, sortByRecommendation } from "@/services/football/recommendation";
 import type { ItemIcon } from "@/services/itinerary";
 import { PARTNER_KIND_LABEL, fromPrice, rankPartners } from "@/services/partners";
-import type { Partner } from "@/lib/server/partners";
+import type { Partner, PartnerKind } from "@/lib/server/partners";
+import {
+  EMPTY_VISA,
+  FEES_UPDATED,
+  GOG_VISA_PACKAGES,
+  LODGE_OPTIONS,
+  VISA_DOCUMENTS,
+  VISA_STEPS,
+  VISA_TYPES,
+  hasVisa,
+  packagePricePerPerson,
+  visaCostLines,
+  visaTiming,
+  type VisaSelection,
+} from "@/services/visa";
 import type { MatchWeather } from "@/services/weather";
 import { formatThb } from "@/services/pricing";
 import { FLIGHT_OPTIONS } from "@/services/flights";
@@ -58,6 +77,17 @@ const ITEM_ICON: Record<ItemIcon, typeof Plane> = {
   landmark: Landmark,
   ticket: Ticket,
   clock: Clock,
+};
+
+// รายการในแผนเที่ยวประเภทไหน ให้พาร์ตเนอร์ประเภทไหนรับงานได้ (STEP 42)
+// ไอคอนที่ไม่อยู่ในตารางนี้ (เช่น พิพิธภัณฑ์ ร้านค้า) ไม่ขึ้นปุ่ม GOG Network
+const ITEM_PARTNER_KIND: Partial<Record<ItemIcon, PartnerKind>> = {
+  plane: "driver",
+  transport: "driver",
+  food: "restaurant",
+  coffee: "restaurant",
+  pub: "restaurant",
+  hotel: "stay",
 };
 
 function thaiDate(ymd: string) {
@@ -101,11 +131,116 @@ function addDays(ymd: string, days: number) {
   return date.toISOString().slice(0, 10);
 }
 
-function ItineraryDayCard({ day, money, onRemove }: {
+/**
+ * รายชื่อพาร์ตเนอร์ที่รับงานของรายการนี้ได้ + ฟอร์มส่งคำขอจอง
+ * โหมดไดเรกทอรี — GOG ส่งต่อคำขอให้เท่านั้น ไม่รับเงินแทนผู้ให้บริการ
+ */
+function GogPartnerPicker({ partners, kind, serviceDate, travellers, tripId, onClose }: {
+  partners: Partner[];
+  kind: PartnerKind;
+  serviceDate: string;
+  travellers: number;
+  tripId: string;
+  onClose: () => void;
+}) {
+  const [partnerId, setPartnerId] = useState(partners[0]?.id ?? "");
+  const [name, setName] = useState("");
+  const [contact, setContact] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
+  const [error, setError] = useState("");
+
+  const partner = partners.find((item) => item.id === partnerId) ?? partners[0] ?? null;
+  const ready = Boolean(partner && name.trim() && contact.trim() && serviceDate);
+
+  const send = async () => {
+    if (!partner || !ready) return;
+    setStatus("sending");
+    setError("");
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          partnerId: partner.id,
+          serviceId: partner.services[0]?.id ?? "",
+          tripId,
+          travellerName: name.trim(),
+          travellerContact: contact.trim(),
+          serviceDate,
+          pax: travellers,
+          message: `ขอผ่านแผนเที่ยว GOG · ${PARTNER_KIND_LABEL[kind]} วันที่ ${serviceDate}`,
+        }),
+      });
+      const payload = await response.json() as { ok?: boolean; error?: string };
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "ส่งคำขอไม่สำเร็จ");
+      setStatus("done");
+    } catch (issue) {
+      setStatus("idle");
+      setError(issue instanceof Error ? issue.message : "ส่งคำขอไม่สำเร็จ");
+    }
+  };
+
+  return (
+    <div className="gog-picker">
+      <header>
+        <strong>GOG NETWORK · {PARTNER_KIND_LABEL[kind]}</strong>
+        <button type="button" onClick={onClose} aria-label="ปิด"><X size={13} aria-hidden="true" /></button>
+      </header>
+
+      {partners.map((item) => (
+        <button
+          key={item.id}
+          type="button"
+          className={`gog-option ${item.id === partner?.id ? "active" : ""}`}
+          onClick={() => setPartnerId(item.id)}
+        >
+          <span className="gog-option-main">
+            <strong>{item.displayName}</strong>
+            <small>
+              {item.services[0]?.title ?? PARTNER_KIND_LABEL[item.kind]}
+              {item.vehicle ? ` · ${item.vehicle.make} ${item.vehicle.model} ${item.vehicle.seats} ที่นั่ง` : ""}
+              {item.reviewCount > 0 ? ` · ${item.rating.toFixed(1)}/5 (${item.reviewCount})` : ""}
+            </small>
+          </span>
+          {fromPrice(item) > 0 && <span className="gog-option-price">เริ่ม {formatThb(fromPrice(item))}</span>}
+        </button>
+      ))}
+
+      {status === "done" ? (
+        <p className="gog-picker-done">
+          ส่งคำขอให้ {partner?.displayName} แล้ว — ผู้ให้บริการจะติดต่อกลับตามช่องทางที่ให้ไว้
+        </p>
+      ) : (
+        <>
+          <div className="gog-book-form">
+            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="ชื่อผู้เดินทาง" />
+            <input value={contact} onChange={(event) => setContact(event.target.value)} placeholder="LINE ID หรือเบอร์โทร" />
+            <button type="button" onClick={send} disabled={!ready || status === "sending"}>
+              {status === "sending" ? "กำลังส่ง…" : "ส่งคำขอ"}
+            </button>
+          </div>
+          {error && <p className="gog-picker-error">{error}</p>}
+          <p className="gog-picker-note">
+            ส่งคำขอสำหรับวันที่ {thaiDate(serviceDate)} · {travellers} คน — GOG เป็นไดเรกทอรี
+            ตกลงราคาและชำระเงินกับผู้ให้บริการโดยตรง
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ItineraryDayCard({ day, money, onRemove, partnersByKind, travellers, tripId }: {
   day: ItineraryDay;
   money: (amount: number) => string;
   onRemove: (placeId: string) => void;
+  partnersByKind: Partial<Record<PartnerKind, Partner[]>>;
+  travellers: number;
+  tripId: string;
 }) {
+  // เปิดได้ทีละรายการในวันเดียวกัน — เก็บ index ของรายการที่กางอยู่
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
   return (
     <article className={`itinerary-day day-${day.theme}`}>
       <header>
@@ -118,28 +253,60 @@ function ItineraryDayCard({ day, money, onRemove }: {
       </header>
       <p className="itinerary-day-summary">{day.summary}</p>
       <ol className="itinerary-timeline">
-        {day.items.map((item, index) => (
-          <li key={`${item.time}-${index}`} className={item.highlight ? "highlight" : ""}>
-            <time>{item.time}</time>
-            <span className="item-icon" aria-hidden="true">
-              {(() => { const Icon = ITEM_ICON[item.icon] ?? Clock; return <Icon size={14} />; })()}
-            </span>
-            <div>
-              <strong>{item.title}{item.booking ? <em className="need-booking">ต้องจองล่วงหน้า</em> : null}</strong>
-              <p>{item.detail}</p>
-              <small>
-                {item.area ? `${item.area} · ` : ""}
-                ใช้เวลา {item.durationMinutes} นาที
-                {item.costThb > 0 ? ` · ${money(item.costThb)}` : " · ไม่มีค่าใช้จ่าย"}
-              </small>
-              {item.placeId && (
-                <button type="button" className="item-remove" onClick={() => onRemove(item.placeId!)}>
-                  ตัดออกจากแผน
-                </button>
-              )}
-            </div>
-          </li>
-        ))}
+        {day.items.map((item, index) => {
+          // รถ / ร้านอาหาร / ที่พัก — ถ้ามีคนในเครือข่ายรับงานนี้ได้ ขึ้นปุ่มให้กดเลย
+          const partnerKind = ITEM_PARTNER_KIND[item.icon];
+          const matches = partnerKind ? partnersByKind[partnerKind] ?? [] : [];
+          const open = openIndex === index;
+          return (
+            <li key={`${item.time}-${index}`} className={item.highlight ? "highlight" : ""}>
+              <time>{item.time}</time>
+              <span className="item-icon" aria-hidden="true">
+                {(() => { const Icon = ITEM_ICON[item.icon] ?? Clock; return <Icon size={14} />; })()}
+              </span>
+              <div>
+                <strong>{item.title}{item.booking ? <em className="need-booking">ต้องจองล่วงหน้า</em> : null}</strong>
+                <p>{item.detail}</p>
+                <small>
+                  {item.area ? `${item.area} · ` : ""}
+                  ใช้เวลา {item.durationMinutes} นาที
+                  {item.costThb > 0 ? ` · ${money(item.costThb)}` : " · ไม่มีค่าใช้จ่าย"}
+                </small>
+                {(matches.length > 0 || item.placeId) && (
+                  <div className="item-actions">
+                    {matches.length > 0 && partnerKind && (
+                      <button
+                        type="button"
+                        className={`item-gog ${open ? "open" : ""}`}
+                        aria-expanded={open}
+                        onClick={() => setOpenIndex(open ? null : index)}
+                      >
+                        <Handshake size={12} aria-hidden="true" />
+                        {PARTNER_KIND_LABEL[partnerKind]} GOG
+                        <em>{matches.length} ราย</em>
+                      </button>
+                    )}
+                    {item.placeId && (
+                      <button type="button" className="item-remove" onClick={() => onRemove(item.placeId!)}>
+                        ตัดออกจากแผน
+                      </button>
+                    )}
+                  </div>
+                )}
+                {open && partnerKind && (
+                  <GogPartnerPicker
+                    partners={matches}
+                    kind={partnerKind}
+                    serviceDate={day.date}
+                    travellers={travellers}
+                    tripId={tripId}
+                    onClose={() => setOpenIndex(null)}
+                  />
+                )}
+              </div>
+            </li>
+          );
+        })}
       </ol>
     </article>
   );
@@ -170,6 +337,10 @@ export function TripPlanner() {
   const [tripError, setTripError] = useState("");
   const [weather, setWeather] = useState<MatchWeather | null>(null);
   const [partners, setPartners] = useState<Partner[]>([]);
+  // วีซ่า — ยังไม่เลือกอะไรเลยคือไม่บวกเข้าราคาทริป ต้องกด + เองทุกชิ้น (STEP 41)
+  const [visa, setVisa] = useState<VisaSelection>(EMPTY_VISA);
+  const [checkedDocs, setCheckedDocs] = useState<string[]>([]);
+  const [savedTripId, setSavedTripId] = useState("");
 
   const fixture = useMemo(() => fixtures.find((item) => item.key === fixtureKey) ?? null, [fixtures, fixtureKey]);
   const city: DestinationCity = fixture?.destination ?? "Manchester";
@@ -196,6 +367,9 @@ export function TripPlanner() {
   const hotels = useMemo(() => listHotels(city, budget), [city, budget]);
   const selectedHotel = hotels.find((item) => item.id === hotelId) ?? defaultHotel(city, budget);
 
+  // ค่าวีซ่าต่อคนตามที่กด + ไว้ — ป้อนเข้า estimateTrip เป็นบรรทัดเพิ่มเติม
+  const visaLines = useMemo(() => visaCostLines(visa, travellers), [visa, travellers]);
+
   const estimate = useMemo(() => estimateTrip({
     length,
     nights,
@@ -205,7 +379,8 @@ export function TripPlanner() {
     flightFare: selectedFlight?.estimatedFare[budget] ?? 0,
     hotelNightly: selectedHotel?.nightlyThb ?? 0,
     includeMatch: Boolean(fixture),
-  }), [length, nights, city, budget, travellers, selectedFlight, selectedHotel, fixture]);
+    extraLines: visaLines,
+  }), [length, nights, city, budget, travellers, selectedFlight, selectedHotel, fixture, visaLines]);
 
   // เทียบ 3 ระดับงบด้วยตัวเลือกที่ดีที่สุดของแต่ละระดับ (STEP 7)
   const budgetComparison = useMemo(() => BUDGET_ORDER.map((style) => {
@@ -222,9 +397,10 @@ export function TripPlanner() {
         flightFare: flight?.estimatedFare[style] ?? 0,
         hotelNightly: hotel?.nightlyThb ?? 0,
         includeMatch: Boolean(fixture),
+        extraLines: visaLines,
       }),
     };
-  }), [airportsForCity, city, length, nights, travellers, fixture]);
+  }), [airportsForCity, city, length, nights, travellers, fixture, visaLines]);
 
   const arrivalDate = departDate ? addDays(departDate, selectedFlight?.arrivesMorning ? 1 : 1) : "";
   const warning = arrivalDate ? arrivalWarning(arrivalDate, matchDate) : null;
@@ -292,8 +468,8 @@ export function TripPlanner() {
   const tripState = useMemo(() => ({
     fixtureKey, length, budget, travellers, currency,
     departDate, returnDate, flightId: selectedFlight?.id ?? "", hotelId: selectedHotel?.id ?? "",
-    removedPlaceIds,
-  }), [fixtureKey, length, budget, travellers, currency, departDate, returnDate, selectedFlight?.id, selectedHotel?.id, removedPlaceIds]);
+    removedPlaceIds, visa, checkedDocs,
+  }), [fixtureKey, length, budget, travellers, currency, departDate, returnDate, selectedFlight?.id, selectedHotel?.id, removedPlaceIds, visa, checkedDocs]);
 
   // โหลดทริปที่แชร์มาจาก ?trip=<id> ครั้งเดียวตอนเปิดหน้า
   useEffect(() => {
@@ -313,9 +489,12 @@ export function TripPlanner() {
         if (saved.flightId) setFlightId(saved.flightId);
         if (saved.hotelId) setHotelId(saved.hotelId);
         if (saved.removedPlaceIds) setRemovedPlaceIds(saved.removedPlaceIds);
+        if (saved.visa) setVisa({ ...EMPTY_VISA, ...saved.visa });
+        if (saved.checkedDocs) setCheckedDocs(saved.checkedDocs);
         if (saved.departDate && saved.returnDate) {
           setDateOverride({ sig: `${saved.fixtureKey}-${saved.length}`, depart: saved.departDate, back: saved.returnDate });
         }
+        setSavedTripId(id);
       })
       .catch(() => { /* ลิงก์เสีย = เริ่มวางแผนใหม่ตามปกติ */ });
     return () => { alive = false; };
@@ -359,6 +538,7 @@ export function TripPlanner() {
       if (!response.ok || !payload.ok || !payload.id) throw new Error(payload.error || "บันทึกไม่สำเร็จ");
       const link = `${window.location.origin}${window.location.pathname}?trip=${payload.id}`;
       setShareUrl(link);
+      setSavedTripId(payload.id);
       try { await navigator.clipboard.writeText(link); } catch { /* คลิปบอร์ดถูกบล็อก */ }
     } catch (error) {
       setTripError(error instanceof Error ? error.message : "บันทึกไม่สำเร็จ");
@@ -438,6 +618,7 @@ export function TripPlanner() {
       flightFare: flight?.estimatedFare[nextBudget] ?? 0,
       hotelNightly: hotel?.nightlyThb ?? 0,
       includeMatch: Boolean(fixture),
+      extraLines: visaLines,
     }).perPerson;
   };
 
@@ -474,6 +655,41 @@ export function TripPlanner() {
     () => rankPartners(partners, { city, travellers, matchday: hasMatch }).slice(0, 6),
     [partners, city, travellers, hasMatch],
   );
+
+  // จัดกลุ่มพาร์ตเนอร์ตามประเภทไว้ล่วงหน้า ให้ทุกรายการในแผนเที่ยวหยิบไปใช้ได้ทันที
+  // เรียงตามคะแนนความเหมาะกับทริปแล้ว เก็บประเภทละไม่เกิน 5 รายไม่ให้เมนูยาวเกินอ่าน
+  const partnersByKind = useMemo(() => {
+    const grouped: Partial<Record<PartnerKind, Partner[]>> = {};
+    for (const { partner } of rankPartners(partners, { city, travellers, matchday: hasMatch })) {
+      const list = grouped[partner.kind] ?? [];
+      if (list.length >= 5) continue;
+      list.push(partner);
+      grouped[partner.kind] = list;
+    }
+    return grouped;
+  }, [partners, city, travellers, hasMatch]);
+
+  // ── STEP 41 · วีซ่าอังกฤษ ───────────────────────────────────────────────
+  const timing = useMemo(() => visaTiming(departDate, visa.lodgeIds), [departDate, visa.lodgeIds]);
+  const today = new Date().toISOString().slice(0, 10);
+  const lodgeLate = Boolean(timing && timing.lodgeBy < today);
+  const visaTotalPerPerson = visaLines.reduce((sum, line) => sum + line.amount, 0);
+  const docCount = VISA_DOCUMENTS.reduce((sum, group) => sum + group.items.length, 0);
+
+  const pickVisaType = (id: VisaSelection["typeId"]) =>
+    setVisa((current) => ({ ...current, typeId: current.typeId === id ? null : id }));
+  const toggleLodge = (id: string) =>
+    setVisa((current) => ({
+      ...current,
+      lodgeIds: current.lodgeIds.includes(id)
+        ? current.lodgeIds.filter((item) => item !== id)
+        // Priority กับ Super Priority ซื้อพร้อมกันไม่ได้ เลือกอันใหม่ให้เขี่ยอันเก่าออก
+        : [...current.lodgeIds.filter((item) => !(["priority", "super"].includes(item) && ["priority", "super"].includes(id))), id],
+    }));
+  const pickPackage = (id: string) =>
+    setVisa((current) => ({ ...current, packageId: current.packageId === id ? null : id }));
+  const toggleDoc = (key: string) =>
+    setCheckedDocs((current) => (current.includes(key) ? current.filter((item) => item !== key) : [...current, key]));
 
   const money = (amount: number) => formatMoney(amount, currency);
   const maxLine = Math.max(...estimate.lines.map((line) => line.amount), 1);
@@ -770,12 +986,210 @@ export function TripPlanner() {
                   day={day}
                   money={money}
                   onRemove={(placeId) => setRemovedPlaceIds((current) => [...new Set([...current, placeId])])}
+                  partnersByKind={partnersByKind}
+                  travellers={travellers}
+                  tripId={savedTripId}
                 />
               ))}
             </div>
             <p className="trip-disclaimer">
               เวลาในแผนเป็นเวลาอังกฤษ · จัดวันแข่งโดยถอยหลังจากเวลาเตะ เผื่อถึงสนามก่อน 75 นาที
               และเผื่อเวลาเดินทางจากโรงแรม {selectedHotel?.minutesToStadium ?? 30} นาที + สำรองอีก 15 นาที
+              {Object.keys(partnersByKind).length > 0 && (
+                <> · รายการที่มีปุ่ม <b>GOG</b> คือมีคนไทยในเครือข่ายรับงานนั้นได้ กดดูรายชื่อและส่งคำขอได้เลย</>
+              )}
+            </p>
+          </section>
+
+          {/* ── STEP 41 · วีซ่าอังกฤษ ────────────────────────────────────── */}
+          <section className="trip-block visa-block" id="visa">
+            <header className="trip-block-head">
+              <div>
+                <span className="eyebrow">STEP 6</span>
+                <h3><Stamp size={15} aria-hidden="true" /> วีซ่าอังกฤษ</h3>
+              </div>
+            </header>
+            <p className="visa-lead">
+              พาสปอร์ตไทยต้องขอ <b>Standard Visitor visa</b> ก่อนบินทุกครั้ง — ยื่นออนไลน์ที่ gov.uk
+              แล้วไปเก็บลายนิ้วมือที่ศูนย์ VFS Global กรุงเทพฯ · เลือกระยะวีซ่าและบริการที่ต้องการ
+              แล้วกด <b>+</b> เพื่อบวกเข้าค่าใช้จ่ายของทริปนี้
+            </p>
+
+            <div className="visa-subhead">
+              <strong>เลือกระยะวีซ่า</strong>
+              <span>เข้าออกได้ไม่จำกัดครั้งตลอดอายุวีซ่า แต่ครั้งละไม่เกิน 6 เดือน</span>
+            </div>
+            <div className="visa-grid">
+              {VISA_TYPES.map((type) => {
+                const active = visa.typeId === type.id;
+                return (
+                  <button
+                    key={type.id}
+                    type="button"
+                    className={`visa-card ${active ? "active" : ""}`}
+                    aria-pressed={active}
+                    onClick={() => pickVisaType(type.id)}
+                  >
+                    <span className="visa-add" aria-hidden="true">{active ? <Check size={13} /> : <Plus size={13} />}</span>
+                    <span className="visa-card-name">{type.name}</span>
+                    <span className="visa-card-tagline">{type.tagline}</span>
+                    <p className="visa-card-detail">{type.bestFor}</p>
+                    <span className="visa-card-price">
+                      <b>{money(Math.round(type.feeGbp * GBP_TO_THB))}</b>
+                      <small>£{type.feeGbp.toLocaleString("en-GB")} ต่อคน</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="visa-subhead">
+              <strong>ยื่นแบบพิเศษ (lodge)</strong>
+              <span>เลือกได้หลายอย่าง · Priority กับ Super Priority ซื้อพร้อมกันไม่ได้</span>
+            </div>
+            <div className="visa-grid">
+              {LODGE_OPTIONS.map((option) => {
+                const active = visa.lodgeIds.includes(option.id);
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    className={`visa-card ${active ? "active" : ""}`}
+                    aria-pressed={active}
+                    onClick={() => toggleLodge(option.id)}
+                  >
+                    <span className="visa-add" aria-hidden="true">{active ? <Check size={13} /> : <Plus size={13} />}</span>
+                    <span className="visa-card-name">{option.name}</span>
+                    <span className="visa-provider">{option.provider}</span>
+                    <p className="visa-card-detail">{option.detail}</p>
+                    <span className="visa-card-price">
+                      <b>{money(option.perGroup ? Math.round(option.priceThb / Math.max(travellers, 1)) : option.priceThb)}</b>
+                      <small>{option.perGroup ? `เหมา ${formatThb(option.priceThb)} หาร ${travellers} คน` : "ต่อคน"}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {timing && (
+              <div className={`visa-timing ${lodgeLate ? "late" : ""}`}>
+                <div>
+                  <small>รอผลประมาณ</small>
+                  <b>{timing.workingDays} วันทำการ</b>
+                </div>
+                <div>
+                  <small>ควรยื่นภายใน</small>
+                  <b>{thaiDate(timing.lodgeBy)}</b>
+                </div>
+                <div>
+                  <small>ยื่นได้เร็วสุด</small>
+                  <b>{thaiDate(timing.earliest)}</b>
+                </div>
+              </div>
+            )}
+            {lodgeLate && (
+              <div className="trip-warning" role="status">
+                <TriangleAlert size={15} aria-hidden="true" />
+                <span>
+                  วันที่ควรยื่นผ่านไปแล้วสำหรับแผนเดินทางนี้ — เลื่อนวันบินออกไป
+                  หรือกดเพิ่ม Priority / Super Priority เพื่อร่นเวลารอผล
+                </span>
+              </div>
+            )}
+
+            <div className="visa-subhead">
+              <strong>ให้ GOG VISA UK ทำให้</strong>
+              <span>ไปกัน 4 คนขึ้นไปได้ส่วนลดกลุ่มอัตโนมัติ</span>
+            </div>
+            <div className="visa-grid">
+              {GOG_VISA_PACKAGES.map((pack) => {
+                const active = visa.packageId === pack.id;
+                const price = packagePricePerPerson(pack, travellers);
+                return (
+                  <button
+                    key={pack.id}
+                    type="button"
+                    className={`visa-card ${active ? "active" : ""}`}
+                    aria-pressed={active}
+                    onClick={() => pickPackage(pack.id)}
+                  >
+                    <span className="visa-add" aria-hidden="true">{active ? <Check size={13} /> : <Plus size={13} />}</span>
+                    <span className="visa-card-name">{pack.name}</span>
+                    <span className="visa-card-tagline">{pack.tagline}</span>
+                    <ul className="visa-includes">
+                      {pack.includes.map((line) => <li key={line}>{line}</li>)}
+                    </ul>
+                    <span className="visa-card-price">
+                      <b>{money(price)}</b>
+                      <small>{price < pack.priceThb ? `ลดกลุ่ม ${pack.groupDiscount}% แล้ว` : "ต่อคน"}</small>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {hasVisa(visa) && (
+              <div className="visa-selected">
+                <span>เพิ่มเข้าทริปแล้ว {visaLines.length} รายการ — บวกในยอดรวมด้านขวาเรียบร้อย</span>
+                <b>{money(visaTotalPerPerson)} ต่อคน</b>
+                <button type="button" onClick={() => setVisa(EMPTY_VISA)}>เอาวีซ่าออกจากทริป</button>
+              </div>
+            )}
+
+            <div className="visa-subhead">
+              <strong>ขั้นตอนการยื่น</strong>
+              <span>ค่าธรรมเนียมอัปเดตล่าสุด {thaiDate(FEES_UPDATED)} — ตรวจซ้ำที่ gov.uk ก่อนจ่ายจริง</span>
+            </div>
+            <ol className="visa-steps">
+              {VISA_STEPS.map((step) => (
+                <li key={step.title}>
+                  <div>
+                    <strong>{step.title}</strong>
+                    <p>{step.detail}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+
+            <div className="visa-subhead">
+              <strong>เอกสารที่ต้องเตรียม</strong>
+              <span>ติ๊กแล้ว {checkedDocs.length} จาก {docCount} รายการ · บันทึกทริปแล้วเช็กลิสต์จะติดไปกับลิงก์แชร์</span>
+            </div>
+            <div className="visa-docs">
+              {VISA_DOCUMENTS.map((group) => {
+                const done = group.items.filter((_, index) => checkedDocs.includes(`${group.id}-${index}`)).length;
+                return (
+                  <section className="visa-doc-group" key={group.id}>
+                    <h5>
+                      {group.title}
+                      <span className="visa-doc-count">{done}/{group.items.length}</span>
+                    </h5>
+                    {group.note && <p className="visa-doc-note">{group.note}</p>}
+                    <ul className="visa-doc-list">
+                      {group.items.map((item, index) => {
+                        const key = `${group.id}-${index}`;
+                        const checked = checkedDocs.includes(key);
+                        return (
+                          <li key={key}>
+                            <label className={`visa-doc-check ${checked ? "done" : ""}`}>
+                              <input type="checkbox" checked={checked} onChange={() => toggleDoc(key)} />
+                              <strong>
+                                {item.label}
+                                {item.fromTrip && <em className="visa-from-trip">ทริปนี้ออกให้</em>}
+                              </strong>
+                              <p>{item.detail}</p>
+                            </label>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </section>
+                );
+              })}
+            </div>
+            <p className="trip-disclaimer">
+              GOG ไม่ใช่ตัวแทนของ UK Home Office และไม่รับประกันผลการพิจารณา — การอนุมัติเป็นดุลพินิจของเจ้าหน้าที่เท่านั้น
+              ค่าธรรมเนียมรัฐไม่คืนเงินทุกกรณี · อย่าออกตั๋วเครื่องบินจริงก่อนวีซ่าออก
             </p>
           </section>
 
@@ -978,6 +1392,14 @@ export function TripPlanner() {
               <div><dt>สไตล์</dt><dd>{BUDGET_LABELS[budget].name}</dd></div>
               <div><dt>ไฟลต์</dt><dd>{selectedFlight ? `${selectedFlight.airline} → ${selectedFlight.arrivalCode}` : "—"}</dd></div>
               <div><dt>ที่พัก</dt><dd>{selectedHotel ? selectedHotel.area : "—"}</dd></div>
+              <div>
+                <dt>วีซ่า</dt>
+                <dd>
+                  {hasVisa(visa)
+                    ? `${VISA_TYPES.find((type) => type.id === visa.typeId)?.name ?? "บริการเสริม"} · ${money(visaTotalPerPerson)}`
+                    : "ยังไม่ได้เพิ่ม"}
+                </dd>
+              </div>
             </dl>
             <div className="trip-total">
               <span>รวมโดยประมาณ</span>
