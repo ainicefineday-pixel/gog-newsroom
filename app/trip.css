@@ -1,0 +1,105 @@
+/* ═══ วางแผนทริปดูพรีเมียร์ลีก (STEP 3–9, 25) ═══════════════════════════ */
+
+/* ไอคอนแท็บ — เครื่องบินขึ้นเฉียง */
+.tab-icon-trip::before { content: ""; position: absolute; left: 4px; top: 9px; width: 14px; height: 2px; background: currentColor; transform: rotate(-32deg); }
+.tab-icon-trip::after { content: ""; position: absolute; left: 8px; top: 6px; width: 9px; height: 2px; background: currentColor; transform: rotate(48deg); }
+
+.trip-view { display: flex; flex-direction: column; gap: 22px; }
+
+.trip-hero { display: grid; gap: 24px; padding: 30px 32px; border: 1px solid var(--line); background: radial-gradient(circle at 88% 12%, rgba(218,41,28,.18), transparent 18rem), linear-gradient(125deg,#11141a,#0c0e12); position: relative; overflow: hidden; }
+.trip-hero::after { content: "BKK \2192 UK"; position: absolute; right: -6px; bottom: -22px; color: rgba(255,255,255,.028); font: 800 78px/1 "Kanit",sans-serif; letter-spacing: -.02em; }
+.trip-hero-copy h2 { margin: 7px 0 6px; font-size: clamp(25px,3vw,38px); }
+.trip-hero-copy p { margin: 0; color: var(--muted); font-size: 13px; max-width: 62ch; }
+
+.trip-form { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 12px; }
+.trip-field { display: flex; flex-direction: column; gap: 6px; }
+.trip-field-wide { grid-column: span 2; }
+.trip-field > span { color: var(--muted); font: 700 9.5px/1 "Kanit",sans-serif; letter-spacing: .06em; display: inline-flex; align-items: center; gap: 5px; }
+.trip-field input, .trip-field select { background: #0c0e12; border: 1px solid var(--line); border-radius: 8px; color: #e7e9ec; font: 600 12px/1 "Kanit",sans-serif; padding: 10px 11px; width: 100%; }
+.trip-field input:read-only { color: #9aa0a8; }
+.trip-field input:focus-visible, .trip-field select:focus-visible { outline: 2px solid var(--red); outline-offset: 1px; }
+.trip-segment { display: flex; gap: 6px; flex-wrap: wrap; }
+.trip-segment button { flex: 1; min-width: 82px; background: #0c0e12; border: 1px solid var(--line); border-radius: 8px; color: #a9aeb6; font: 700 11px/1 "Kanit",sans-serif; padding: 10px 8px; cursor: pointer; }
+.trip-segment button.active { background: var(--red); border-color: transparent; color: #fff; }
+
+.trip-warning { display: flex; align-items: center; gap: 10px; padding: 11px 15px; border: 1px solid rgba(240,165,0,.4); background: rgba(240,165,0,.09); color: #f0a500; border-radius: 10px; font: 600 12px/1.5 "Kanit",sans-serif; }
+
+.trip-layout { display: grid; grid-template-columns: minmax(0,1fr) 318px; gap: 20px; align-items: start; }
+.trip-main { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.trip-block { border: 1px solid var(--line); background: #0f1115; padding: 20px 22px; }
+.trip-block-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.trip-block-head h3 { margin: 5px 0 0; font-size: 18px; display: inline-flex; align-items: center; gap: 8px; }
+.trip-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+.trip-filters button { background: transparent; border: 1px solid var(--line); border-radius: 99px; color: #9aa0a8; font: 700 10px/1 "Kanit",sans-serif; padding: 7px 13px; cursor: pointer; }
+.trip-filters button.active { background: var(--red); border-color: transparent; color: #fff; }
+
+.fixture-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(232px,1fr)); gap: 11px; }
+.trip-fixture { display: grid; gap: 3px; text-align: left; padding: 14px 15px; border: 1px solid var(--line); border-radius: 11px; background: #0c0e12; color: #d5d8dd; cursor: pointer; transition: border-color .16s, transform .16s; }
+.trip-fixture:hover { border-color: #6b7078; transform: translateY(-2px); }
+.trip-fixture.active { border-color: var(--red); background: rgba(218,41,28,.08); }
+.trip-fixture.manchester { box-shadow: inset 3px 0 0 var(--red); }
+.trip-fixture-md { color: var(--muted); font: 800 8px/1 "Kanit",sans-serif; letter-spacing: .14em; }
+.trip-fixture strong { font-size: 13px; line-height: 1.3; }
+.trip-fixture em { color: var(--muted); font: 700 9px/1 "Kanit",sans-serif; font-style: normal; }
+.trip-fixture-when { font: 700 11px/1.4 "Kanit",sans-serif; color: #e7e9ec; }
+.trip-fixture-when small { color: var(--muted); font-weight: 500; font-size: 9px; margin-left: 5px; }
+.trip-fixture-venue { color: var(--muted); font-size: 10.5px; margin-top: 3px; }
+.trip-fixture-rec { color: #f0a500; font: 600 10px/1.4 "Kanit",sans-serif; margin-top: 5px; }
+.trip-fixture-status { font: 700 9px/1 "Kanit",sans-serif; margin-top: 6px; color: #6b7078; }
+.trip-fixture-status.confirmed { color: #4ade80; }
+
+.budget-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 11px; }
+.budget-card { display: grid; gap: 5px; text-align: left; padding: 17px 18px; border: 1px solid var(--line); border-radius: 11px; background: #0c0e12; color: #d5d8dd; cursor: pointer; transition: border-color .16s; }
+.budget-card:hover { border-color: #6b7078; }
+.budget-card.active { border-color: var(--red); background: rgba(218,41,28,.08); }
+.budget-name { font: 800 13px/1 "Kanit",sans-serif; color: #fff; }
+.budget-tagline { color: var(--muted); font-size: 10.5px; }
+.budget-card strong { font-size: 21px; color: #f0a500; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.budget-card small { color: var(--muted); font-size: 9.5px; }
+
+.option-list { display: flex; flex-direction: column; gap: 9px; }
+.option-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; text-align: left; padding: 14px 16px; border: 1px solid var(--line); border-radius: 11px; background: #0c0e12; color: #d5d8dd; cursor: pointer; transition: border-color .16s; }
+.option-card:hover { border-color: #6b7078; }
+.option-card.active { border-color: var(--red); background: rgba(218,41,28,.07); }
+.option-main { display: grid; gap: 3px; min-width: 0; }
+.option-main strong { font-size: 13.5px; color: #fff; }
+.option-main span { font-size: 11.5px; }
+.option-main small { color: var(--muted); font-size: 10px; }
+.option-why { color: #9aa0a8; font: 400 10.5px/1.6 "Kanit",sans-serif; font-style: normal; margin-top: 3px; }
+.option-why b { color: #f0a500; font-weight: 700; }
+.option-price { text-align: right; flex-shrink: 0; }
+.option-price b { display: block; font-size: 15px; color: #f0a500; font-variant-numeric: tabular-nums; }
+.option-price small { color: var(--muted); font-size: 9px; }
+
+.cost-lines { display: flex; flex-direction: column; gap: 12px; }
+.cost-line-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 600 12px/1.4 "Kanit",sans-serif; }
+.cost-line-head b { color: #fff; font-variant-numeric: tabular-nums; }
+.cost-line-bar { height: 5px; border-radius: 99px; background: #1c1f24; overflow: hidden; margin-top: 5px; }
+.cost-line-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,var(--red),#f0a500); }
+.cost-line small { display: block; color: var(--muted); font-size: 9.5px; margin-top: 4px; }
+.trip-disclaimer { color: var(--muted); font: 400 10.5px/1.7 "Kanit",sans-serif; margin: 14px 0 0; }
+
+.trip-summary { position: sticky; top: 84px; }
+.trip-summary-inner { border: 1px solid rgba(218,41,28,.34); border-left: 3px solid var(--red); background: rgba(8,9,12,.9); padding: 19px 20px; display: grid; gap: 11px; }
+.trip-summary-inner h4 { margin: 4px 0 0; font-size: 15px; line-height: 1.35; }
+.trip-summary-sub { margin: 0; color: var(--muted); font-size: 11px; }
+.trip-summary dl { display: grid; gap: 7px; margin: 6px 0 0; }
+.trip-summary dl > div { display: flex; justify-content: space-between; gap: 10px; font: 600 11px/1.4 "Kanit",sans-serif; }
+.trip-summary dt { color: var(--muted); font-weight: 500; }
+.trip-summary dd { margin: 0; text-align: right; color: #e7e9ec; }
+.trip-total { border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 2px; }
+.trip-total span { color: var(--muted); font: 700 9px/1 "Kanit",sans-serif; letter-spacing: .1em; }
+.trip-total strong { font-size: 26px; color: #f0a500; font-variant-numeric: tabular-nums; }
+.trip-total small { color: var(--muted); font-size: 10px; }
+.trip-cta { display: inline-flex; align-items: center; justify-content: center; gap: 7px; background: var(--red); border: none; border-radius: 9px; color: #fff; font: 800 12.5px/1 "Kanit",sans-serif; padding: 13px; cursor: pointer; }
+.trip-summary-note { margin: 0; color: var(--muted); font-size: 9.5px; line-height: 1.6; }
+
+@media (max-width: 980px) {
+  .trip-layout { grid-template-columns: minmax(0,1fr); }
+  .trip-summary { position: static; }
+  .trip-field-wide { grid-column: span 1; }
+  .trip-hero { padding: 22px 18px; }
+  .trip-block { padding: 17px 15px; }
+  .option-card { flex-direction: column; align-items: flex-start; gap: 9px; }
+  .option-price { text-align: left; }
+}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
+import "./trip.css";
 
 const title = "GOG NEWSROOM | Genius on the Ground · ภารกิจบุกถิ่นผี";
 const description = "ศูนย์ข่าว โปรแกรมแข่ง และข้อมูลคอนเทนต์แมนเชสเตอร์ ยูไนเต็ด โดยโยโย่ ธีรัตน์ และอั้ม ภัทรเศรษฐ์";

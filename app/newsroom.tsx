@@ -8,6 +8,7 @@ import { AnthemPlayer } from "@/app/anthem-player";
 import { FixturesPanel, GogTeamPanel } from "@/app/gog-hub";
 import { StadiumMapPanel } from "@/app/stadium-map";
 import { TacticBoardPanel } from "@/app/tactic-board";
+import { TripPlanner } from "@/app/trip-planner";
 
 type LastSync = {
   finished_at: string;
@@ -33,7 +34,7 @@ const DEFAULT_CAPABILITIES: SourceCapabilities = {
   translation: false,
 };
 
-type WorkspaceView = "news" | "fixtures" | "map" | "tactics" | "team";
+type WorkspaceView = "news" | "fixtures" | "trip" | "map" | "tactics" | "team";
 
 const CATEGORY_META: Record<Category, { icon: string; label: string; className: string }> = {
   Transfer: { icon: "↔", label: "ตลาดนักเตะ", className: "transfer" },
@@ -471,6 +472,7 @@ export function Newsroom() {
         <nav aria-label="เมนูหลัก">
           <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}>ข่าวล่าสุด</button>
           <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}>โปรแกรมพรีเมียร์ลีก</button>
+          <button type="button" className={activeView === "trip" ? "active" : ""} onClick={() => switchView("trip")}>วางแผนทริป</button>
           <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}>แผนที่สนาม</button>
           <button type="button" className={activeView === "tactics" ? "active" : ""} onClick={() => switchView("tactics")}>แผนการเล่น</button>
           <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}>ทีม GOG</button>
@@ -519,6 +521,7 @@ export function Newsroom() {
         <nav className="workspace-tabs" aria-label="ส่วนหลักของเว็บไซต์">
           <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}><span className="tab-icon tab-icon-news" aria-hidden="true" /><b>ข่าวล่าสุด</b><small>NEWS INTELLIGENCE</small></button>
           <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}><span className="tab-icon tab-icon-calendar" aria-hidden="true" /><b>โปรแกรมพรีเมียร์ลีก</b><small>2026/27 · THAI TIME</small></button>
+          <button type="button" className={activeView === "trip" ? "active" : ""} onClick={() => switchView("trip")}><span className="tab-icon tab-icon-trip" aria-hidden="true" /><b>วางแผนทริป</b><small>BKK → MATCHDAY</small></button>
           <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}><span className="tab-icon tab-icon-map" aria-hidden="true" /><b>แผนที่สนาม</b><small>20 GROUNDS · ENGLAND</small></button>
           <button type="button" className={activeView === "tactics" ? "active" : ""} onClick={() => switchView("tactics")}><span className="tab-icon tab-icon-tactics" aria-hidden="true" /><b>แผนการเล่น</b><small>TACTICS · SQUAD XI</small></button>
           <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}><span className="tab-icon tab-icon-team" aria-hidden="true" /><b>ทีม GOG</b><small>CREATORS · ANALYTICS</small></button>
@@ -737,7 +740,7 @@ export function Newsroom() {
             </section>
           </aside>
         </div>
-        </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "map" ? <StadiumMapPanel /> : activeView === "tactics" ? <TacticBoardPanel /> : <GogTeamPanel />}
+        </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "trip" ? <TripPlanner /> : activeView === "map" ? <StadiumMapPanel /> : activeView === "tactics" ? <TacticBoardPanel /> : <GogTeamPanel />}
       </main>
 
       <footer>
