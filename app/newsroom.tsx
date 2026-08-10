@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronDown, Copy, FileText, Languages, RefreshCw } from "lucide-react";
 import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 import { AnthemPlayer } from "@/app/anthem-player";
@@ -120,12 +121,17 @@ function TopStoryCard({ story, rank, active, onSelect }: { story: Story; rank: n
   );
 }
 
+function splitParagraphs(text: string) {
+  return text.split(/\n\s*\n/).map((paragraph) => paragraph.trim()).filter(Boolean);
+}
+
 // ข้อความที่กด "คัดลอก" แล้วได้ไปวางในคลิป/โพสต์ได้ทันที
 function copyBlock(story: Story) {
   return [
     story.titleTh,
     "",
     story.summaryTh,
+    ...(story.contentTh ? ["", story.contentTh] : []),
     "",
     ...story.angles.flatMap((angle) => [`• ${angle.hook}`, `  ${angle.why}`]),
     "",
@@ -186,7 +192,28 @@ function StoryCard({
 
         <h2>{story.titleTh}</h2>
         <p className="summary-th">{story.summaryTh}</p>
+
+        {/* เนื้อข่าวไทยฉบับเต็มที่เรียบเรียงจากหน้าข่าวต้นฉบับ (ไม่ใช่แค่คำโปรย RSS) */}
+        {story.contentTh && (
+          <div className="story-body">
+            {splitParagraphs(story.contentTh).map((paragraph, index) => (
+              <p key={index}>{paragraph}</p>
+            ))}
+          </div>
+        )}
+
         <p className="headline-en"><span>EN</span>{story.titleEn}</p>
+
+        {story.articleEn && (
+          <details className="story-source-text">
+            <summary>
+              <FileText size={12} aria-hidden="true" />
+              เนื้อข่าวต้นฉบับ (อังกฤษ) · {story.articleEn.length.toLocaleString()} ตัวอักษร
+              <ChevronDown size={12} aria-hidden="true" className="chevron" />
+            </summary>
+            <div>{splitParagraphs(story.articleEn).map((paragraph, index) => <p key={index}>{paragraph}</p>)}</div>
+          </details>
+        )}
 
         {/* แปลเมื่อกดเท่านั้น — ผลลัพธ์เซฟลงฐานข้อมูลทันที กดคัดลอกไปใช้ต่อได้เลย */}
         <div className="story-actions">
@@ -196,10 +223,18 @@ function StoryCard({
             onClick={() => onTranslate(story)}
             disabled={translating}
           >
-            {translating && progress ? translateLabel(progress) : story.translated ? "🔁 แปลใหม่" : "🇹🇭 แปลเป็นไทย"}
+            {translating && progress ? (
+              <><RefreshCw size={13} className="spin" aria-hidden="true" />{translateLabel(progress)}</>
+            ) : story.translated ? (
+              <><RefreshCw size={13} aria-hidden="true" />แปลใหม่</>
+            ) : (
+              <><Languages size={13} aria-hidden="true" />แปลเป็นไทย</>
+            )}
           </button>
           <button type="button" className="story-action ghost" onClick={copy} disabled={!story.translated}>
-            {copied ? "✓ คัดลอกแล้ว" : "📋 คัดลอก"}
+            {copied
+              ? <><Check size={13} aria-hidden="true" />คัดลอกแล้ว</>
+              : <><Copy size={13} aria-hidden="true" />คัดลอก</>}
           </button>
           {story.translated
             ? <span className="story-action-note done">แปลแล้ว · บันทึกในฐานข้อมูล</span>
@@ -575,9 +610,11 @@ export function Newsroom() {
                     disabled={translatingIds.length > 0 || !capabilities.translation}
                     title={capabilities.translation ? "" : "ยังไม่ได้ตั้งค่า ANTHROPIC_API_KEY บน Worker"}
                   >
-                    {translatingIds.includes("*") && translateProgress
-                      ? translateLabel(translateProgress)
-                      : `🇹🇭 แปลที่ยังค้าง ${untranslatedCount} ข่าว`}
+                    {translatingIds.includes("*") && translateProgress ? (
+                      <><RefreshCw size={13} className="spin" aria-hidden="true" />{translateLabel(translateProgress)}</>
+                    ) : (
+                      <><Languages size={13} aria-hidden="true" />แปลที่ยังค้าง {untranslatedCount} ข่าว</>
+                    )}
                   </button>
                 )}
                 <span>{filteredStories.length} เรื่อง</span>

@@ -26,8 +26,10 @@ type StoryRow = {
   credibility: number;
   title_en: string;
   excerpt_en: string | null;
+  article_en: string | null;
   title_th: string;
   summary_th: string;
+  content_th: string | null;
   translated: number | null;
   sources_json: string;
   url: string;
@@ -46,8 +48,10 @@ export async function ensureDatabase(db: D1Database) {
       credibility INTEGER NOT NULL,
       title_en TEXT NOT NULL,
       excerpt_en TEXT NOT NULL DEFAULT '',
+      article_en TEXT NOT NULL DEFAULT '',
       title_th TEXT NOT NULL,
       summary_th TEXT NOT NULL,
+      content_th TEXT NOT NULL DEFAULT '',
       translated INTEGER NOT NULL DEFAULT 0,
       sources_json TEXT NOT NULL,
       url TEXT NOT NULL,
@@ -147,6 +151,8 @@ export async function ensureDatabase(db: D1Database) {
   for (const statement of [
     "ALTER TABLE stories ADD COLUMN excerpt_en TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE stories ADD COLUMN translated INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE stories ADD COLUMN article_en TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE stories ADD COLUMN content_th TEXT NOT NULL DEFAULT ''",
   ]) {
     try { await db.prepare(statement).run(); } catch { /* มีคอลัมน์อยู่แล้ว */ }
   }
@@ -168,8 +174,10 @@ export function rowToStory(row: StoryRow): Story {
     credibility: row.credibility,
     titleEn: row.title_en,
     excerptEn: row.excerpt_en ?? "",
+    articleEn: row.article_en ?? "",
     titleTh: row.title_th,
     summaryTh: row.summary_th,
+    contentTh: row.content_th ?? "",
     translated: Boolean(row.translated),
     sources: safeJson(row.sources_json, []),
     url: row.url,
@@ -211,18 +219,20 @@ export async function upsertStory(db: D1Database, story: Story) {
   const now = new Date().toISOString();
   await db
     .prepare(`INSERT INTO stories (
-      id, story_date, category, credibility, title_en, excerpt_en, title_th, summary_th,
-      translated, sources_json, url, published_at, verified, angle_suggestions_json,
-      topic_terms_json, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      id, story_date, category, credibility, title_en, excerpt_en, article_en, title_th,
+      summary_th, content_th, translated, sources_json, url, published_at, verified,
+      angle_suggestions_json, topic_terms_json, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       story_date = excluded.story_date,
       category = excluded.category,
       credibility = excluded.credibility,
       title_en = excluded.title_en,
       excerpt_en = excluded.excerpt_en,
+      article_en = excluded.article_en,
       title_th = excluded.title_th,
       summary_th = excluded.summary_th,
+      content_th = excluded.content_th,
       translated = excluded.translated,
       sources_json = excluded.sources_json,
       url = excluded.url,
@@ -238,8 +248,10 @@ export async function upsertStory(db: D1Database, story: Story) {
       story.credibility,
       story.titleEn,
       story.excerptEn,
+      story.articleEn,
       story.titleTh,
       story.summaryTh,
+      story.contentTh,
       story.translated ? 1 : 0,
       JSON.stringify(story.sources),
       story.url,

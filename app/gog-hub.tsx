@@ -57,6 +57,46 @@ function formatFixtureTime(fixture: MuFixture) {
   }).format(new Date(fixture.kickoffUtc));
 }
 
+// เวลาอังกฤษของสนามจริง — Europe/London ปรับ BST/GMT ให้เองตามฤดูกาล
+function formatUkTime(fixture: MuFixture) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(fixture.kickoffUtc));
+}
+
+function formatUkDate(fixture: MuFixture) {
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(new Date(fixture.kickoffUtc));
+}
+
+// นับถอยหลังถึงเวลาเตะ · null = ยังไม่รู้เวลาปัจจุบัน (กัน hydration mismatch)
+function countdownTo(fixture: MuFixture, now: number | null) {
+  if (now === null) return null;
+  const kickoff = new Date(fixture.kickoffUtc).getTime();
+  const diff = kickoff - now;
+  // พรีเมียร์ลีกนัดหนึ่งกินเวลาราว 2 ชม. — ในช่วงนั้นถือว่ากำลังแข่ง
+  if (diff <= 0) return diff > -7_200_000 ? { live: true, text: "กำลังแข่ง" } : { live: false, text: "จบแล้ว", past: true };
+  const days = Math.floor(diff / 86_400_000);
+  const hours = Math.floor((diff % 86_400_000) / 3_600_000);
+  const minutes = Math.floor((diff % 3_600_000) / 60_000);
+  const seconds = Math.floor((diff % 60_000) / 1000);
+  if (days > 0) return { live: false, text: `อีก ${days} วัน ${hours} ชม.` };
+  if (hours > 0) return { live: false, text: `อีก ${hours} ชม. ${minutes} น.`, soon: true };
+  return { live: false, text: `อีก ${minutes}:${String(seconds).padStart(2, "0")} น.`, soon: true };
+}
+
+// นัดที่เตะในแมนเชสเตอร์ — โอลด์ แทรฟฟอร์ด (เหย้า) และเอติฮัด (ดาร์บี้เยือน)
+function isInManchester(fixture: MuFixture) {
+  return fixture.city === "Manchester";
+}
+
 function compactNumber(value: number | null) {
   if (value === null) return "ซ่อนข้อมูล";
   return new Intl.NumberFormat("th-TH", { notation: "compact", maximumFractionDigits: 1 }).format(value);
@@ -65,6 +105,13 @@ function compactNumber(value: number | null) {
 export function FixturesPanel() {
   const [filter, setFilter] = useState<FixtureFilter>("all");
   const [openedAt] = useState(() => Date.now());
+  // เดินนาฬิกาฝั่งไคลเอนต์อย่างเดียว — เริ่มเป็น null ให้ HTML ที่เซิร์ฟเวอร์เรนเดอร์ตรงกัน
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    window.queueMicrotask(() => setNow(Date.now()));
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
   const fixtures = useMemo(() => MU_PREMIER_LEAGUE_FIXTURES.filter((fixture) => {
     if (filter === "home") return fixture.home === "Manchester United";
     if (filter === "away") return fixture.away === "Manchester United";
@@ -85,7 +132,13 @@ export function FixturesPanel() {
           <span>NEXT MATCH · MW {nextMatch.matchday}</span>
           <div><b>{nextMatch.home}</b><i>VS</i><b>{nextMatch.away}</b></div>
           <strong>{formatFixtureDate(nextMatch)} · {formatFixtureTime(nextMatch)} น. ไทย</strong>
-          <small>{nextMatch.stadium} · {nextMatch.city}</small>
+          <em className="uk-time">{formatUkDate(nextMatch)} · {formatUkTime(nextMatch)} เวลาอังกฤษ</em>
+          {(() => {
+            const countdown = countdownTo(nextMatch, now);
+            if (!countdown) return <em className="next-countdown">กำลังคำนวณเวลา…</em>;
+            return <em className={`next-countdown ${countdown.live ? "live" : ""}`}>{countdown.text}</em>;
+          })()}
+          <small>{nextMatch.stadium} · {nextMatch.city}{isInManchester(nextMatch) ? " · แข่งที่แมนเชสเตอร์" : ""}</small>
         </article>
       </div>
 
@@ -106,13 +159,19 @@ export function FixturesPanel() {
       <div className="fixture-table-wrap">
         <table className="fixture-table">
           <thead>
-            <tr><th>นัด</th><th>วันแข่งขัน</th><th>คู่แข่งขัน</th><th>เวลาไทย</th><th>สนาม</th><th>เมือง</th><th>สถานะ</th></tr>
+            <tr><th>นัด</th><th>วันแข่งขัน</th><th>คู่แข่งขัน</th><th>เวลาไทย</th><th>เวลาอังกฤษ</th><th>นับถอยหลัง</th><th>สนาม</th><th>เมือง</th><th>สถานะ</th></tr>
           </thead>
           <tbody>
             {fixtures.map((fixture) => {
               const isHome = fixture.home === "Manchester United";
+              const inManchester = isInManchester(fixture);
+              const countdown = countdownTo(fixture, now);
               return (
-                <tr key={`${fixture.matchday}-${fixture.kickoffUtc}`}>
+                <tr
+                  key={`${fixture.matchday}-${fixture.kickoffUtc}`}
+                  className={`${inManchester ? "in-manchester" : ""} ${countdown?.past ? "played" : ""}`.trim()}
+                  title={inManchester ? "แข่งที่แมนเชสเตอร์" : undefined}
+                >
                   <td><b className="matchday">{String(fixture.matchday).padStart(2, "0")}</b></td>
                   <td><strong>{formatFixtureDate(fixture)}</strong></td>
                   <td>
@@ -122,6 +181,12 @@ export function FixturesPanel() {
                     <small>{isHome ? "เหย้า" : "เยือน"}</small>
                   </td>
                   <td><b className="thai-time">{formatFixtureTime(fixture)} น.</b><small>Asia/Bangkok</small></td>
+                  <td><b className="uk-time">{formatUkTime(fixture)}</b><small>{formatUkDate(fixture)} · Europe/London</small></td>
+                  <td>
+                    {countdown
+                      ? <b className={`fixture-countdown ${countdown.live ? "live" : ""} ${countdown.soon ? "soon" : ""} ${countdown.past ? "past" : ""}`.trim()}>{countdown.text}</b>
+                      : <b className="fixture-countdown">—</b>}
+                  </td>
                   <td><strong>{fixture.stadium}</strong></td>
                   <td>{fixture.city}</td>
                   <td>

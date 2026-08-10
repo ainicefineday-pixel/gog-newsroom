@@ -31,10 +31,14 @@ export type Story = {
   category: Category;
   credibility: number;
   titleEn: string;
-  /** ย่อหน้าต้นฉบับภาษาอังกฤษ — เก็บไว้ให้ตอนกดแปลทีหลังยังมีบริบทเท่ากับตอนดึงข่าวมา */
+  /** คำโปรยจากฟีด RSS — สั้น ใช้เป็นบริบทสำรองเมื่อดึงเนื้อข่าวเต็มไม่ได้ */
   excerptEn: string;
+  /** เนื้อข่าวเต็มจากหน้าต้นฉบับ ดึงตอนกดแปล — ใช้เป็นวัตถุดิบให้เขียนข่าวไทย */
+  articleEn: string;
   titleTh: string;
   summaryTh: string;
+  /** เนื้อข่าวไทยฉบับเต็มที่เรียบเรียงจาก articleEn — ว่างถ้ายังไม่ได้แปล */
+  contentTh: string;
   /** true เมื่อคำแปลไทยมาจาก Claude แล้ว (ไม่ใช่ข้อความ placeholder) */
   translated: boolean;
   sources: StorySource[];

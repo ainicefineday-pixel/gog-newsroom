@@ -271,6 +271,22 @@ main { max-width: 1440px; margin: 0 auto; padding: 0 28px 70px; }
 .story-action.ghost { background: transparent; }
 .story-action-note { color: var(--muted); font-size: 9px; }
 .story-action-note.done { color: #4ade80; }
+.story-action { display: inline-flex; align-items: center; gap: 6px; }
+.story-action svg { flex-shrink: 0; }
+.spin { animation: gog-spin 1s linear infinite; }
+@keyframes gog-spin { to { transform: rotate(360deg); } }
+
+/* เนื้อข่าวไทยฉบับเต็ม + เนื้อต้นฉบับแบบพับเก็บ */
+.story-body { margin: 11px 0 0; display: flex; flex-direction: column; gap: 9px; }
+.story-body p { margin: 0; color: #c9ccd2; font: 400 12px/1.85 "Kanit",sans-serif; }
+.story-source-text { margin-top: 12px; border: 1px solid var(--line); border-radius: 9px; background: #131518; }
+.story-source-text summary { display: flex; align-items: center; gap: 7px; cursor: pointer; padding: 8px 11px; color: var(--muted); font: 600 10px/1 "Kanit",sans-serif; list-style: none; }
+.story-source-text summary::-webkit-details-marker { display: none; }
+.story-source-text summary .chevron { margin-left: auto; transition: transform .18s; }
+.story-source-text[open] summary .chevron { transform: rotate(180deg); }
+.story-source-text > div { padding: 0 12px 12px; max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.story-source-text p { margin: 0; color: #8d9199; font: 400 11px/1.75 "Kanit",sans-serif; }
+
 .translate-bar { position: relative; height: 4px; border-radius: 99px; background: #24272c; overflow: hidden; margin-top: 9px; width: 100%; }
 .translate-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent, #da291c), #f0a500); transition: width .12s linear; }
 .translate-bar::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, #ffffff22, transparent); animation: translate-sheen 1.1s linear infinite; }
@@ -365,6 +381,20 @@ footer > p { font-size: 8px; text-align: center; }footer > p strong { display: b
 .matchday { width: 29px; height: 29px; display: grid; place-items: center; background: #17191e; color: #747982; font-size: 9px; }
 .fixture-opponents { display: grid; grid-template-columns: minmax(90px,1fr) 10px minmax(90px,1fr); align-items: center; gap: 6px; color: #a3a7ae; }.fixture-opponents span:last-child { text-align: right; }.fixture-opponents i { color: #4e535b; font-style: normal; text-align: center; }.fixture-opponents .united { color: white; font-weight: 600; }
 .thai-time { color: var(--gold-soft); font-size: 11px; }.fixture-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 6px; border: 1px solid rgba(217,170,73,.2); color: #b79c63; background: rgba(217,170,73,.05); font-size: 7px; white-space: nowrap; }.fixture-status i { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); }.fixture-status.confirmed { color: #72d6ae; border-color: rgba(63,196,141,.2); background: rgba(63,196,141,.05); }.fixture-status.confirmed i { background: var(--green); }
+/* แถบสีแดงซ้ายแถว = นัดที่เตะในแมนเชสเตอร์ (โอลด์ แทรฟฟอร์ด / เอติฮัด) */
+.fixture-table tr.in-manchester td:first-child { box-shadow: inset 3px 0 0 var(--red); }
+.fixture-table tr.in-manchester { background: linear-gradient(90deg, rgba(218,41,28,.09), transparent 42%); }
+.fixture-table tr.played { opacity: .5; }
+.fixture-table .uk-time { color: #cfd3da; font: 700 12px/1 "Kanit",sans-serif; display: block; }
+.fixture-countdown { font: 700 11px/1.3 "Kanit",sans-serif; color: #a9aeb6; display: block; font-variant-numeric: tabular-nums; }
+.fixture-countdown.soon { color: var(--gold-soft, #f0a500); }
+.fixture-countdown.live { color: #fff; background: var(--red); border-radius: 99px; padding: 3px 9px; display: inline-block; animation: gog-blink 1.1s infinite; }
+.fixture-countdown.past { color: #6b7078; font-weight: 500; }
+@keyframes gog-blink { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+.next-match-card .uk-time { color: #9aa0a8; font: 500 10px/1 "Kanit",sans-serif; font-style: normal; }
+.next-match-card .next-countdown { color: var(--red-bright); font: 800 15px/1 "Kanit",sans-serif; font-style: normal; font-variant-numeric: tabular-nums; }
+.next-match-card .next-countdown.live { animation: gog-blink 1.1s infinite; }
+
 .fixture-note { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 13px 3px; }.fixture-note p { margin: 0; color: #666c74; font-size: 8px; line-height: 1.6; }.fixture-note p b { color: #969ba3; }.fixture-note > div { display: flex; gap: 6px; flex: 0 0 auto; }.fixture-note a { border: 1px solid var(--line); background: #121419; padding: 6px 8px; color: #8e939b; font-size: 7px; }
 
 /* Interactive stadium map workspace */

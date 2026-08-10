@@ -10,6 +10,7 @@ import {
   type RuntimeEnv,
 } from "@/lib/server/database";
 import { collectXWatchlist } from "@/lib/server/x/collector";
+import { fetchBestArticleText } from "@/lib/server/article";
 
 type RawItem = {
   title: string;
@@ -32,6 +33,7 @@ type ClaudeEditorial = {
   index: number;
   titleTh: string;
   summaryTh: string;
+  contentTh: string;
   angles: EditorialAngle[];
 };
 
@@ -41,6 +43,39 @@ type ClaudeEditorial = {
 const DEFAULT_ANTHROPIC_MODEL = "claude-opus-5";
 // คิดก่อนตอบทำให้ตอบช้ากว่าเดิม — 30 วิเดิมตัดกลางคันจนตกไปใช้พาดหัวอังกฤษ
 const ANTHROPIC_TIMEOUT_MS = 120_000;
+
+// บังคับรูปแบบผลลัพธ์ด้วย structured outputs — เดิมขอ JSON ผ่าน prompt เฉย ๆ
+// แล้วบางครั้งได้ JSON ที่ปิดวงเล็บไม่ครบ parse ไม่ผ่าน ข่าวเลยไม่ถูกแปลทั้งชุด
+const EDITORIAL_SCHEMA = {
+  type: "object",
+  properties: {
+    items: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          index: { type: "integer" },
+          titleTh: { type: "string" },
+          summaryTh: { type: "string" },
+          contentTh: { type: "string" },
+          angles: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: { hook: { type: "string" }, why: { type: "string" } },
+              required: ["hook", "why"],
+              additionalProperties: false,
+            },
+          },
+        },
+        required: ["index", "titleTh", "summaryTh", "contentTh", "angles"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["items"],
+  additionalProperties: false,
+} as const;
 
 const STOP_WORDS = new Set([
   "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "in", "is",
@@ -318,7 +353,8 @@ function fallbackEditorial(cluster: Cluster, category: Category, index: number):
   return {
     index,
     titleTh: cluster.title,
-    summaryTh: "ยังไม่ได้ตั้งค่าระบบแปลอัตโนมัติ โปรดตรวจสอบพาดหัวและแหล่งข่าวต้นฉบับก่อนนำไปเผยแพร่",
+    summaryTh: "ยังไม่ได้แปลข่าวนี้ — กดปุ่ม \"แปลเป็นไทย\" เพื่อให้ระบบดึงเนื้อข่าวเต็มมาเรียบเรียง",
+    contentTh: "",
     angles: defaultAngles(category, cluster.title),
   };
 }
@@ -333,13 +369,16 @@ type EditorialInput = {
   category: Category;
   title_en: string;
   source_excerpt: string;
+  /** เนื้อข่าวเต็มจากหน้าต้นฉบับ — ว่างได้ถ้าดึงไม่สำเร็จ (paywall / JS-only) */
+  article_body: string;
 };
 
 // เรียก Claude แปล/เรียบเรียงเป็นไทย — คืน Map ของ index ที่แปลสำเร็จเท่านั้น
 // ตัวนี้ถูกเรียกจากปุ่ม "แปลไทย" ของผู้ใช้เท่านั้น ครอนไม่แตะ (กันค่า API ไหลทิ้ง)
 async function requestEditorial(inputs: EditorialInput[], env: RuntimeEnv) {
   const empty = new Map<number, ClaudeEditorial>();
-  if (!env.ANTHROPIC_API_KEY || !inputs.length) return empty;
+  const diagnostics: string[] = [];
+  if (!env.ANTHROPIC_API_KEY || !inputs.length) return { items: empty, diagnostics };
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -350,26 +389,41 @@ async function requestEditorial(inputs: EditorialInput[], env: RuntimeEnv) {
     body: JSON.stringify({
       model: env.ANTHROPIC_MODEL || DEFAULT_ANTHROPIC_MODEL,
       max_tokens: 16_000,
-      output_config: { effort: "low" },
-      system: "You are a careful Thai sports desk editor. Never add a fact that is not present in the supplied headline or excerpt. Preserve uncertainty and attribution. Return only valid JSON.",
+      output_config: { effort: "low", format: { type: "json_schema", schema: EDITORIAL_SCHEMA } },
+      system: "You are a careful Thai sports desk editor. Never add a fact that is not present in the supplied headline, excerpt, or article body. Preserve uncertainty and attribution. Return only valid JSON.",
       messages: [{
         role: "user",
-        content: `Rewrite each supplied item for Thai Manchester United supporters. For every index return: titleTh (professional, not clickbait), summaryTh (2-3 concise Thai sentences), and angles (exactly 2 objects with hook and why for a Thai YouTube/TikTok football channel). Do not claim verification; do not invent context, fees, injuries, quotes, or outcomes. JSON shape: {"items":[{"index":0,"titleTh":"","summaryTh":"","angles":[{"hook":"","why":""}]}]}. INPUT: ${JSON.stringify(inputs)}`,
+        content: `Rewrite each supplied item for Thai Manchester United supporters. For every index return: titleTh (professional, not clickbait), summaryTh (2-3 concise Thai sentences), contentTh (the full story rewritten in Thai, 3-6 short paragraphs separated by a blank line, covering every substantive fact in article_body including names, numbers, dates and quotes; if article_body is empty, write only what the headline and excerpt support and say plainly that the full text could not be retrieved), and angles (exactly 2 objects with hook and why for a Thai YouTube/TikTok football channel). Rewrite in your own Thai wording rather than translating sentence-by-sentence, and attribute quotes to who said them. Do not claim verification; do not invent context, fees, injuries, quotes, or outcomes. JSON shape: {"items":[{"index":0,"titleTh":"","summaryTh":"","contentTh":"","angles":[{"hook":"","why":""}]}]}. INPUT: ${JSON.stringify(inputs)}`,
       }],
     }),
     signal: AbortSignal.timeout(ANTHROPIC_TIMEOUT_MS),
   });
   if (!response.ok) throw new Error(`Claude ${response.status}: ${(await response.text()).slice(0, 300)}`);
-  const payload = await response.json() as { content?: Array<{ type: string; text?: string }> };
-  const text = payload.content?.find((part) => part.type === "text")?.text;
-  if (!text) return empty;
+  const payload = await response.json() as { content?: Array<{ type: string; text?: string }>; stop_reason?: string };
+  // ต่อ text block ทุกก้อนเข้าด้วยกัน — โมเดลที่คิดก่อนตอบแบ่ง JSON ออกได้หลายก้อน
+  // ของเดิมหยิบแค่ก้อนแรก เลยได้ JSON ที่ถูกตัดกลางแล้ว parse ไม่ผ่านทุกครั้ง
+  const text = (payload.content ?? [])
+    .filter((part) => part.type === "text")
+    .map((part) => part.text ?? "")
+    .join("");
+  const stopReason = payload.stop_reason ?? "";
+  if (!text) {
+    diagnostics.push(`ไม่มีข้อความตอบกลับ (stop_reason=${stopReason}, blocks=${(payload.content ?? []).map((b) => b.type).join("|")})`);
+    return { items: empty, diagnostics };
+  }
   try {
     const parsed = parseJsonPayload(text) as { items?: ClaudeEditorial[] };
-    const usable = (parsed.items ?? []).filter((item) =>
+    const returned = parsed.items ?? [];
+    const usable = returned.filter((item) =>
       item?.titleTh && item.summaryTh && item.angles?.length === 2);
-    return new Map(usable.map((item) => [item.index, item]));
-  } catch {
-    return empty;
+    for (const item of usable) item.contentTh = item.contentTh ?? "";
+    if (returned.length !== usable.length) {
+      diagnostics.push(`${returned.length - usable.length}/${returned.length} รายการที่โมเดลส่งกลับมาไม่ครบฟิลด์`);
+    }
+    return { items: new Map(usable.map((item) => [item.index, item])), diagnostics };
+  } catch (error) {
+    diagnostics.push(`อ่าน JSON ไม่ได้ (stop_reason=${stopReason}, ยาว ${text.length} ตัวอักษร): ${error instanceof Error ? error.message : "unknown"}`);
+    return { items: empty, diagnostics };
   }
 }
 
@@ -448,8 +502,10 @@ export async function runIngest(env: RuntimeEnv) {
         credibility: assessment.score,
         titleEn: cluster.title,
         excerptEn,
+        articleEn: matching?.articleEn ?? "",
         titleTh: matching?.translated ? matching.titleTh : placeholder.titleTh,
         summaryTh: matching?.translated ? matching.summaryTh : placeholder.summaryTh,
+        contentTh: matching?.translated ? matching.contentTh : "",
         translated: Boolean(matching?.translated),
         sources,
         url: sources[0]?.url ?? cluster.items[0].url,
@@ -504,12 +560,21 @@ export async function translateStories(
     .slice(0, Math.min(Math.max(options.limit ?? 12, 1), 25));
   if (!targets.length) return { translated: 0, skipped: wanted.length, stories: [] as Story[] };
 
-  const generated = await requestEditorial(
+  // ดึงเนื้อข่าวเต็มจากหน้าต้นฉบับก่อน (ทำพร้อมกันทุกข่าว) — ข่าวไหนดึงไม่ได้ก็ใช้คำโปรยแทน
+  const bodies = await Promise.all(targets.map(async (story) => {
+    if (story.articleEn.length >= 400) return story.articleEn;
+    const urls = [story.url, ...story.sources.map((source) => source.url)];
+    const { text } = await fetchBestArticleText([...new Set(urls)]);
+    return text;
+  }));
+
+  const { items: generated, diagnostics } = await requestEditorial(
     targets.map((story, index) => ({
       index,
       category: story.category,
       title_en: story.titleEn,
       source_excerpt: story.excerptEn || story.sources.map((source) => source.name).join(", "),
+      article_body: bodies[index].slice(0, 6_000),
     })),
     env,
   );
@@ -520,15 +585,24 @@ export async function translateStories(
     if (!editorial) continue;
     const updated: Story = {
       ...targets[index],
+      articleEn: bodies[index] || targets[index].articleEn,
       titleTh: editorial.titleTh,
       summaryTh: editorial.summaryTh,
+      contentTh: editorial.contentTh,
       angles: editorial.angles,
       translated: true,
     };
     await upsertStory(env.DB, updated);
     stories.push(updated);
   }
-  return { translated: stories.length, skipped: targets.length - stories.length, stories };
+  const withBody = bodies.filter((body) => body.length >= 400).length;
+  return {
+    translated: stories.length,
+    skipped: targets.length - stories.length,
+    fullText: withBody,
+    diagnostics,
+    stories,
+  };
 }
 
 function yesterdayBangkok() {
@@ -562,7 +636,12 @@ async function claudeDigest(stories: Story[], env: RuntimeEnv) {
   });
   if (!response.ok) return null;
   const payload = await response.json() as { content?: Array<{ type: string; text?: string }> };
-  return payload.content?.find((part) => part.type === "text")?.text?.trim() || null;
+  const text = (payload.content ?? [])
+    .filter((part) => part.type === "text")
+    .map((part) => part.text ?? "")
+    .join("")
+    .trim();
+  return text || null;
 }
 
 export async function generateDailyDigest(env: RuntimeEnv, requestedDate?: string) {
