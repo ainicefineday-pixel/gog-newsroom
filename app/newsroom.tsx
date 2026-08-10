@@ -509,15 +509,27 @@ export function Newsroom() {
               <div><strong>{verifiedCount || "—"}</strong><span>ยืนยันแล้ว</span></div>
               <div><strong>{NEWS_SOURCE_DIRECTORY.length}</strong><span>แหล่งข่าว</span></div>
             </div>
+            {/* ย้ายมาอยู่ใต้ตัวเลขฝั่งซ้าย — เดิมลอยทับรูปคนที่มุมขวาล่าง */}
+            <div className="hero-update">
+              <span>LAST SYNCED</span>
+              <b>{lastSync && now ? relativeTime(lastSync.finished_at, now) : syncing ? "กำลังซิงก์…" : lastSync ? "ซิงก์แล้ว" : "ยังไม่เคยซิงก์"}</b>
+              <small>{lastSync ? `${lastSync.matched} รายการตรงเกณฑ์ · ${lastSync.stored} คลัสเตอร์` : "RSS พร้อมทำงานโดยไม่ต้องใช้ API key"}</small>
+            </div>
           </div>
           <div className="hero-insignia" aria-hidden="true">
             <span className="hero-brand-stamp">GENIUS ON THE GROUND | ภารกิจบุกถิ่นผี</span>
           </div>
-          <div className="hero-update">
-            <span>LAST SYNCED</span>
-            <b>{lastSync && now ? relativeTime(lastSync.finished_at, now) : syncing ? "กำลังซิงก์…" : lastSync ? "ซิงก์แล้ว" : "ยังไม่เคยซิงก์"}</b>
-            <small>{lastSync ? `${lastSync.matched} รายการตรงเกณฑ์ · ${lastSync.stored} คลัสเตอร์` : "RSS พร้อมทำงานโดยไม่ต้องใช้ API key"}</small>
-          </div>
+          {/* ป้ายชื่อคนในภาพ — เกาะใต้ตัวคนทั้งสอง ไม่ให้ทับโลโก้ GOG ที่เป็นพื้นหลัง */}
+          <ul className="hero-cast">
+            <li>
+              <b>YO_THEERAT</b>
+              <small>Genius on the Ground Experience Host</small>
+            </li>
+            <li>
+              <b>AUM_FOOTBALLGENIUS</b>
+              <small className="gold">Football Genius · Founder of GOG</small>
+            </li>
+          </ul>
         </section>
 
         <nav className="workspace-tabs" aria-label="ส่วนหลักของเว็บไซต์">

@@ -9,6 +9,7 @@ export const PARTNER_KIND_LABEL: Record<PartnerKind, string> = {
   guide: "ไกด์ท้องถิ่น",
   stay: "ที่พัก",
   restaurant: "ร้านอาหารไทย",
+  massage: "ร้านนวดไทย",
 };
 
 export const PRICING_LABEL: Record<string, string> = {

@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BadgeCheck, Car, ChefHat, Camera, Compass, Home, Send, UserPlus } from "lucide-react";
+import { BadgeCheck, Car, ChefHat, Camera, Compass, Eye, EyeOff, Flower2, Home, RotateCcw, Send, Trash2, UserPlus } from "lucide-react";
 import { PARTNER_KIND_LABEL, PRICING_LABEL, fromPrice } from "@/services/partners";
+import { SAMPLE_PARTNERS, isSamplePartner } from "@/services/partners/samples";
 import type { Partner, PartnerKind } from "@/lib/server/partners";
 import { formatThb } from "@/services/pricing";
 
@@ -12,9 +13,13 @@ const KIND_ICON: Record<PartnerKind, typeof Car> = {
   guide: Compass,
   stay: Home,
   restaurant: ChefHat,
+  massage: Flower2,
 };
 
-const KINDS: PartnerKind[] = ["driver", "photographer", "guide", "stay", "restaurant"];
+const KINDS: PartnerKind[] = ["driver", "photographer", "guide", "stay", "restaurant", "massage"];
+
+/** เก็บการ์ดตัวอย่างที่ซ่อน/ลบไว้ในเครื่อง — ไม่แตะฐานข้อมูล ล้างได้ตลอด */
+const SAMPLE_STATE_KEY = "gog:sample-partners";
 const CITIES = ["Manchester", "London", "Liverpool", "Birmingham", "Newcastle"];
 
 /** สิ่งที่ผู้สมัครแต่ละประเภทต้องเตรียม — ตรงกับ docs/PARTNER-NETWORK.md ข้อ 0 */
@@ -29,6 +34,12 @@ const KIND_REQUIREMENTS: Record<PartnerKind, string[]> = {
   guide: ["ประวัติการนำเที่ยว", "ใบรับรองไกด์ถ้ามี (เช่น Blue Badge)", "สิทธิในการทำงานในสหราชอาณาจักร"],
   stay: ["หลักฐานสิทธิ์ในการปล่อยเช่า", "ใบตรวจความปลอดภัยอัคคีภัย", "ลอนดอนมีข้อจำกัดปล่อยเช่าระยะสั้น 90 วัน/ปี"],
   restaurant: ["ทะเบียนร้านอาหารกับหน่วยงานท้องถิ่น", "คะแนน Food Hygiene Rating", "ที่อยู่ร้าน"],
+  massage: [
+    "ทะเบียนกิจการนวดกับสภาท้องถิ่น (Special Treatment Licence ในบางเขต)",
+    "ใบประกอบวิชาชีพหรือใบรับรองหลักสูตรนวดของผู้ให้บริการทุกคน",
+    "ประกันความรับผิดต่อบุคคลที่สาม",
+    "สิทธิในการทำงานในสหราชอาณาจักร",
+  ],
 };
 
 type Draft = {
@@ -75,14 +86,37 @@ const EMPTY_DRAFT: Draft = {
   matchdayReady: true,
 };
 
-function PartnerCard({ partner }: { partner: Partner }) {
+function PartnerCard({ partner, hidden, onHide, onDelete }: {
+  partner: Partner;
+  /** การ์ดตัวอย่างที่ถูกซ่อน — ยังแสดงเป็นแถบจาง ๆ ให้กดเอากลับได้ */
+  hidden?: boolean;
+  onHide?: () => void;
+  onDelete?: () => void;
+}) {
   const Icon = KIND_ICON[partner.kind];
   const price = fromPrice(partner);
+  const sample = isSamplePartner(partner);
+
+  if (hidden) {
+    return (
+      <article className={`partner-card kind-${partner.kind} is-hidden`}>
+        <span className="partner-hidden-name"><Icon size={13} aria-hidden="true" /> {partner.displayName}</span>
+        <span className="partner-hidden-note">ซ่อนอยู่</span>
+        <div className="partner-actions">
+          <button type="button" onClick={onHide}><Eye size={12} aria-hidden="true" /> โชว์</button>
+          <button type="button" className="danger" onClick={onDelete}><Trash2 size={12} aria-hidden="true" /> ลบ</button>
+        </div>
+      </article>
+    );
+  }
+
   return (
-    <article className="partner-card">
+    <article className={`partner-card kind-${partner.kind} ${sample ? "is-sample" : ""}`}>
       <header>
         <span className="partner-kind"><Icon size={13} aria-hidden="true" /> {PARTNER_KIND_LABEL[partner.kind]}</span>
-        <span className="partner-verified"><BadgeCheck size={12} aria-hidden="true" /> ตรวจแล้ว</span>
+        {sample
+          ? <span className="partner-sample-tag">ตัวอย่าง</span>
+          : <span className="partner-verified"><BadgeCheck size={12} aria-hidden="true" /> ตรวจแล้ว</span>}
       </header>
       <h4>{partner.displayName}</h4>
       <p className="partner-where">
@@ -109,6 +143,12 @@ function PartnerCard({ partner }: { partner: Partner }) {
         {price > 0 && <span className="partner-from">เริ่มต้น {formatThb(price)}</span>}
         {partner.reviewCount > 0 && <span className="partner-rating">{partner.rating.toFixed(1)}/5 · {partner.reviewCount} รีวิว</span>}
       </footer>
+      {sample && (onHide || onDelete) && (
+        <div className="partner-actions">
+          {onHide && <button type="button" onClick={onHide}><EyeOff size={12} aria-hidden="true" /> ซ่อน</button>}
+          {onDelete && <button type="button" className="danger" onClick={onDelete}><Trash2 size={12} aria-hidden="true" /> ลบ</button>}
+        </div>
+      )}
     </article>
   );
 }
@@ -122,6 +162,45 @@ export function PartnerNetwork() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState("");
   const [error, setError] = useState("");
+  // การ์ดตัวอย่าง — เก็บสถานะซ่อน/ลบไว้ในเครื่องคนดู ไม่กระทบฐานข้อมูลจริง
+  const [sampleState, setSampleState] = useState<{ hidden: string[]; deleted: string[] }>({ hidden: [], deleted: [] });
+
+  // อ่านค่าที่เก็บไว้หลัง hydrate — queueMicrotask กัน setState ตรง ๆ ใน effect
+  // (แบบเดียวกับที่ไฟล์นี้ใช้กับ loadPartners) และกัน markup ฝั่งเซิร์ฟเวอร์ไม่ตรงกับ client
+  useEffect(() => {
+    window.queueMicrotask(() => {
+      try {
+        const saved = window.localStorage.getItem(SAMPLE_STATE_KEY);
+        if (!saved) return;
+        const parsed = JSON.parse(saved) as { hidden?: string[]; deleted?: string[] };
+        setSampleState({ hidden: parsed.hidden ?? [], deleted: parsed.deleted ?? [] });
+      } catch { /* localStorage ถูกปิด = เริ่มจากค่าเริ่มต้น */ }
+    });
+  }, []);
+
+  const updateSamples = useCallback((next: { hidden: string[]; deleted: string[] }) => {
+    setSampleState(next);
+    try { window.localStorage.setItem(SAMPLE_STATE_KEY, JSON.stringify(next)); } catch { /* ไม่เป็นไร */ }
+  }, []);
+
+  const toggleSampleHidden = useCallback((id: string) => {
+    setSampleState((current) => {
+      const hidden = current.hidden.includes(id)
+        ? current.hidden.filter((item) => item !== id)
+        : [...current.hidden, id];
+      const next = { ...current, hidden };
+      try { window.localStorage.setItem(SAMPLE_STATE_KEY, JSON.stringify(next)); } catch { /* ไม่เป็นไร */ }
+      return next;
+    });
+  }, []);
+
+  const deleteSample = useCallback((id: string) => {
+    setSampleState((current) => {
+      const next = { hidden: current.hidden.filter((item) => item !== id), deleted: [...current.deleted, id] };
+      try { window.localStorage.setItem(SAMPLE_STATE_KEY, JSON.stringify(next)); } catch { /* ไม่เป็นไร */ }
+      return next;
+    });
+  }, []);
 
   const loadPartners = useCallback(async () => {
     const params = new URLSearchParams({ city: cityFilter });
@@ -138,6 +217,14 @@ export function PartnerNetwork() {
   useEffect(() => { window.queueMicrotask(loadPartners); }, [loadPartners]);
 
   const requirements = useMemo(() => KIND_REQUIREMENTS[draft.kind], [draft.kind]);
+
+  // การ์ดตัวอย่างกรองด้วยเงื่อนไขเดียวกับของจริง แล้วเอาที่ลบไปแล้วออก
+  const visibleSamples = useMemo(() => SAMPLE_PARTNERS.filter((partner) => {
+    if (sampleState.deleted.includes(partner.id)) return false;
+    if (partner.city !== cityFilter) return false;
+    if (kindFilter !== "all" && partner.kind !== kindFilter) return false;
+    return true;
+  }), [sampleState.deleted, cityFilter, kindFilter]);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -234,17 +321,47 @@ export function PartnerNetwork() {
 
           {partners === null ? (
             <p className="partner-empty">กำลังโหลด…</p>
-          ) : partners.length === 0 ? (
-            <div className="partner-empty-state">
-              <p>ยังไม่มีผู้ให้บริการที่ผ่านการตรวจในเมืองนี้</p>
-              <p className="partner-empty-sub">
-                ถ้าคุณอยู่อังกฤษและอยากรับงานกับ GOG กด &quot;ลงทะเบียนกับ GOG&quot; ด้านบนได้เลย
-              </p>
-            </div>
-          ) : (
+          ) : partners.length > 0 ? (
             <div className="partner-grid">
               {partners.map((partner) => <PartnerCard key={partner.id} partner={partner} />)}
             </div>
+          ) : (
+            <p className="partner-empty">
+              ยังไม่มีผู้ให้บริการตัวจริงที่ผ่านการตรวจในเมืองนี้ —
+              ถ้าคุณอยู่อังกฤษและอยากรับงานกับ GOG กด &quot;ลงทะเบียนกับ GOG&quot; ด้านบนได้เลย
+            </p>
+          )}
+
+          {(visibleSamples.length > 0 || sampleState.deleted.length > 0) && (
+            <section className="sample-block">
+              <header>
+                <div>
+                  <span className="eyebrow">MOCK UP</span>
+                  <h4>การ์ดตัวอย่างแต่ละหมวด</h4>
+                  <p>ข้อมูลสมมติทั้งหมด ไม่ใช่ผู้ให้บริการจริง — ไว้ดูหน้าตาการ์ดและเอาไปคุยกับผู้สมัคร กดซ่อนหรือลบทิ้งได้</p>
+                </div>
+                {sampleState.deleted.length > 0 && (
+                  <button type="button" className="sample-restore" onClick={() => updateSamples({ hidden: [], deleted: [] })}>
+                    <RotateCcw size={12} aria-hidden="true" /> เอากลับทั้งหมด ({sampleState.deleted.length} ใบที่ลบไป)
+                  </button>
+                )}
+              </header>
+              {visibleSamples.length === 0 ? (
+                <p className="partner-empty">ลบการ์ดตัวอย่างของเมืองนี้ไปหมดแล้ว</p>
+              ) : (
+                <div className="partner-grid">
+                  {visibleSamples.map((partner) => (
+                    <PartnerCard
+                      key={partner.id}
+                      partner={partner}
+                      hidden={sampleState.hidden.includes(partner.id)}
+                      onHide={() => toggleSampleHidden(partner.id)}
+                      onDelete={() => deleteSample(partner.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
           )}
 
           <p className="trip-disclaimer">

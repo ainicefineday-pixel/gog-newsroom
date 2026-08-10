@@ -8,7 +8,7 @@
 
 
 
-export const PARTNER_KINDS = ["driver", "photographer", "guide", "stay", "restaurant"] as const;
+export const PARTNER_KINDS = ["driver", "photographer", "guide", "stay", "restaurant", "massage"] as const;
 export type PartnerKind = (typeof PARTNER_KINDS)[number];
 
 export const PARTNER_STATUSES = ["pending", "verified", "suspended", "rejected"] as const;

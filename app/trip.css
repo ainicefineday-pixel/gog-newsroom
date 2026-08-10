@@ -210,10 +210,43 @@ a.trip-cta { text-decoration: none; }
 .partner-reasons { list-style: none; margin: 7px 0 0; padding: 0; display: grid; gap: 4px; }
 .partner-reasons li { color: #9aa0a8; font: 500 10px/1.5 "Kanit",sans-serif; padding-left: 13px; position: relative; }
 .partner-reasons li::before { content: "✓"; position: absolute; left: 0; color: #4ade80; }
-.partner-card > footer { display: flex; justify-content: space-between; gap: 10px; margin-top: auto; padding-top: 10px; border-top: 1px solid #ffffff0d; }
+.partner-card > footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 0; margin-top: auto; padding: 10px 0 0; border-top: 1px solid #ffffff0d; background: none; }
 .partner-from { color: #f0a500; font: 800 11px/1.45 "Kanit",sans-serif; }
 .partner-rating { color: var(--muted); font: 600 10px/1.45 "Kanit",sans-serif; }
 .partner-empty, .partner-empty-sub { color: var(--muted); font: 400 11.5px/1.8 "Kanit",sans-serif; margin: 0; }
+
+/* ═══ การ์ดตัวอย่างของ GPN — แยกสีตามหมวด (STEP 46) ═══════════════════ */
+/* สีประจำหมวดคุมด้วยตัวแปรตัวเดียวต่อการ์ด ปรับหมวดใหม่แค่เพิ่ม --kind */
+.partner-card.kind-driver { --kind: #7dabff; }
+.partner-card.kind-photographer { --kind: #c99cff; }
+.partner-card.kind-guide { --kind: #4ade80; }
+.partner-card.kind-stay { --kind: #f0a500; }
+.partner-card.kind-restaurant { --kind: #ff8b80; }
+.partner-card.kind-massage { --kind: #5ed7d0; }
+.partner-card[class*="kind-"] { border-left: 3px solid var(--kind); }
+.partner-card[class*="kind-"] .partner-kind { color: var(--kind); }
+.partner-card[class*="kind-"] .partner-from { color: var(--kind); }
+.partner-card[class*="kind-"] .partner-services b { color: var(--kind); }
+.partner-card.is-sample { background: linear-gradient(140deg, color-mix(in srgb, var(--kind) 9%, transparent), #0c0e12 58%); }
+
+.partner-sample-tag { padding: 3px 9px; border-radius: 99px; border: 1px dashed var(--kind); color: var(--kind); font: 800 8.5px/1.5 "Kanit",sans-serif; letter-spacing: .06em; }
+
+.partner-actions { display: flex; gap: 7px; margin-top: 11px; padding-top: 10px; border-top: 1px solid #ffffff0d; }
+.partner-actions button { display: inline-flex; align-items: center; gap: 5px; padding: 7px 11px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: #9aa0a8; font: 700 9.5px/1.45 "Kanit",sans-serif; cursor: pointer; }
+.partner-actions button:hover { border-color: var(--kind, #6b7078); color: var(--kind, #d5d8dd); }
+.partner-actions button.danger:hover { border-color: #ef4444; color: #f87171; }
+
+.partner-card.is-hidden { display: flex; flex-direction: row; align-items: center; gap: 11px; flex-wrap: wrap; padding: 12px 15px; border-style: dashed; background: #0a0c10; opacity: .72; }
+.partner-hidden-name { display: inline-flex; align-items: center; gap: 7px; color: #8a9099; font: 700 11px/1.45 "Kanit",sans-serif; }
+.partner-hidden-note { color: #5d626b; font: 600 9.5px/1.45 "Kanit",sans-serif; }
+.partner-card.is-hidden .partner-actions { margin: 0 0 0 auto; padding: 0; border: none; }
+
+.sample-block { margin-top: 22px; padding-top: 20px; border-top: 1px dashed var(--line); }
+.sample-block > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.sample-block h4 { margin: 4px 0 0; color: #fff; font: 800 15px/1.45 "Kanit",sans-serif; }
+.sample-block header p { margin: 6px 0 0; color: var(--muted); font: 400 11px/1.7 "Kanit",sans-serif; max-width: 74ch; }
+.sample-restore { display: inline-flex; align-items: center; gap: 7px; padding: 9px 13px; border: 1px solid var(--line); border-radius: 9px; background: transparent; color: #b7bbc2; font: 700 10.5px/1.45 "Kanit",sans-serif; cursor: pointer; white-space: nowrap; }
+.sample-restore:hover { border-color: #f0a500; color: #f0a500; }
 .partner-empty-state { text-align: center; padding: 28px 16px; border: 1px dashed var(--line); border-radius: 12px; display: grid; gap: 6px; }
 
 .partner-form { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 13px; }
