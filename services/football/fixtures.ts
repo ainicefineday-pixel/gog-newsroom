@@ -71,7 +71,8 @@ function ymd(date: Date) {
  */
 export function recommendTripDates(kickoffUtc: string, length: TripLength) {
   const matchDay = new Date(`${kickoffUtc.slice(0, 10)}T00:00:00Z`);
-  const daysBefore = length === 5 ? 2 : 4;
+  // ทริปยาวขึ้น = มาถึงก่อนเกมมากขึ้น เผื่อเที่ยวเมืองอื่นก่อนแล้วค่อยกลับมาดูบอล
+  const daysBefore = length === 5 ? 2 : length === 8 ? 4 : 5;
   const depart = addDays(matchDay, -daysBefore);
   const back = addDays(depart, length - 1);
   return { departDate: ymd(depart), returnDate: ymd(back), matchDate: ymd(matchDay) };

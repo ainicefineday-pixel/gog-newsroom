@@ -14,7 +14,7 @@ const TIMEOUT_MS = 120_000;
 
 export type AssistantPatch = {
   budget?: "saver" | "comfort" | "premium";
-  length?: 5 | 8;
+  length?: 5 | 8 | 10;
   travellers?: number;
   flightId?: string;
   hotelId?: string;
@@ -39,7 +39,7 @@ const PATCH_SCHEMA = {
       type: "object",
       properties: {
         budget: { type: "string", enum: ["saver", "comfort", "premium"] },
-        length: { type: "integer", enum: [5, 8] },
+        length: { type: "integer", enum: [5, 8, 10] },
         travellers: { type: "integer" },
         flightId: { type: "string" },
         hotelId: { type: "string" },

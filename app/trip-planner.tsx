@@ -360,9 +360,9 @@ export function TripPlanner() {
 
   const whatIfs = [
     {
-      label: length === 5 ? "ไป 8 วันแทน 5 วัน" : "ไป 5 วันแทน 8 วัน",
-      delta: whatIf({ length: length === 5 ? 8 : 5 }) - estimate.perPerson,
-      apply: () => setLength(length === 5 ? 8 : 5),
+      label: length === 5 ? "ไป 8 วันแทน 5 วัน" : length === 8 ? "ไป 10 วันแทน 8 วัน" : "ไป 5 วันแทน 10 วัน",
+      delta: whatIf({ length: length === 5 ? 8 : length === 8 ? 10 : 5 }) - estimate.perPerson,
+      apply: () => setLength(length === 5 ? 8 : length === 8 ? 10 : 5),
     },
     {
       label: "อัปเกรดเป็น Comfort",
@@ -434,7 +434,7 @@ export function TripPlanner() {
           <div className="trip-field">
             <span>ความยาวทริป</span>
             <div className="trip-segment">
-              {([5, 8] as TripLength[]).map((value) => (
+              {([5, 8, 10] as TripLength[]).map((value) => (
                 <button key={value} type="button" className={length === value ? "active" : ""} onClick={() => setLength(value)}>
                   {value} วัน
                 </button>

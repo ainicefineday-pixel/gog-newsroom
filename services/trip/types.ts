@@ -20,7 +20,7 @@ export type ArrivalAirport = {
 /** ระดับงบ 3 แบบตาม STEP 7 — ตัวคูณจริงอยู่ใน services/pricing */
 export type BudgetStyle = "saver" | "comfort" | "premium";
 
-export type TripLength = 5 | 8;
+export type TripLength = 5 | 8 | 10;
 
 export type TripSelection = {
   fixtureKey: string | null;
