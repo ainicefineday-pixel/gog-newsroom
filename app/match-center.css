@@ -205,6 +205,24 @@
 .mc-travel-cta:hover { background: #ef3a2c; }
 .mc-note { margin: 13px 0 0; color: #6b7078; font: 400 10px/1.7 "Kanit",sans-serif; }
 
+/* ── เกมที่อยากไปดู (STEP 68) ────────────────────────────────────────── */
+.mc-card-head-right { display: flex; align-items: center; gap: 8px; }
+.mc-save { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: #6b7078; cursor: pointer; }
+.mc-save:hover { border-color: #f0a500; color: #f0a500; }
+.mc-save.on { background: rgba(240,165,0,.16); border-color: rgba(240,165,0,.5); color: #f0a500; }
+.mc-save.on svg { fill: currentColor; }
+.mc-card.saved { border-color: rgba(240,165,0,.4); }
+
+/* ── คู่มือสนามฉบับ GOG (STEP 58) ────────────────────────────────────── */
+.mc-guide { border: 1px solid rgba(74,222,128,.28); border-radius: 12px; background: linear-gradient(135deg, rgba(74,222,128,.06), #0c0e12 58%); padding: 18px 20px; }
+.mc-guide h4 { margin: 6px 0 14px; color: #fff; font: 800 16px/1.45 "Kanit",sans-serif; }
+.mc-guide dl { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 13px; margin: 0 0 15px; }
+.mc-guide dt { color: var(--muted); font: 700 9px/1.5 "Kanit",sans-serif; letter-spacing: .07em; }
+.mc-guide dd { margin: 4px 0 0; color: #e7e9ec; font: 600 11.5px/1.6 "Kanit",sans-serif; }
+.mc-guide-notes { display: grid; gap: 10px; padding-top: 13px; border-top: 1px solid #ffffff0d; }
+.mc-guide-notes p { margin: 0; color: #b7bbc2; font: 400 11.5px/1.75 "Kanit",sans-serif; }
+.mc-guide-notes b { color: #4ade80; font-weight: 800; margin-right: 6px; }
+
 /* ── เส้นทางวันแข่ง (STEP 65) ────────────────────────────────────────── */
 .mc-route { border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 18px 20px; }
 .mc-route-line { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 10px; }

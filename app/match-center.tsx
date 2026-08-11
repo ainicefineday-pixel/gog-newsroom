@@ -7,11 +7,12 @@
 // ไม่ใช่กล่องเทาว่างเปล่าและไม่ใช่ตัวเลขปลอม (STEP 17, 84)
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Clock, Info, MapPin, Plane, TriangleAlert } from "lucide-react";
+import { CalendarDays, Clock, Info, MapPin, Plane, Star, TriangleAlert } from "lucide-react";
 import { FIXTURE_STATE_TH, STAT_LABELS } from "@/services/football/thai";
 import { UNAVAILABLE_REASON_TH } from "@/services/football/capabilities";
 import { thaiFullDate, thaiShortDate } from "@/services/football/normalize";
 import { buildMatchTravelPlan } from "@/services/travel/matchToTrip";
+import { gogStadium } from "@/config/gog-stadiums";
 import { formatThb } from "@/services/pricing";
 import { BUDGET_LABELS, type BudgetStyle } from "@/services/trip/types";
 import type {
@@ -33,6 +34,9 @@ const TAB_LABELS: Array<[MatchTab, string]> = [
   ["venue", "สนาม"],
   ["travel", "ไปดูเกมนี้"],
 ];
+
+/** เกมที่ผู้ใช้กดว่าอยากไปดู — เก็บในเครื่อง ยังไม่มีระบบบัญชี (STEP 68) */
+const SAVED_MATCHES_KEY = "gog:saved-matches";
 
 const EVENT_ICON: Record<GOGEvent["type"], string> = {
   goal: "⚽", own_goal: "⚽", penalty: "⚽", penalty_miss: "✕",
@@ -60,13 +64,29 @@ function StateBadge({ fixture }: { fixture: GOGFixture }) {
   );
 }
 
-function MatchCard({ fixture, onOpen }: { fixture: GOGFixture; onOpen: () => void }) {
+function MatchCard({ fixture, onOpen, saved, onToggleSave }: {
+  fixture: GOGFixture;
+  onOpen: () => void;
+  saved: boolean;
+  onToggleSave: () => void;
+}) {
   const decided = fixture.homeScore !== null && fixture.awayScore !== null;
   return (
-    <article className={`mc-card ${fixture.state === "live" ? "live" : ""}`}>
+    <article className={`mc-card ${fixture.state === "live" ? "live" : ""} ${saved ? "saved" : ""}`}>
       <header>
         <span className="mc-card-week">{fixture.matchweek ? `นัดที่ ${fixture.matchweek}` : fixture.competitionName}</span>
-        <StateBadge fixture={fixture} />
+        <span className="mc-card-head-right">
+          <button
+            type="button"
+            className={`mc-save ${saved ? "on" : ""}`}
+            aria-pressed={saved}
+            aria-label={saved ? "เอาออกจากเกมที่อยากไปดู" : "บันทึกเป็นเกมที่อยากไปดู"}
+            onClick={onToggleSave}
+          >
+            <Star size={13} aria-hidden="true" />
+          </button>
+          <StateBadge fixture={fixture} />
+        </span>
       </header>
 
       <div className="mc-card-teams">
@@ -175,12 +195,34 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
   // อ่านเวลาปัจจุบันหลัง hydrate เท่านั้น อ่านตอนเรนเดอร์จะทำให้ผลไม่นิ่งและ markup
   // ฝั่งเซิร์ฟเวอร์ไม่ตรงกับ client · เดินนาฬิกาทุกนาทีเพื่อให้สถานะเกมสดขยับตาม
   const [now, setNow] = useState(0);
+  // เกมที่อยากไปดู (STEP 68) — เก็บในเครื่องผู้ใช้ ยังไม่มีระบบบัญชี
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [savedOnly, setSavedOnly] = useState(false);
 
   useEffect(() => {
     const tick = () => setNow(Date.now());
     window.queueMicrotask(tick);
     const timer = window.setInterval(tick, 60_000);
     return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    window.queueMicrotask(() => {
+      try {
+        const saved = window.localStorage.getItem(SAVED_MATCHES_KEY);
+        if (saved) setSavedIds(JSON.parse(saved) as string[]);
+      } catch { /* localStorage ถูกปิด = เริ่มจากลิสต์ว่าง */ }
+    });
+  }, []);
+
+  const toggleSaved = useCallback((fixtureId: string) => {
+    setSavedIds((current) => {
+      const next = current.includes(fixtureId)
+        ? current.filter((item) => item !== fixtureId)
+        : [...current, fixtureId];
+      try { window.localStorage.setItem(SAVED_MATCHES_KEY, JSON.stringify(next)); } catch { /* ไม่เป็นไร */ }
+      return next;
+    });
   }, []);
 
   useEffect(() => {
@@ -224,6 +266,7 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
   const visible = useMemo(() => {
     return (fixtures ?? [])
       .filter((item) => {
+        if (savedOnly && !savedIds.includes(item.id)) return false;
         if (monthFilter !== "all" && !item.kickoffUtc.startsWith(monthFilter)) return false;
         // now = 0 คือยังไม่ได้อ่านเวลาหลัง hydrate — ยังไม่กรองตามเวลาเพื่อไม่ให้การ์ดกระพริบ
         if (now === 0) return true;
@@ -233,12 +276,14 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
         return true;
       })
       .sort((a, b) => a.kickoffUtc.localeCompare(b.kickoffUtc));
-  }, [fixtures, monthFilter, statusFilter, now]);
+  }, [fixtures, monthFilter, statusFilter, now, savedOnly, savedIds]);
 
   const homeStats = bundle?.teamStats.find((row) => row.teamId === bundle.fixture.home.id);
   const awayStats = bundle?.teamStats.find((row) => row.teamId === bundle.fixture.away.id);
   // เส้นทางเดินทางและราคาโดยประมาณของแมตช์นี้ — คิดจาก service ตัวเดียวกับหน้าวางแผนทริป
   const travel = useMemo(() => (bundle ? buildMatchTravelPlan(bundle.fixture) : null), [bundle]);
+  // คู่มือสนามที่ทีมงานเขียนเอง — ไม่พึ่งผู้ให้บริการ ไม่มีก็ขึ้นสถานะตรง ๆ
+  const stadium = useMemo(() => gogStadium(bundle?.fixture.venue?.name), [bundle]);
 
   return (
     <section className="mc-view" aria-labelledby="mc-heading">
@@ -268,6 +313,9 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
                   {label}
                 </button>
               ))}
+              <button type="button" className={savedOnly ? "active" : ""} onClick={() => setSavedOnly((open) => !open)}>
+                เกมที่อยากไปดู{savedIds.length > 0 ? ` (${savedIds.length})` : ""}
+              </button>
             </div>
           </header>
 
@@ -284,11 +332,21 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
           {fixtures === null ? (
             <div className="mc-skeleton-grid">{[0, 1, 2, 3].map((key) => <span key={key} className="mc-skeleton" />)}</div>
           ) : visible.length === 0 ? (
-            <Unavailable reason="ไม่มีแมตช์ตรงเงื่อนไขที่เลือก ลองเปลี่ยนเดือนหรือสถานะดู" />
+            <Unavailable
+              reason={savedOnly
+                ? "ยังไม่ได้บันทึกเกมไหนไว้ — กดรูปดาวบนการ์ดแมตช์เพื่อเก็บเกมที่อยากไปดู"
+                : "ไม่มีแมตช์ตรงเงื่อนไขที่เลือก ลองเปลี่ยนเดือนหรือสถานะดู"}
+            />
           ) : (
             <div className="mc-grid">
               {visible.map((fixture) => (
-                <MatchCard key={fixture.id} fixture={fixture} onOpen={() => openMatch(fixture.id)} />
+                <MatchCard
+                  key={fixture.id}
+                  fixture={fixture}
+                  onOpen={() => openMatch(fixture.id)}
+                  saved={savedIds.includes(fixture.id)}
+                  onToggleSave={() => toggleSaved(fixture.id)}
+                />
               ))}
             </div>
           )}
@@ -552,22 +610,57 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
               {tab === "venue" && (
                 <div className="mc-panel">
                   {bundle.fixture.venue ? (
-                    <div className="mc-venue">
-                      <h4>{bundle.fixture.venue.name}</h4>
-                      <dl>
-                        <div><dt>เมือง</dt><dd>{bundle.fixture.venue.city || "—"}</dd></div>
-                        <div><dt>ประเทศ</dt><dd>{bundle.fixture.venue.country}</dd></div>
-                        <div><dt>ความจุ</dt><dd>{bundle.fixture.venue.capacity ?? "ยังไม่มีข้อมูลจากแหล่งที่เชื่อถือได้"}</dd></div>
-                        <div><dt>โซนเวลา</dt><dd>{bundle.fixture.venue.timezone}</dd></div>
-                      </dl>
-                      <a
-                        href={`https://maps.google.com/?q=${encodeURIComponent(`${bundle.fixture.venue.name} ${bundle.fixture.venue.city}`)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        เปิดแผนที่สนาม
-                      </a>
-                    </div>
+                    <>
+                      <div className="mc-venue">
+                        <h4>{bundle.fixture.venue.name}</h4>
+                        <dl>
+                          <div><dt>เมือง</dt><dd>{bundle.fixture.venue.city || "—"}</dd></div>
+                          <div><dt>ประเทศ</dt><dd>{bundle.fixture.venue.country}</dd></div>
+                          <div>
+                            <dt>ความจุ</dt>
+                            <dd>
+                              {stadium
+                                ? `${stadium.capacity.toLocaleString("th-TH")} ที่นั่ง`
+                                : bundle.fixture.venue.capacity?.toLocaleString("th-TH") ?? "ยังไม่มีข้อมูลจากแหล่งที่เชื่อถือได้"}
+                            </dd>
+                          </div>
+                          <div><dt>โซนเวลา</dt><dd>{bundle.fixture.venue.timezone}</dd></div>
+                        </dl>
+                        <a
+                          href={`https://maps.google.com/?q=${encodeURIComponent(`${bundle.fixture.venue.name} ${bundle.fixture.venue.city}`)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          เปิดแผนที่สนาม
+                        </a>
+                      </div>
+
+                      {/* ── STEP 58 · คู่มือสนามที่ GOG เขียนเอง ─────────── */}
+                      {stadium ? (
+                        <div className="mc-guide">
+                          <span className="eyebrow">GOG STADIUM GUIDE</span>
+                          <h4>คู่มือสนามฉบับ GOG</h4>
+                          <dl>
+                            <div>
+                              <dt>สนามบินที่ควรลง</dt>
+                              <dd>{stadium.nearestAirports.join(" / ")}</dd>
+                            </div>
+                            <div><dt>สถานีที่ใกล้ที่สุด</dt><dd>{stadium.nearestStation}</dd></div>
+                            <div><dt>เดินทางในเมือง</dt><dd>{stadium.localTransit}</dd></div>
+                          </dl>
+                          <div className="mc-guide-notes">
+                            <p><b>วันแข่ง</b> {stadium.matchdayNotes}</p>
+                            <p><b>วางแผนเดินทาง</b> {stadium.travelNotes}</p>
+                          </div>
+                          <p className="mc-note">
+                            เนื้อหาส่วนนี้ทีมงาน GOG เขียนเอง แยกจากข้อมูลสถิติของผู้ให้บริการ
+                            ความจุเป็นตัวเลขอ้างอิงเพื่อวางแผน ไม่ใช่จำนวนตั๋วที่ขายจริงในแต่ละนัด
+                          </p>
+                        </div>
+                      ) : (
+                        <Unavailable reason="ยังไม่มีคู่มือสนามฉบับ GOG ของสนามนี้ — ทีมงานกำลังทยอยเขียนเพิ่ม" />
+                      )}
+                    </>
                   ) : (
                     <Unavailable reason="ผู้ให้บริการยังไม่ระบุสนามของแมตช์นี้" />
                   )}
