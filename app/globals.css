@@ -119,8 +119,56 @@ main { max-width: 1440px; margin: 0 auto; padding: 0 28px 70px; }
 .hero-copy { position: relative; z-index: 2; }
 .hero-kicker { font: 700 10px/1.45 "Kanit", sans-serif; letter-spacing: .15em; color: var(--gold-soft); display: flex; align-items: center; gap: 9px; }
 .hero-kicker span { width: 24px; height: 1px; background: var(--gold); }
-.hero h1 { margin: 20px 0 12px; font-size: clamp(42px, 4.3vw, 69px); line-height: 1.04; letter-spacing: -.035em; max-width: 660px; }
-.hero h1 em { color: var(--red-bright); font-style: normal; }
+/* ── ช่องพาดหัวที่สลับระหว่างสโลแกนกับข่าวล่าสุด ─────────────────────────
+   ทุกสไลด์ใช้โครงเดียวกัน: eyebrow → พาดหัว → บรรทัดรายละเอียด
+   ขนาดและสีกำหนดเป็นตัวแปรไว้ที่เดียว สลับสไลด์แล้วจึงยังดูเป็นชุดเดียวกัน
+   จองความสูงไว้ด้วย ไม่ให้เนื้อหาข้างล่างขยับตอนพาดหัวยาวไม่เท่ากัน */
+.hero-rotator {
+  --hero-lead: clamp(40px, 4.1vw, 62px);   /* สโลแกน 2 บรรทัด */
+  --hero-news: clamp(27px, 2.5vw, 40px);   /* พาดหัวข่าว ตัดที่ 2 บรรทัด */
+  --hero-eyebrow: var(--gold-soft);
+  --hero-ink: #f2f3f5;
+  /* สูงพอสำหรับสไลด์ที่สูงที่สุด (eyebrow + 2 บรรทัด + บรรทัดรายละเอียด)
+     ถ้าตั้งเตี้ยกว่านี้ สไลด์ที่วางแบบ absolute จะล้นไปทับย่อหน้าข้างล่าง */
+  margin: 18px 0 14px; min-height: 208px;
+  display: flex; flex-direction: column; justify-content: center;
+}
+/* ทุกสไลด์ซ้อนกันในเวทีเดียว สลับด้วย opacity ล้วน ๆ ตัวเก่าจึงจางออกพร้อม
+   ตัวใหม่จางเข้า เป็นครอสเฟดจริง ไม่ใช่ตัดภาพแล้วค่อยเฟดเข้าอย่างเดียว */
+.hero-rotator-stage { position: relative; flex: 1; }
+.hero-rotator-slide {
+  position: absolute; inset: 0;
+  opacity: 0; transform: translateY(12px); pointer-events: none;
+  transition: opacity .5s ease, transform .5s ease;
+}
+.hero-rotator-slide.active { opacity: 1; transform: none; pointer-events: auto; }
+
+.hero-slide-eyebrow {
+  display: block; margin-bottom: 11px; color: var(--hero-eyebrow);
+  font: 800 9px/1.5 "Kanit",sans-serif; letter-spacing: .2em; text-transform: uppercase;
+}
+.hero .hero-headline { margin: 0; color: var(--hero-ink); font-size: var(--hero-lead); font-weight: 700; line-height: 1.04; letter-spacing: -.035em; max-width: 660px; }
+.hero .hero-headline em { color: var(--red-bright); font-style: normal; }
+/* พาดหัวข่าวยาวกว่าสโลแกน จึงเล็กลงหนึ่งขั้นและตัดที่ 3 บรรทัด */
+.hero .hero-headline.story {
+  font-size: var(--hero-news); line-height: 1.24; letter-spacing: -.02em; font-weight: 600;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+.hero-slide-meta { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 14px 0 0; min-height: 17px; }
+.hero-slide-meta span { color: var(--muted); font: 500 11px/1.5 "Kanit",sans-serif; }
+.hero-slide-meta b { color: #cfd3da; font: 700 11px/1.5 "Kanit",sans-serif; }
+.hero-slide-meta time { color: var(--muted); font: 600 10.5px/1.5 "Kanit",sans-serif; }
+.hero-slide-meta time::before { content: "·"; margin-right: 8px; color: #4e535b; }
+
+.hero-rotator-dots { display: flex; gap: 6px; margin-top: 17px; }
+.hero-rotator-dots button { width: 20px; height: 3px; border: 0; border-radius: 99px; background: #3a3e46; padding: 0; cursor: pointer; transition: background .25s, width .25s; }
+.hero-rotator-dots button:hover { background: #6b7078; }
+.hero-rotator-dots button.active { width: 34px; background: var(--red); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-rotator-slide { transition: none; transform: none; }
+}
 .hero-copy > p { color: #a8adb5; font-size: 16px; line-height: 1.75; margin: 0; }
 .hero-stats { display: flex; gap: 0; margin-top: 31px; border-top: 1px solid var(--line); width: fit-content; }
 .hero-stats div { display: flex; flex-direction: column; padding: 14px 31px 0 0; margin-right: 31px; border-right: 1px solid var(--line); }
@@ -131,12 +179,14 @@ main { max-width: 1440px; margin: 0 auto; padding: 0 28px 70px; }
   position: absolute;
   inset: 0 0 0 43%;
   z-index: 1;
+  /* ม่านดำเดิมทึบเกินจนกลืนตราสัญลักษณ์ GOG ที่อยู่กลางภาพ
+     ลดความเข้มลงเหลือราว 80% และให้จางหมดเร็วขึ้น โลโก้จึงอ่านออก */
   background:
-    linear-gradient(90deg, #111319 0%, rgba(17,19,25,.7) 15%, transparent 42%),
-    linear-gradient(180deg, transparent 62%, rgba(8,9,11,.72) 100%),
+    linear-gradient(90deg, rgba(17,19,25,.92) 0%, rgba(17,19,25,.5) 13%, transparent 30%),
+    linear-gradient(180deg, transparent 66%, rgba(8,9,11,.6) 100%),
     url("/gog-team.jpg") center right / cover no-repeat;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 22%, #000 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 22%, #000 100%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 18%, #000 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 18%, #000 100%);
 }
 /* ป้ายชื่อคนในภาพฮีโร่ — วางเรียงกันใต้ตัวคนทั้งสอง ชิดขอบขวาของฮีโร่
    ไม่วางไว้กลางรูปเพราะจะไปทับตราสัญลักษณ์ GOG ที่เป็นพื้นหลัง */
@@ -150,18 +200,17 @@ main { max-width: 1440px; margin: 0 auto; padding: 0 28px 70px; }
   list-style: none;
   display: flex;
   gap: 9px;
-  max-width: 54%;
+  max-width: 60%;
 }
 .hero-cast li {
-  flex: 1;
-  min-width: 0;
   padding: 8px 13px;
   border-left: 2px solid var(--red);
   background: rgba(9,10,12,.74);
   backdrop-filter: blur(10px);
 }
-.hero-cast b { display: block; color: #f2f3f5; font: 800 10.5px/1.45 "Kanit",sans-serif; letter-spacing: .08em; }
+.hero-cast b { display: block; color: #f2f3f5; font: 800 10.5px/1.45 "Kanit",sans-serif; letter-spacing: .05em; white-space: nowrap; }
 .hero-cast small { display: block; margin-top: 3px; color: #8a9099; font: 600 8.5px/1.5 "Kanit",sans-serif; letter-spacing: .04em; }
+.hero-cast small + small { margin-top: 1px; }
 .hero-cast small.gold { color: var(--gold); }
 
 .hero-brand-stamp {
@@ -596,11 +645,14 @@ h1, h2, h3, p, li, td, th, b, strong, small { overflow-wrap: break-word; }
 /* กันแถบบังเนื้อหาท้ายหน้า */
 .newsroom-shell { padding-bottom: 78px; }
 
+/* แถบกว้างเต็มจอ ปุ่มจึงต้องชิดขอบซ้าย-ขวาจริง ๆ แบบเครื่องเล่นทั่วไป
+   ห้ามใช้ calc((100vw - 1440px)/2) เหมือน header/footer เพราะจอ 2560px
+   จะดัน padding เป็นข้างละ 560px แล้วปุ่มไปกองอยู่กลางจอ */
 .anthem-bar {
   display: grid;
-  grid-template-columns: auto minmax(140px,190px) minmax(0,1fr) 74px auto;
-  gap: 16px; align-items: center;
-  padding: 10px max(18px, calc((100vw - 1440px) / 2));
+  grid-template-columns: auto minmax(150px,230px) minmax(0,1fr) 74px auto;
+  gap: 18px; align-items: center;
+  padding: 10px 22px;
 }
 
 .anthem-controls { display: flex; align-items: center; gap: 5px; }
@@ -633,30 +685,46 @@ h1, h2, h3, p, li, td, th, b, strong, small { overflow-wrap: break-word; }
 .anthem-expand:hover { color: #fff; border-color: rgba(218,41,28,.42); }
 .anthem-progress { height: 2px; background: #22252b; }
 .anthem-progress i { display: block; height: 100%; background: var(--red); transition: width .25s linear; }
-.anthem-ticker { margin: 0; padding: 9px 12px 11px; border-top: 1px solid var(--line); }
-.anthem-ticker span { display: block; color: #dfe1e5; font-size: 10px; line-height: 1.45; }
-.anthem-ticker small { display: block; margin-top: 3px; color: var(--gold-soft); font-size: 9px; line-height: 1.5; }
+/* บรรทัดที่กำลังร้องตอนที่ยังไม่กางเนื้อเพลง — ใช้สัดส่วนเดียวกับในแผงเนื้อเพลง */
+.anthem-ticker { margin: 0; padding: 10px 12px 12px; border-top: 1px solid var(--line); text-align: center; }
+.anthem-ticker span { display: block; color: #dfe1e5; font-size: 15px; font-weight: 600; line-height: 1.5; }
+.anthem-ticker small { display: block; margin-top: 4px; color: var(--gold-soft); font-size: 11px; line-height: 1.55; }
 
 .anthem-panel { border-top: 1px solid var(--line); }
-.anthem-lyrics { max-height: min(46vh, 380px); overflow-y: auto; padding: 6px 12px; scroll-behavior: smooth; }
-.anthem-line { padding: 8px 0; border-top: 1px solid rgba(52,56,64,.5); opacity: .45; transition: opacity .25s; }
+/* เนื้อร้องแบบคาราโอเกะ — จัดกึ่งกลาง อังกฤษตัวใหญ่นำ ไทยตัวเล็กรองใต้ */
+.anthem-lyrics { max-height: min(46vh, 380px); overflow-y: auto; padding: 6px 12px; scroll-behavior: smooth; text-align: center; }
+.anthem-line { padding: 11px 0; border-top: 1px solid rgba(52,56,64,.5); opacity: .4; transition: opacity .25s; }
 .anthem-line:first-child { border-top: 0; }
-.anthem-line b { display: block; color: #d7d9dd; font-size: 10px; font-weight: 500; line-height: 1.5; white-space: pre-line; }
-.anthem-line small { display: block; margin-top: 3px; color: #7f858d; font-size: 9px; line-height: 1.55; white-space: pre-line; }
+.anthem-line b { display: block; color: #d7d9dd; font-size: 17px; font-weight: 600; line-height: 1.5; letter-spacing: -.01em; white-space: pre-line; }
+.anthem-line small { display: block; margin-top: 5px; color: #7f858d; font-size: 12px; font-weight: 400; line-height: 1.6; white-space: pre-line; }
 .anthem-line.active { opacity: 1; }
-.anthem-line.active b { color: #fff; }
-.anthem-line.active small { color: var(--gold-soft); }
-.anthem-line.pending { opacity: 1; box-shadow: inset 2px 0 0 var(--red); padding-left: 9px; }
-.anthem-line.untimed { opacity: .3; }
+.anthem-line.active b { font-size: 20px; }
+.anthem-line.active small { color: var(--gold-soft); font-size: 13px; }
+.anthem-line.pending { opacity: 1; box-shadow: inset 2px 0 0 var(--red); }
+.anthem-line.untimed { opacity: .28; }
 .anthem-line.untimed b { font-style: italic; }
-.anthem-line em { display: block; margin-top: 3px; color: #5f646c; font-size: 7px; font-style: normal; }
-.anthem-section { display: inline-block; margin-bottom: 5px; color: var(--red-bright); font-size: 7px; letter-spacing: .16em; text-transform: uppercase; }
+.anthem-line em { display: block; margin-top: 3px; color: #5f646c; font-size: 8px; font-style: normal; }
+.anthem-section { display: inline-block; margin-bottom: 6px; color: var(--red-bright); font-size: 7.5px; letter-spacing: .16em; text-transform: uppercase; }
+
+/* ไล่สีตามคำที่ร้องอยู่ — ส่วนที่ร้องผ่านแล้วเป็นสีทอง ที่ยังไม่ถึงเป็นสีจาง
+   ใช้ background-clip: text จึงระบายทับตัวอักษรได้พอดีโดยไม่ต้องซ้อนสองชั้น */
+.anthem-karaoke {
+  display: block;
+  background-image: linear-gradient(90deg, var(--gold) var(--fill, 0%), rgba(215,217,221,.42) var(--fill, 0%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .anthem-karaoke { background-image: none; color: var(--gold); }
+}
 .anthem-foot { display: flex; justify-content: space-between; gap: 10px; margin: 0; padding: 8px 12px 11px; border-top: 1px solid var(--line); color: #676c74; font-size: 7px; }
 .anthem-foot em { font-style: normal; color: #8a7a4e; }
 
 /* แถบเป็นเครื่องเล่นเต็มความกว้างแล้ว เนื้อเพลงจึงต้องจำกัดคอลัมน์ไม่ให้ยืดข้ามจอ
    และจำกัดความสูงไม่ให้กางทีเดียวกินจอเกินครึ่ง */
-.anthem-panel, .anthem-ticker { padding-inline: max(18px, calc((100vw - 1440px) / 2)); }
+.anthem-panel, .anthem-ticker { padding-inline: 22px; }
 .anthem-lyrics { max-width: 760px; margin-inline: auto; max-height: min(34vh, 300px); padding-inline: 0; }
 .anthem-ticker { max-width: 1440px; margin-inline: auto; }
 .anthem-foot { max-width: 760px; margin-inline: auto; }

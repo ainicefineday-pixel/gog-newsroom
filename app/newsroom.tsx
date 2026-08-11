@@ -5,6 +5,9 @@ import { Check, ChevronDown, Copy, FileText, Languages, RefreshCw } from "lucide
 import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 import { AnthemPlayer } from "@/app/anthem-player";
+
+/** ค้างพาดหัวไว้กี่มิลลิวินาทีก่อนสลับ — ความยาวการเฟดคุมด้วย CSS ฝั่ง .hero-rotator-slide */
+const HERO_HOLD_MS = 6_500;
 import { FixturesPanel, GogTeamPanel } from "@/app/gog-hub";
 import { StadiumMapPanel } from "@/app/stadium-map";
 import { TacticBoardPanel } from "@/app/tactic-board";
@@ -458,6 +461,41 @@ export function Newsroom() {
 
   const verifiedCount = stories.filter((story) => story.verified).length;
 
+  // สโลแกน + พาดหัวข่าวล่าสุด 4 ข่าว หมุนสลับกันบนฮีโร่
+  const heroSlides = useMemo(() => {
+    type HeroSlide = { id: string; kind: "tagline" | "story"; headline: string; source: string; publishedAt: string };
+    const slides: HeroSlide[] = [{ id: "tagline", kind: "tagline", headline: "", source: "", publishedAt: "" }];
+    for (const story of stories.slice(0, 4)) {
+      const source = story.sources[0];
+      slides.push({
+        id: story.id,
+        kind: "story",
+        headline: story.translated && story.titleTh ? story.titleTh : story.titleEn,
+        source: source?.name ?? "",
+        publishedAt: source?.publishedAt ?? "",
+      });
+    }
+    return slides;
+  }, [stories]);
+
+  // ทุกสไลด์วางซ้อนกันอยู่ในกล่องเดียว แล้วสลับด้วย opacity ล้วน ๆ
+  // ตัวเก่าจึงจางออกพร้อมตัวใหม่จางเข้าจริง ๆ ไม่มี timer มาคุมจังหวะเฟด
+  // (ของเดิมใช้สองจังหวะ out → swap → in แล้วจับเวลาชนกันเอง เฟดเลยไม่เคยได้เล่น)
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  // ตั้งเวลาใหม่ทุกครั้งที่สไลด์เปลี่ยน — กดจุดเลือกเองแล้วได้เวลาดูเต็ม 6.5 วินาที
+  // ถ้าใช้ setInterval ตัวเดียวยาว ๆ จังหวะเดิมจะเดินต่อ กดปุ๊บอาจโดนสลับทันที
+  useEffect(() => {
+    if (heroSlides.length < 2) return;
+    const timer = window.setTimeout(() => {
+      setHeroIndex((current) => (current + 1) % heroSlides.length);
+    }, HERO_HOLD_MS);
+    return () => window.clearTimeout(timer);
+  }, [heroIndex, heroSlides.length]);
+
+  // จำนวนข่าวเปลี่ยนได้ระหว่างซิงก์ จึงหารเศษตอนอ่านแทนการรีเซ็ต index
+  const activeHero = heroIndex % heroSlides.length;
+
   const switchView = (view: WorkspaceView) => {
     setActiveView(view);
     window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
@@ -502,7 +540,64 @@ export function Newsroom() {
         <section className="hero">
           <div className="hero-copy">
             <div className="hero-kicker"><span /> ข่าวปีศาจแดง • ระบบโดย DM ENGINE™</div>
-            <h1>รู้จริงก่อนใคร<br /><em>เชื่อเฉพาะที่ยืนยันได้</em></h1>
+
+            {/* สโลแกนสลับกับพาดหัวข่าวล่าสุด — เปลี่ยนเองทุก 6.5 วินาที */}
+            <div className="hero-rotator">
+              <div className="hero-rotator-stage">
+                {heroSlides.map((slide, index) => {
+                  const active = index === activeHero;
+                  return (
+                    <div
+                      key={slide.id}
+                      className={`hero-rotator-slide${active ? " active" : ""}`}
+                      aria-hidden={!active}
+                    >
+                      <span className="hero-slide-eyebrow">
+                        {slide.kind === "tagline" ? "GOG NEWSROOM" : "อัปเดตล่าสุด"}
+                      </span>
+
+                      {slide.kind === "tagline" ? (
+                        <h1 className="hero-headline">
+                          รู้จริงก่อนใคร<br /><em>เชื่อเฉพาะที่ยืนยันได้</em>
+                        </h1>
+                      ) : (
+                        <p className="hero-headline story">{slide.headline}</p>
+                      )}
+
+                      <p className="hero-slide-meta">
+                        {slide.kind === "tagline" ? (
+                          <span>คัดข่าวจาก {NEWS_SOURCE_DIRECTORY.length} แหล่งต้นฉบับ · ตรวจแล้วทุกชิ้น</span>
+                        ) : (
+                          <>
+                            {slide.source && <b>{slide.source}</b>}
+                            {slide.publishedAt && now && (
+                              <time dateTime={slide.publishedAt}>{relativeTime(slide.publishedAt, now)}</time>
+                            )}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {heroSlides.length > 1 && (
+                <div className="hero-rotator-dots" role="tablist" aria-label="สลับพาดหัว">
+                  {heroSlides.map((slide, index) => (
+                    <button
+                      key={slide.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={index === activeHero}
+                      aria-label={slide.kind === "tagline" ? "สโลแกน" : slide.headline}
+                      className={index === activeHero ? "active" : ""}
+                      onClick={() => setHeroIndex(index)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
             <p>รวมทุกความเคลื่อนไหวของแมนเชสเตอร์ ยูไนเต็ด<br />กลั่นจากแหล่งข่าวต้นฉบับ เพื่อแฟนผีแดงชาวไทย</p>
             <div className="hero-stats">
               <div><strong>{stories.length || "—"}</strong><span>ข่าวในระบบ</span></div>
@@ -523,11 +618,13 @@ export function Newsroom() {
           <ul className="hero-cast">
             <li>
               <b>YO_THEERAT</b>
-              <small>Genius on the Ground Experience Host</small>
+              <small className="gold">Genius on the Ground</small>
+              <small className="gold">Experience Host</small>
             </li>
             <li>
               <b>AUM_FOOTBALLGENIUS</b>
-              <small className="gold">Football Genius · Founder of GOG</small>
+              <small className="gold">Football Genius</small>
+              <small className="gold">Founder of G.O.G.</small>
             </li>
           </ul>
         </section>

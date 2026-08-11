@@ -16,6 +16,38 @@ function formatClock(seconds: number) {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
 }
 
+/**
+ * ระบายสีทีละท่อนแบบคาราโอเกะ
+ * ท่อนภาษาอังกฤษบางท่อนขึ้นบรรทัดในตัวเอง จึงแบ่งเป็นบรรทัดย่อยแล้วไล่สีทีละบรรทัด
+ * ตามสัดส่วนความยาวตัวอักษร ไม่ใช่ระบายทั้งก้อนพร้อมกันซึ่งดูไม่ออกว่าร้องถึงไหน
+ */
+function KaraokeText({ text, fill }: { text: string; fill: number }) {
+  const segments = text.split("\n");
+  const weights = segments.map((segment) => Math.max(segment.trim().length, 1));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  const shares = weights.map((weight) => weight / total);
+  // จุดเริ่มของแต่ละบรรทัดบนสเกล 0–1 คำนวณล่วงหน้า ไม่สะสมค่าระหว่างวาด
+  const starts = shares.map((_, index) => shares.slice(0, index).reduce((sum, share) => sum + share, 0));
+
+  return (
+    <>
+      {segments.map((segment, index) => {
+        const share = shares[index];
+        const local = share > 0 ? (fill - starts[index]) / share : 0;
+        return (
+          <span
+            key={`${segment}-${index}`}
+            className="anthem-karaoke"
+            style={{ "--fill": `${Math.min(Math.max(local, 0), 1) * 100}%` } as React.CSSProperties}
+          >
+            {segment}
+          </span>
+        );
+      })}
+    </>
+  );
+}
+
 /** Config timings, overlaid with anything captured in the sync tool. */
 function resolveTimings(captured: Record<number, number>) {
   const timed: Array<{ line: LyricLine; time: number }> = [];
@@ -298,6 +330,21 @@ export function AnthemPlayer() {
     if (audioRef.current) audioRef.current.playbackRate = speed;
   }, [speed]);
 
+  /**
+   * ร้องมาถึงกี่ % ของท่อนที่กำลังเล่น — ใช้ระบายสีคาราโอเกะ
+   * ช่วงของท่อน = เวลาเริ่มท่อนถัดไป ลบเวลาเริ่มท่อนนี้
+   * มีอยู่คู่หนึ่งในข้อมูล (id 117 กับ 122) ที่เวลาซ้ำกันพอดี ช่วงจึงเป็น 0
+   * บังคับขั้นต่ำ 0.4 วินาทีไว้ ไม่งั้นหารด้วยศูนย์แล้วสีกระโดดเต็มทันที
+   */
+  const activeFill = useMemo(() => {
+    const index = timedLines.findIndex((entry) => entry.line.id === activeLineId);
+    if (index < 0) return 0;
+    const start = timedLines[index].time;
+    const end = timedLines[index + 1]?.time ?? duration;
+    const span = Math.max(end - start, 0.4);
+    return Math.min(Math.max((currentTime - start) / span, 0), 1);
+  }, [timedLines, activeLineId, currentTime, duration]);
+
   const activeLine = ANTHEM_LYRICS.find((line) => line.id === activeLineId) ?? null;
   const pendingLine = syncMode ? ANTHEM_LYRICS[syncCursor] ?? null : null;
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -428,7 +475,7 @@ export function AnthemPlayer() {
                 className={`anthem-line${line.id === activeLineId ? " active" : ""}${syncMode && index === syncCursor ? " pending" : ""}${(captured[line.id] ?? line.time) === null || (captured[line.id] ?? line.time) === undefined ? " untimed" : ""}`}
               >
                 {line.section && <span className="anthem-section">{line.section}</span>}
-                <b>{line.en}</b>
+                <b>{line.id === activeLineId ? <KaraokeText text={line.en} fill={activeFill} /> : line.en}</b>
                 <small>{line.th}</small>
                 {(captured[line.id] ?? line.time) === null && <em>ไม่ได้ร้องในเวอร์ชันนี้</em>}
               </div>
