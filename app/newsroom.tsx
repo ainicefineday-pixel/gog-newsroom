@@ -724,6 +724,11 @@ export function Newsroom() {
           lastSync={lastSync}
           syncing={syncing}
           activeSource={source}
+          matchLinkCount={matchLinks.length}
+          onOpenOutput={(view) => {
+            if (view === "news") { document.getElementById("news")?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+            switchView(view);
+          }}
           onFilterSource={(label) => {
             setSource(label ?? "All");
             document.getElementById("news")?.scrollIntoView({ behavior: "smooth", block: "start" });

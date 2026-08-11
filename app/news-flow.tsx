@@ -16,8 +16,9 @@
 // เส้นคำนวณจาก getBoundingClientRect จริง จึงย้ายตามเลย์เอาต์ทุกขนาดจอ
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { TriangleAlert } from "lucide-react";
+import { Languages, Plane, TriangleAlert, Trophy } from "lucide-react";
 import { NEWS_SOURCE_DIRECTORY } from "@/config/news-sources";
+import { listAllPlannable } from "@/services/football/fixtures";
 import { AnimatedSpan, Marquee, Terminal, TypingAnimation } from "@/app/terminal";
 
 type NodeKey = string;
@@ -96,6 +97,9 @@ const STAGE_LABEL: Record<string, string> = {
   done: "เสร็จแล้ว",
   failed: "ล้มเหลว",
 };
+
+/** จำนวนนัดที่เครื่องมือวางแผนทริปรองรับ — นับจากลิสต์จริง ไม่ใช่เลขที่พิมพ์ไว้เอง */
+const PLANNABLE_COUNT = listAllPlannable().length;
 
 const OUTPUTS = [
   { key: "thai", label: "ข่าวไทยที่ตรวจแล้ว" },
@@ -193,7 +197,10 @@ function Timeline({ data, onPick, picked }: {
   );
 }
 
-export function NewsFlow({ storyCount, verifiedCount, lastSync, syncing, onFilterSource, activeSource }: {
+export function NewsFlow({
+  storyCount, verifiedCount, lastSync, syncing, onFilterSource, activeSource,
+  matchLinkCount, onOpenOutput,
+}: {
   storyCount: number;
   verifiedCount: number;
   lastSync: SyncLog;
@@ -202,6 +209,10 @@ export function NewsFlow({ storyCount, verifiedCount, lastSync, syncing, onFilte
   /** กดโหนดแล้วกรองฟีดข่าวข้างล่าง — ส่ง id ของแหล่งตาม NEWS_SOURCE_DIRECTORY */
   onFilterSource: (sourceId: string | null) => void;
   activeSource: string;
+  /** ข่าวที่ผูกกับนัดในโปรแกรมได้แล้วกี่ชิ้น */
+  matchLinkCount: number;
+  /** กดการ์ดปลายทางแล้วไปหน้านั้นเลย */
+  onOpenOutput: (view: "news" | "matchcenter" | "trip") => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hubRef = useRef<HTMLDivElement>(null);
@@ -455,18 +466,50 @@ export function NewsFlow({ storyCount, verifiedCount, lastSync, syncing, onFilte
           </div>
         </div>
 
+        {/* ปลายทาง — แต่ละใบบอกตัวเลขจริงและกดไปใช้งานต่อได้เลย
+            ไม่ใช่ป้ายชื่อเฉย ๆ ที่บอกว่าระบบ "มี" อะไรบ้าง */}
         <div className="news-flow-col outputs">
           <div className="news-flow-node out" ref={registerNode("thai")}>
-            <b>ข่าวไทยที่ตรวจแล้ว</b>
-            <span>{outputs ? `แปลแล้ว ${outputs.translated} จาก ${outputs.storiesTotal} ข่าว` : "แปลและเรียบเรียง"}</span>
+            <button type="button" onClick={() => onOpenOutput("news")}>
+              <span className="out-icon"><Languages size={15} aria-hidden="true" /></span>
+              <b>ข่าวไทยที่ตรวจแล้ว</b>
+              <span className="out-stat">
+                <strong>{outputs?.storiesTotal ?? "—"}</strong> ข่าวพร้อมอ่าน
+              </span>
+              <span className="out-sub">
+                {outputs
+                  ? (outputs.translated > 0
+                      ? `เรียบเรียงเป็นไทยเต็มรูปแบบแล้ว ${outputs.translated} ข่าว`
+                      : "กดปุ่มแปลในการ์ดข่าวเพื่อให้เรียบเรียงเป็นไทยเต็มรูปแบบ")
+                  : "แปลและเรียบเรียง"}
+              </span>
+            </button>
           </div>
+
           <div className="news-flow-node out" ref={registerNode("match")}>
-            <b>Match Center</b>
-            <span>ผูกข่าวเข้ากับนัดในโปรแกรมจริง</span>
+            <button type="button" onClick={() => onOpenOutput("matchcenter")}>
+              <span className="out-icon"><Trophy size={15} aria-hidden="true" /></span>
+              <b>Match Center</b>
+              <span className="out-stat">
+                <strong>{matchLinkCount}</strong> ข่าวผูกกับนัดได้แล้ว
+              </span>
+              <span className="out-sub">
+                {matchLinkCount > 0
+                  ? "กดป้ายบนการ์ดข่าวเพื่อเปิดนัดนั้นทันที"
+                  : "ข่าวที่ระบุคู่แข่งชัดเจนจะถูกผูกกับนัดให้อัตโนมัติ"}
+              </span>
+            </button>
           </div>
+
           <div className="news-flow-node out" ref={registerNode("trip")}>
-            <b>วางแผนทริป</b>
-            <span>จากข่าวสู่ตั๋วเครื่องบินและวีซ่า</span>
+            <button type="button" onClick={() => onOpenOutput("trip")}>
+              <span className="out-icon"><Plane size={15} aria-hidden="true" /></span>
+              <b>วางแผนทริป</b>
+              <span className="out-stat">
+                <strong>{PLANNABLE_COUNT}</strong> นัดที่บินไปดูได้
+              </span>
+              <span className="out-sub">จากข่าวสู่ตั๋วเครื่องบิน ที่พัก และวีซ่าอังกฤษ</span>
+            </button>
           </div>
         </div>
       </div>

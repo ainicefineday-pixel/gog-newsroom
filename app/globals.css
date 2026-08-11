@@ -1210,3 +1210,40 @@ h1, h2, h3, p, li, td, th, b, strong, small { overflow-wrap: break-word; }
   color: #c9ccd1; font: 500 10.5px/1.65 "Kanit",sans-serif;
 }
 .flow-peek em { color: #f0a500; font: 800 9px/1.5 "Kanit",sans-serif; font-style: normal; margin-right: 7px; letter-spacing: .04em; }
+
+/* ── การ์ดปลายทาง — บอกตัวเลขจริงและกดไปใช้งานต่อได้ ─────────────────── */
+.news-flow-node.out {
+  border-color: #d9aa4930;
+  background: linear-gradient(140deg, #171308 0%, #0f1218 62%);
+  transition: border-color .18s ease, transform .18s ease;
+}
+.news-flow-node.out:hover { border-color: #f0cc78; transform: translateX(3px); }
+.news-flow-node.out > button {
+  display: grid; grid-template-columns: 30px 1fr; grid-template-rows: auto auto auto;
+  gap: 1px 11px; align-items: center; width: 100%;
+  padding: 13px 15px; background: none; border: 0; text-align: left; cursor: pointer; font-family: inherit;
+}
+.out-icon {
+  grid-row: 1 / span 3; align-self: start; display: grid; place-items: center;
+  width: 30px; height: 30px; border-radius: 9px; margin-top: 2px;
+  background: #f0a5001a; border: 1px solid #f0a50038; color: #f0cc78;
+}
+.news-flow-node.out b {
+  color: var(--gold-soft); font: 800 12px/1.4 "Kanit",sans-serif;
+}
+.out-stat {
+  display: flex; align-items: baseline; gap: 5px; margin-top: 2px;
+  color: #8a9099; font: 500 9.5px/1.5 "Kanit",sans-serif;
+}
+.out-stat strong {
+  color: #fff; font: 800 17px/1 "Kanit",sans-serif; font-variant-numeric: tabular-nums;
+}
+.out-sub { display: block; margin-top: 3px; color: #6b7078; font: 400 9px/1.5 "Kanit",sans-serif; }
+/* ลูกศรบอกว่ากดได้ โผล่ตอนเอาเมาส์ชี้ */
+.news-flow-node.out > button::after {
+  content: "→"; position: absolute; right: 13px; top: 14px;
+  color: #f0a500; font-size: 12px; opacity: 0; transform: translateX(-4px);
+  transition: opacity .18s ease, transform .18s ease;
+}
+.news-flow-node.out { position: relative; }
+.news-flow-node.out:hover > button::after { opacity: 1; transform: none; }
