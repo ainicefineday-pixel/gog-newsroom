@@ -806,3 +806,112 @@ h1, h2, h3, p, li, td, th, b, strong, small { overflow-wrap: break-word; }
     padding-right: max(28px, env(safe-area-inset-right), calc((100vw - 1440px) / 2));
   }
 }
+
+/* ── แผนผังสายข่าว แหล่งข่าว → DM ENGINE → ปลายทาง ────────────────────── */
+.news-flow { margin: 0 0 26px; }
+.news-flow .section-heading p b { color: var(--gold-soft); }
+
+.news-flow-stage {
+  position: relative;
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 26px;
+  margin-top: 18px; padding: 26px 24px; border-radius: 16px;
+  background: radial-gradient(120% 130% at 50% 50%, #16191f 0%, var(--panel) 60%);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+/* เส้นวางใต้กล่องเสมอ กล่องมี z-index สูงกว่า ลำแสงจึงลอดหลังตัวหนังสือ */
+.news-flow-beams { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+.news-flow-track { fill: none; stroke: rgba(255,255,255,.13); stroke-width: 1.2; stroke-dasharray: 3 5; }
+.news-flow-pulse {
+  fill: none; stroke: url(#news-flow-glow); stroke-width: 2; stroke-linecap: round;
+  /* ช่วงสว่างสั้น ๆ วิ่งไปตามเส้น — ยาว 1400 คือเผื่อเส้นที่ยาวที่สุดในผัง */
+  stroke-dasharray: 74 1400;
+  animation: news-flow-run 3.4s linear infinite;
+}
+.news-flow-pulse.reverse { animation-name: news-flow-run-reverse; }
+@keyframes news-flow-run {
+  from { stroke-dashoffset: 1474; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes news-flow-run-reverse {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 1474; }
+}
+
+/* กล่องชิดเข้าหาฮับ ไม่ยืดเต็มคอลัมน์ เส้นจะได้ยาวพอให้เห็นลำแสงวิ่ง */
+.news-flow-col { position: relative; z-index: 1; display: grid; gap: 9px; }
+.news-flow-col.sources { justify-items: end; }
+.news-flow-col.outputs { gap: 16px; justify-items: start; }
+.news-flow-col > * { width: min(210px, 100%); }
+.news-flow-node {
+  padding: 10px 14px; border-radius: 11px;
+  background: #0f1218; border: 1px solid var(--line);
+}
+.news-flow-node b { display: block; color: #e7e9ec; font: 700 11.5px/1.45 "Kanit",sans-serif; }
+.news-flow-node span { display: block; margin-top: 2px; color: #6b7078; font: 500 9px/1.5 "Kanit",sans-serif; }
+.news-flow-node.out { border-color: #d9aa4938; background: linear-gradient(135deg,#171308,#0f1218); }
+.news-flow-node.out b { color: var(--gold-soft); }
+
+.news-flow-hub {
+  position: relative; z-index: 1; width: 208px; padding: 18px 18px 16px; border-radius: 15px; text-align: center;
+  background: linear-gradient(160deg,#1e0f0d,#0f1218);
+  border: 1px solid rgba(218,41,28,.42);
+  box-shadow: 0 0 40px -14px rgba(218,41,28,.7);
+}
+.news-flow-hub-mark {
+  display: inline-block; padding: 3px 10px; border-radius: 999px;
+  background: var(--red); color: #fff; font: 800 9px/1.5 "Kanit",sans-serif; letter-spacing: .1em;
+}
+.news-flow-hub b { display: block; margin-top: 8px; color: #fff; font: 800 15px/1.3 "Kanit",sans-serif; letter-spacing: .02em; }
+.news-flow-hub-note { display: block; margin-top: 5px; color: var(--muted); font: 500 9.5px/1.6 "Kanit",sans-serif; }
+.news-flow-hub-stats { display: flex; gap: 10px; margin-top: 13px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.08); }
+.news-flow-hub-stats div { flex: 1; }
+.news-flow-hub-stats strong { display: block; color: var(--gold-soft); font: 800 17px/1 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.news-flow-hub-stats span { display: block; margin-top: 3px; color: #6b7078; font: 500 8.5px/1.4 "Kanit",sans-serif; }
+
+.news-flow-foot { margin: 12px 0 0; color: #5d626b; font: 400 10px/1.7 "Kanit",sans-serif; }
+
+/* หยุดลำแสงให้คนที่ตั้งค่าลดการเคลื่อนไหว แต่ยังเห็นเส้นเชื่อมว่าอะไรต่อกับอะไร */
+@media (prefers-reduced-motion: reduce) {
+  .news-flow-pulse { animation: none; stroke-dasharray: none; stroke-opacity: .5; }
+}
+
+@media (max-width: 900px) {
+  /* จอแคบเรียงเป็นสามแถวบนลงล่าง เส้นคำนวณจากตำแหน่งจริงจึงโค้งตามเองอัตโนมัติ */
+  .news-flow-stage { grid-template-columns: 1fr; justify-items: center; gap: 18px; }
+  .news-flow-col { width: 100%; grid-template-columns: 1fr 1fr; }
+  .news-flow-hub { width: 100%; max-width: 320px; }
+}
+
+/* ── วงกลมแสดงความคืบหน้า ────────────────────────────────────────────── */
+.gauge { position: relative; display: inline-grid; place-items: center; width: 54px; height: 54px; }
+.gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+/* หมุนเข็มเข้าที่อย่างนุ่มนวลเมื่อเปอร์เซ็นต์ขยับ ไม่ใช่กระโดด */
+.gauge-arc { transition: stroke-dashoffset .45s cubic-bezier(.22,.61,.36,1); }
+.gauge.indeterminate svg { animation: gauge-spin 1.05s linear infinite; }
+.gauge.indeterminate .gauge-arc { transition: none; }
+@keyframes gauge-spin { to { transform: rotate(270deg); } }
+
+.gauge-value {
+  position: absolute; color: #fff; font: 800 14px/1 "Kanit",sans-serif; font-variant-numeric: tabular-nums;
+}
+.gauge-value i { font: 700 8px/1 "Kanit",sans-serif; font-style: normal; color: var(--muted); margin-left: 1px; }
+.gauge-label {
+  position: absolute; top: calc(100% + 5px); white-space: nowrap;
+  color: var(--muted); font: 600 9px/1.4 "Kanit",sans-serif;
+}
+/* ขนาดเล็กสำหรับใส่ในปุ่ม */
+.gauge.tiny { width: 17px; height: 17px; }
+.gauge.tiny .gauge-value { font-size: 6.5px; }
+.gauge.tiny .gauge-value i { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .gauge.indeterminate svg { animation-duration: 2.4s; }
+  .gauge-arc { transition: none; }
+}
+
+/* ความคืบหน้าการแปล — วงกลม + ข้อความ */
+.translate-progress { display: flex; align-items: center; gap: 13px; margin-top: 12px; }
+.translate-progress b { display: block; color: #e7e9ec; font: 700 11.5px/1.5 "Kanit",sans-serif; }
+.translate-progress span { display: block; margin-top: 2px; color: var(--muted); font: 500 10px/1.5 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }

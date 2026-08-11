@@ -456,3 +456,8 @@
   .mc-h2h-list li { grid-template-columns: 1fr; gap: 4px; }
   .mc-control-math li { grid-template-columns: 1fr auto; }
 }
+
+/* สถานะกำลังโหลดแมตช์ — วงหมุนคู่กับโครงร่างกล่อง */
+.mc-loading { display: grid; gap: 22px; justify-items: center; padding-top: 8px; }
+.mc-loading .mc-skeleton-grid { width: 100%; }
+.mc-fit-run { display: inline-flex; align-items: center; gap: 9px; }

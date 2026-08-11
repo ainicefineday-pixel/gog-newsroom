@@ -16,6 +16,7 @@ import { gogStadium } from "@/config/gog-stadiums";
 import { TRAVEL_TIER_LABEL, travelWorthiness } from "@/services/football/travelWorthy";
 import { SEARCH_KIND_LABEL, searchFootball } from "@/services/football/search";
 import { formatThb } from "@/services/pricing";
+import { AnimatedCircularProgressBar } from "@/app/circular-progress";
 import { BUDGET_LABELS, type BudgetStyle } from "@/services/trip/types";
 import type {
   GOGEvent, GOGFixture, GOGLineup, GOGMatchBundle, GOGStanding, GOGTeamStats,
@@ -235,7 +236,9 @@ function MatchFitPanel({ onOpen }: { onOpen: (fixtureId: string) => void }) {
           </div>
 
           <button type="button" className="mc-fit-run" onClick={run} disabled={loading || !earliest}>
-            {loading ? "กำลังไล่ทั้งลีก…" : "หาแมตช์ที่ไปได้"}
+            {loading
+              ? <><AnimatedCircularProgressBar indeterminate className="tiny" /> กำลังไล่ทั้งลีก…</>
+              : "หาแมตช์ที่ไปได้"}
           </button>
           {error && <p className="mc-fit-error">{error}</p>}
 
@@ -781,7 +784,12 @@ export function MatchCenter({ onPlanTrip, openFixtureId }: {
             ← กลับไปปฏิทินโปรแกรมแข่ง
           </button>
 
-          {loadingMatch && <div className="mc-skeleton-grid">{[0, 1, 2].map((key) => <span key={key} className="mc-skeleton tall" />)}</div>}
+          {loadingMatch && (
+            <div className="mc-loading">
+              <AnimatedCircularProgressBar indeterminate label="กำลังดึงข้อมูลแมตช์" />
+              <div className="mc-skeleton-grid">{[0, 1, 2].map((key) => <span key={key} className="mc-skeleton tall" />)}</div>
+            </div>
+          )}
 
           {!loadingMatch && !bundle && <Unavailable reason="โหลดข้อมูลแมตช์นี้ไม่สำเร็จ — ลองใหม่อีกครั้ง" />}
 

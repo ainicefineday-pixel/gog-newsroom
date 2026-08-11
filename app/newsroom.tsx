@@ -7,6 +7,8 @@ import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types"
 import { AnthemPlayer } from "@/app/anthem-player";
 import { MatchCenter } from "@/app/match-center";
 import { AuroraText } from "@/app/aurora-text";
+import { NewsFlow } from "@/app/news-flow";
+import { AnimatedCircularProgressBar } from "@/app/circular-progress";
 
 /** ค้างพาดหัวไว้กี่มิลลิวินาทีก่อนสลับ — ความยาวการเฟดคุมด้วย CSS ฝั่ง .hero-rotator-slide */
 const HERO_HOLD_MS = 6_500;
@@ -153,9 +155,15 @@ function copyBlock(story: Story) {
 export type TranslateProgress = { percent: number; seconds: number };
 
 function TranslateBar({ progress }: { progress: TranslateProgress }) {
+  // งานแปลเป็นงานเดียวในเว็บที่พอรู้ความคืบหน้า จึงโชว์เป็นเปอร์เซ็นต์ได้
+  // ที่เหลือเป็นการยิง API แล้วรอ ซึ่งต้องใช้วงหมุนแบบไม่มีเลข
   return (
-    <div className="translate-bar" role="progressbar" aria-valuenow={Math.round(progress.percent)} aria-valuemin={0} aria-valuemax={100}>
-      <i style={{ width: `${progress.percent}%` }} />
+    <div className="translate-progress">
+      <AnimatedCircularProgressBar value={progress.percent} />
+      <div>
+        <b>กำลังแปลเป็นไทย</b>
+        <span>ผ่านไป {progress.seconds.toFixed(1)} วินาที</span>
+      </div>
     </div>
   );
 }
@@ -303,7 +311,11 @@ function StoryCard({
 function EmptyState({ syncing, onSync }: { syncing: boolean; onSync: () => void }) {
   return (
     <div className="empty-state">
-      <div className="empty-mark">G</div>
+      {/* ตอนซิงก์ไม่รู้ว่าจะเสร็จเมื่อไหร่ ขึ้นอยู่กับแหล่งข่าวตอบเร็วแค่ไหน
+          จึงใช้วงหมุนแบบไม่มีเลข ไม่ใช่เปอร์เซ็นต์ที่เดาเอา */}
+      {syncing
+        ? <AnimatedCircularProgressBar indeterminate label="กำลังตรวจแหล่งข่าว" />
+        : <div className="empty-mark">G</div>}
       <div>
         <span className="eyebrow">LIVE INGESTION</span>
         <h2>{syncing ? "กำลังตรวจข่าวจากแหล่งต้นฉบับ…" : "ยังไม่มีข่าวที่ผ่านเกณฑ์"}</h2>
@@ -704,6 +716,8 @@ export function Newsroom() {
             <div className="top-placeholder">เรื่องที่ผ่านเกณฑ์สูงสุดจะปรากฏที่นี่หลังการซิงก์</div>
           )}
         </section>
+
+        <NewsFlow storyCount={stories.length} verifiedCount={verifiedCount} />
 
         <section className="filter-bar" aria-label="ตัวกรองข่าว">
           <div className="category-filters">
