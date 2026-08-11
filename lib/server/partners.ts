@@ -113,6 +113,21 @@ export async function ensurePartnerTables(db: D1Database) {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     )`),
+    // คำขอทั้งทริปหนึ่งชุด (STEP 76)
+    // จองทีละเจ้าคือการกรอกชื่อ เบอร์ วันที่ ซ้ำห้ารอบ แล้วยังไม่รู้ว่าใครตอบแล้วบ้าง
+    // ตารางนี้เป็นหัวของคำขอชุดหนึ่ง ส่วน booking_requests แต่ละแถวอ้างกลับมาที่ trip_id
+    db.prepare(`CREATE TABLE IF NOT EXISTS trip_booking_groups (
+      id TEXT PRIMARY KEY,
+      traveller_name TEXT NOT NULL,
+      traveller_contact TEXT NOT NULL,
+      trip_title TEXT NOT NULL DEFAULT '',
+      match_label TEXT NOT NULL DEFAULT '',
+      depart_date TEXT NOT NULL DEFAULT '',
+      return_date TEXT NOT NULL DEFAULT '',
+      pax INTEGER NOT NULL DEFAULT 1,
+      note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    )`),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_partners_status_city ON partners(status, city)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_partner_documents_partner ON partner_documents(partner_id)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_booking_requests_partner ON booking_requests(partner_id, created_at)"),
@@ -250,4 +265,138 @@ export async function createBookingRequest(db: D1Database, input: {
       input.travellerContact, input.serviceDate, input.pax, input.message, now, now)
     .run();
   return { id, status: "requested" as const, createdAt: now };
+}
+
+export type TripRequestItem = {
+  partnerId: string;
+  serviceId: string;
+  serviceDate: string;
+  message: string;
+};
+
+export type TripRequestResult = {
+  groupId: string;
+  createdAt: string;
+  sent: Array<{ bookingId: string; partnerId: string; partnerName: string; kind: PartnerKind; serviceDate: string }>;
+  /** รายการที่ส่งไม่ได้ พร้อมเหตุผล — ต้องบอกผู้ใช้ ไม่ใช่เงียบไป */
+  rejected: Array<{ partnerId: string; reason: "not_found" | "not_verified" | "bad_date" }>;
+};
+
+/**
+ * ส่งคำขอทั้งทริปในครั้งเดียว (STEP 76)
+ *
+ * ทุกรายการอ้าง trip_id เดียวกัน เพื่อให้ตามสถานะได้ว่าคำขอชุดนี้ใครตอบแล้วบ้าง
+ *
+ * ตรวจว่าผู้ให้บริการยัง verified อยู่จริงทุกครั้งก่อนส่ง ไม่เชื่อ id ที่มาจากเบราว์เซอร์
+ * เพราะรายชื่อในหน้าเว็บอาจค้างจากตอนโหลด แล้วทีมงานเพิ่งระงับเจ้านั้นไป
+ * ส่งคำขอไปให้เจ้าที่ถูกระงับ = ส่งชื่อและเบอร์ผู้ใช้ให้คนที่เราตัดออกจากเครือข่ายแล้ว
+ */
+export async function createTripRequest(db: D1Database, input: {
+  travellerName: string;
+  travellerContact: string;
+  tripTitle: string;
+  matchLabel: string;
+  departDate: string;
+  returnDate: string;
+  pax: number;
+  note: string;
+  items: TripRequestItem[];
+}): Promise<TripRequestResult> {
+  await ensurePartnerTables(db);
+  const now = new Date().toISOString();
+  const groupId = newId("trip_");
+
+  await db.prepare(`INSERT INTO trip_booking_groups (
+    id, traveller_name, traveller_contact, trip_title, match_label,
+    depart_date, return_date, pax, note, created_at
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .bind(groupId, input.travellerName, input.travellerContact, input.tripTitle,
+      input.matchLabel, input.departDate, input.returnDate, input.pax, input.note, now)
+    .run();
+
+  const sent: TripRequestResult["sent"] = [];
+  const rejected: TripRequestResult["rejected"] = [];
+
+  for (const item of input.items) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(item.serviceDate)) {
+      rejected.push({ partnerId: item.partnerId, reason: "bad_date" });
+      continue;
+    }
+    const row = await db.prepare("SELECT id, display_name, kind, status FROM partners WHERE id = ?")
+      .bind(item.partnerId)
+      .first<{ id: string; display_name: string; kind: PartnerKind; status: PartnerStatus }>();
+    if (!row) { rejected.push({ partnerId: item.partnerId, reason: "not_found" }); continue; }
+    if (row.status !== "verified") { rejected.push({ partnerId: item.partnerId, reason: "not_verified" }); continue; }
+
+    const booking = await createBookingRequest(db, {
+      partnerId: item.partnerId,
+      serviceId: item.serviceId,
+      tripId: groupId,
+      travellerName: input.travellerName,
+      travellerContact: input.travellerContact,
+      serviceDate: item.serviceDate,
+      pax: input.pax,
+      // ใส่บริบททริปไปกับทุกคำขอ ผู้ให้บริการจะได้รู้ว่าเป็นงานชุดเดียวกัน
+      message: [
+        input.matchLabel ? `แมตช์: ${input.matchLabel}` : "",
+        input.departDate && input.returnDate ? `ช่วงเดินทาง: ${input.departDate} ถึง ${input.returnDate}` : "",
+        item.message,
+        input.note,
+        `รหัสคำขอชุดนี้: ${groupId}`,
+      ].filter(Boolean).join("\n"),
+    });
+    sent.push({
+      bookingId: booking.id,
+      partnerId: row.id,
+      partnerName: row.display_name,
+      kind: row.kind,
+      serviceDate: item.serviceDate,
+    });
+  }
+
+  return { groupId, createdAt: now, sent, rejected };
+}
+
+/** สถานะคำขอชุดหนึ่ง — ผู้ใช้เอารหัสมาเช็กได้ว่าใครตอบรับแล้วบ้าง */
+export async function getTripRequest(db: D1Database, groupId: string) {
+  await ensurePartnerTables(db);
+  const group = await db.prepare("SELECT * FROM trip_booking_groups WHERE id = ?")
+    .bind(groupId)
+    .first<{
+      id: string; traveller_name: string; trip_title: string; match_label: string;
+      depart_date: string; return_date: string; pax: number; note: string; created_at: string;
+    }>();
+  if (!group) return null;
+
+  const rows = await db.prepare(`SELECT b.id, b.partner_id, b.service_date, b.status, b.created_at,
+      p.display_name, p.kind
+    FROM booking_requests b LEFT JOIN partners p ON p.id = b.partner_id
+    WHERE b.trip_id = ? ORDER BY b.service_date, b.created_at`)
+    .bind(groupId)
+    .all<{
+      id: string; partner_id: string; service_date: string; status: string;
+      created_at: string; display_name: string | null; kind: string | null;
+    }>();
+
+  return {
+    groupId: group.id,
+    // ไม่ส่งเบอร์ติดต่อกลับออกไป เพราะ endpoint นี้ไม่ได้ล็อกอิน รู้รหัสก็เปิดดูได้
+    travellerName: group.traveller_name,
+    tripTitle: group.trip_title,
+    matchLabel: group.match_label,
+    departDate: group.depart_date,
+    returnDate: group.return_date,
+    pax: group.pax,
+    note: group.note,
+    createdAt: group.created_at,
+    bookings: (rows.results ?? []).map((row) => ({
+      bookingId: row.id,
+      partnerId: row.partner_id,
+      partnerName: row.display_name ?? "ผู้ให้บริการถูกลบออกจากระบบ",
+      kind: row.kind,
+      serviceDate: row.service_date,
+      status: row.status,
+      createdAt: row.created_at,
+    })),
+  };
 }

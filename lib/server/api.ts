@@ -4,6 +4,8 @@ import { askTripAssistant } from "@/lib/server/trip-assistant";
 import {
   createBookingRequest,
   createPartner,
+  createTripRequest,
+  getTripRequest,
   listAllPartners,
   listVerifiedPartners,
   setPartnerStatus,
@@ -528,6 +530,50 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
       pax: Math.min(Math.max(Math.round(Number(body.pax) || 1), 1), 60),
       message: str("message", 800),
     })) });
+  }
+
+  // ── ส่งคำขอทั้งทริปให้เครือข่าย GOG ในครั้งเดียว (STEP 76) ───────────
+  if (url.pathname === "/api/bookings/trip" && request.method === "POST") {
+    let body: Record<string, unknown> = {};
+    try { body = (await request.json()) as Record<string, unknown>; } catch { return json({ error: "invalid_body" }, 400); }
+    const str = (key: string, max = 300) => (typeof body[key] === "string" ? (body[key] as string).trim().slice(0, max) : "");
+
+    const travellerName = str("travellerName", 120);
+    const travellerContact = str("travellerContact", 200);
+    if (!travellerName || !travellerContact) return json({ error: "missing_contact" }, 400);
+
+    // เพดาน 20 รายการต่อชุด — ทริป 10 วันที่จองครบทุกอย่างยังไม่ถึง
+    // เกินกว่านี้คือการยิงถล่มผู้ให้บริการ ไม่ใช่การวางแผนทริป
+    const rawItems = Array.isArray(body.items) ? body.items.slice(0, 20) : [];
+    const items = rawItems
+      .map((entry) => entry as Record<string, unknown>)
+      .map((entry) => ({
+        partnerId: typeof entry.partnerId === "string" ? entry.partnerId.slice(0, 40) : "",
+        serviceId: typeof entry.serviceId === "string" ? entry.serviceId.slice(0, 40) : "",
+        serviceDate: typeof entry.serviceDate === "string" ? entry.serviceDate.slice(0, 10) : "",
+        message: typeof entry.message === "string" ? entry.message.trim().slice(0, 300) : "",
+      }))
+      .filter((entry) => entry.partnerId);
+    if (items.length === 0) return json({ error: "no_items" }, 400);
+
+    return json({ ok: true, ...(await createTripRequest(env.DB, {
+      travellerName,
+      travellerContact,
+      tripTitle: str("tripTitle", 160),
+      matchLabel: str("matchLabel", 160),
+      departDate: str("departDate", 10),
+      returnDate: str("returnDate", 10),
+      pax: Math.min(Math.max(Math.round(Number(body.pax) || 1), 1), 60),
+      note: str("note", 800),
+      items,
+    })) });
+  }
+
+  const tripRequestMatch = url.pathname.match(/^\/api\/bookings\/trip\/([A-Za-z0-9_]+)$/);
+  if (tripRequestMatch && request.method === "GET") {
+    const group = await getTripRequest(env.DB, tripRequestMatch[1]);
+    if (!group) return json({ ok: false, error: "not_found" }, 404);
+    return json({ ok: true, group });
   }
 
   // ── ทริปที่บันทึกไว้ (STEP 27) ───────────────────────────────────────

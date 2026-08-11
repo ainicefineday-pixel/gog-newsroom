@@ -79,6 +79,64 @@
 .cost-line small { display: block; color: var(--muted); font-size: 9.5px; margin-top: 4px; }
 .trip-disclaimer { color: var(--muted); font: 400 10.5px/1.7 "Kanit",sans-serif; margin: 14px 0 0; }
 
+/* ── ส่งคำขอทั้งทริปในครั้งเดียว (STEP 76) ───────────────────────────── */
+.trip-request {
+  margin-top: 18px; padding: 18px 20px; border-radius: 13px;
+  background: linear-gradient(135deg,#1a1108,#0f1218); border: 1px solid #f0a50038;
+}
+.trip-request > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.trip-request strong {
+  display: flex; align-items: center; gap: 7px; margin-top: 5px;
+  color: #ffc94d; font: 800 14px/1.45 "Kanit",sans-serif;
+}
+.trip-request > header small { display: block; margin-top: 5px; max-width: 60ch; color: var(--muted); font: 400 10.5px/1.7 "Kanit",sans-serif; }
+.trip-request-toggle {
+  padding: 8px 16px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  background: #f0a50018; border: 1px solid #f0a50055; color: #f0a500; font: 700 10.5px/1 "Kanit",sans-serif;
+}
+.trip-request-toggle:hover { background: #f0a50030; }
+
+.trip-request-lines { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 6px; }
+.trip-request-lines li { border: 1px solid var(--line); border-radius: 10px; background: #0f1218; }
+.trip-request-lines li.off { opacity: .45; }
+.trip-request-lines label {
+  display: grid; grid-template-columns: auto 1fr; gap: 2px 11px; align-items: center;
+  padding: 11px 14px; cursor: pointer;
+}
+.trip-request-lines input { grid-row: 1 / span 2; width: 15px; height: 15px; accent-color: #f0a500; }
+.trip-request-lines b { color: #e7e9ec; font: 700 11.5px/1.5 "Kanit",sans-serif; }
+.trip-request-lines span { color: #6b7078; font: 500 9.5px/1.55 "Kanit",sans-serif; }
+
+.trip-request-form { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 11px; margin-top: 15px; }
+.trip-request-form label { display: grid; gap: 5px; }
+.trip-request-form label.wide { grid-column: 1 / -1; }
+.trip-request-form label > span { color: #e7e9ec; font: 700 10.5px/1.5 "Kanit",sans-serif; }
+.trip-request-form input, .trip-request-form textarea {
+  padding: 9px 12px; border-radius: 9px; background: #0f1218; border: 1px solid var(--line);
+  color: #e7e9ec; font: 500 11.5px/1.5 "Kanit",sans-serif; resize: vertical;
+}
+.trip-request-form input:focus, .trip-request-form textarea:focus { outline: 2px solid #f0a50070; outline-offset: 1px; }
+.trip-request-privacy { margin: 12px 0 0; color: #8a9099; font: 400 9.5px/1.65 "Kanit",sans-serif; }
+.trip-request-send {
+  margin-top: 13px; padding: 12px 26px; border-radius: 10px; cursor: pointer;
+  background: linear-gradient(135deg,#f0a500,#ffc94d); border: none; color: #10121a; font: 800 12px/1 "Kanit",sans-serif;
+}
+.trip-request-send:disabled { opacity: .45; cursor: not-allowed; }
+.trip-request-error { margin: 10px 0 0; color: #e05c5c; font: 600 10.5px/1.6 "Kanit",sans-serif; }
+
+.trip-request-done { margin-top: 16px; padding: 15px 17px; border-radius: 11px; background: #2ecc7110; border: 1px solid #2ecc7138; }
+.trip-request-done > b { display: block; color: #2ecc71; font: 800 13px/1.5 "Kanit",sans-serif; }
+.trip-request-done > p { margin: 6px 0 0; color: #c9ccd1; font: 500 11px/1.6 "Kanit",sans-serif; }
+.trip-request-done code {
+  padding: 2px 8px; border-radius: 6px; background: #0f1218; border: 1px solid var(--line);
+  color: #f0a500; font: 700 11px/1.5 ui-monospace,monospace; user-select: all;
+}
+.trip-request-done ul { list-style: none; margin: 11px 0 0; padding: 0; display: grid; gap: 4px; }
+.trip-request-done li { color: #9aa0a8; font: 500 10.5px/1.6 "Kanit",sans-serif; }
+.trip-request-done > small { display: block; margin-top: 11px; color: #6b7078; font: 400 9.5px/1.65 "Kanit",sans-serif; }
+.trip-request-rejected { margin-top: 13px; padding-top: 12px; border-top: 1px solid #ffffff14; }
+.trip-request-rejected b { color: #e05c5c; font: 700 11px/1.5 "Kanit",sans-serif; }
+
 .trip-summary { position: sticky; top: 84px; }
 .trip-summary-inner { border: 1px solid rgba(218,41,28,.34); border-left: 3px solid var(--red); background: rgba(8,9,12,.9); padding: 19px 20px; display: grid; gap: 11px; }
 .trip-summary-inner h4 { margin: 4px 0 0; font-size: 15px; line-height: 1.35; }

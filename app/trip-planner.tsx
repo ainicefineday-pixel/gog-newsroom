@@ -335,6 +335,218 @@ function TripCalendar({ departDate, returnDate, matchDate, lodgeBy }: {
   );
 }
 
+// ── ส่งคำขอทั้งทริปในครั้งเดียว (STEP 76) ──────────────────────────────
+// เดิมต้องกด GOG ทีละรายการ กรอกชื่อ เบอร์ วันที่ ซ้ำห้ารอบ แล้วยังไม่รู้ว่า
+// ใครตอบแล้วบ้าง ปุ่มนี้รวบทุกอย่างเป็นคำขอชุดเดียวที่มีรหัสให้ตามสถานะได้
+
+type TripRequestLine = {
+  key: string;
+  kind: PartnerKind;
+  partner: Partner;
+  serviceDate: string;
+  /** รายการในแผนเที่ยวที่เป็นที่มาของคำขอนี้ */
+  context: string;
+};
+
+type TripRequestResponse = {
+  groupId: string;
+  sent: Array<{ partnerName: string; kind: PartnerKind; serviceDate: string }>;
+  rejected: Array<{ partnerId: string; reason: string }>;
+};
+
+const REJECT_REASON_TH: Record<string, string> = {
+  not_found: "ไม่พบผู้ให้บริการรายนี้แล้ว",
+  not_verified: "ผู้ให้บริการรายนี้ถูกระงับหรือยังไม่ผ่านการตรวจสอบ",
+  bad_date: "วันที่ไม่ถูกต้อง",
+};
+
+/**
+ * เลือกผู้ให้บริการอันดับหนึ่งของแต่ละประเภทให้อัตโนมัติ แล้วผู้ใช้ปรับได้
+ * ที่พักใช้วันแรกของทริปเป็นวันเข้าพัก ส่วนรถกับร้านอาหารผูกกับวันที่ในแผนจริง
+ */
+function buildTripRequestLines(
+  itinerary: ItineraryDay[],
+  partnersByKind: Partial<Record<PartnerKind, Partner[]>>,
+): TripRequestLine[] {
+  const lines: TripRequestLine[] = [];
+  const usedKindDate = new Set<string>();
+
+  for (const day of itinerary) {
+    for (const item of day.items) {
+      const kind = ITEM_PARTNER_KIND[item.icon];
+      if (!kind) continue;
+      const partner = partnersByKind[kind]?.[0];
+      if (!partner) continue;
+      // ประเภทเดียวกันในวันเดียวกันขอครั้งเดียวพอ ไม่งั้นวันที่กินสามมื้อจะยิงร้านอาหารสามรอบ
+      const dedupeKey = `${kind}-${day.date}`;
+      if (usedKindDate.has(dedupeKey)) continue;
+      usedKindDate.add(dedupeKey);
+      lines.push({
+        key: dedupeKey,
+        kind,
+        partner,
+        serviceDate: day.date,
+        context: `DAY ${day.dayNumber} · ${item.title}`,
+      });
+    }
+  }
+  return lines;
+}
+
+function TripRequestPanel({ itinerary, partnersByKind, travellers, matchLabel, tripTitle, departDate, returnDate }: {
+  itinerary: ItineraryDay[];
+  partnersByKind: Partial<Record<PartnerKind, Partner[]>>;
+  travellers: number;
+  matchLabel: string;
+  tripTitle: string;
+  departDate: string;
+  returnDate: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [contact, setContact] = useState("");
+  const [note, setNote] = useState("");
+  const [skipped, setSkipped] = useState<string[]>([]);
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<TripRequestResponse | null>(null);
+  const [error, setError] = useState("");
+
+  const lines = useMemo(
+    () => buildTripRequestLines(itinerary, partnersByKind),
+    [itinerary, partnersByKind],
+  );
+  const selected = lines.filter((line) => !skipped.includes(line.key));
+  const ready = name.trim().length > 0 && contact.trim().length > 0 && selected.length > 0;
+
+  if (lines.length === 0) return null;
+
+  const send = async () => {
+    setSending(true);
+    setError("");
+    try {
+      const response = await fetch("/api/bookings/trip", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          travellerName: name.trim(),
+          travellerContact: contact.trim(),
+          tripTitle, matchLabel, departDate, returnDate,
+          pax: travellers,
+          note: note.trim(),
+          items: selected.map((line) => ({
+            partnerId: line.partner.id,
+            serviceId: line.partner.services[0]?.id ?? "",
+            serviceDate: line.serviceDate,
+            message: line.context,
+          })),
+        }),
+      });
+      const payload = await response.json() as TripRequestResponse & { ok?: boolean; error?: string };
+      if (!response.ok || !payload.ok) throw new Error(payload.error ?? "ส่งไม่สำเร็จ");
+      setResult(payload);
+    } catch {
+      setError("ส่งคำขอไม่สำเร็จ ลองใหม่อีกครั้ง");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="trip-request">
+      <header>
+        <div>
+          <span className="eyebrow">GOG NETWORK</span>
+          <strong><Handshake size={15} aria-hidden="true" /> ส่งคำขอทั้งทริปในครั้งเดียว</strong>
+          <small>
+            รวมรถรับส่ง ที่พัก และร้านอาหารจากแผนเที่ยวนี้เป็นคำขอชุดเดียว
+            กรอกชื่อกับเบอร์ครั้งเดียว ได้รหัสไว้ตามสถานะว่าใครตอบรับแล้วบ้าง
+          </small>
+        </div>
+        <button type="button" className="trip-request-toggle" onClick={() => setOpen((value) => !value)}>
+          {open ? "ซ่อน" : `ดู ${lines.length} รายการ`}
+        </button>
+      </header>
+
+      {open && !result && (
+        <>
+          <ul className="trip-request-lines">
+            {lines.map((line) => {
+              const on = !skipped.includes(line.key);
+              return (
+                <li key={line.key} className={on ? "" : "off"}>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() => setSkipped((current) => (on
+                        ? [...current, line.key]
+                        : current.filter((key) => key !== line.key)))}
+                    />
+                    <b>{PARTNER_KIND_LABEL[line.kind]} · {line.partner.displayName}</b>
+                    <span>{thaiDate(line.serviceDate)} · {line.context}</span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="trip-request-form">
+            <label>
+              <span>ชื่อผู้เดินทาง</span>
+              <input type="text" value={name} maxLength={120} onChange={(event) => setName(event.target.value)} />
+            </label>
+            <label>
+              <span>ช่องทางติดต่อกลับ</span>
+              <input type="text" value={contact} maxLength={200} placeholder="LINE ID หรือเบอร์โทร"
+                onChange={(event) => setContact(event.target.value)} />
+            </label>
+            <label className="wide">
+              <span>บอกอะไรเพิ่มไหม</span>
+              <textarea value={note} maxLength={800} rows={2} placeholder="เช่น มีเด็กเล็กไปด้วย ขอรถที่มีคาร์ซีท"
+                onChange={(event) => setNote(event.target.value)} />
+            </label>
+          </div>
+
+          <p className="trip-request-privacy">
+            ชื่อและช่องทางติดต่อของคุณจะถูกส่งให้ผู้ให้บริการ {selected.length} รายที่เลือกไว้เท่านั้น
+            และส่งเฉพาะรายที่ผ่านการตรวจสอบของทีมงานแล้ว
+          </p>
+
+          <button type="button" className="trip-request-send" onClick={send} disabled={!ready || sending}>
+            {sending ? "กำลังส่ง…" : `ส่งคำขอ ${selected.length} รายการ`}
+          </button>
+          {error && <p className="trip-request-error">{error}</p>}
+        </>
+      )}
+
+      {result && (
+        <div className="trip-request-done">
+          <b>ส่งคำขอแล้ว {result.sent.length} รายการ</b>
+          <p>รหัสคำขอชุดนี้ <code>{result.groupId}</code> — เก็บไว้ตามสถานะได้</p>
+          <ul>
+            {result.sent.map((entry) => (
+              <li key={`${entry.partnerName}-${entry.serviceDate}`}>
+                {PARTNER_KIND_LABEL[entry.kind]} · {entry.partnerName} · {thaiDate(entry.serviceDate)}
+              </li>
+            ))}
+          </ul>
+          {result.rejected.length > 0 && (
+            <div className="trip-request-rejected">
+              <b>ส่งไม่ได้ {result.rejected.length} รายการ</b>
+              <ul>
+                {result.rejected.map((entry) => (
+                  <li key={entry.partnerId}>{REJECT_REASON_TH[entry.reason] ?? entry.reason}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <small>ผู้ให้บริการจะติดต่อกลับตามช่องทางที่ให้ไว้ · ยังไม่มีการชำระเงินในขั้นนี้</small>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ItineraryDayCard({ day, money, onRemove, partnersByKind, travellers, tripId }: {
   day: ItineraryDay;
   money: (amount: number) => string;
@@ -1317,6 +1529,15 @@ export function TripPlanner({ initialFixtureKey }: { initialFixtureKey?: string 
                 />
               ))}
             </div>
+            <TripRequestPanel
+              itinerary={visibleItinerary}
+              partnersByKind={partnersByKind}
+              travellers={travellers}
+              matchLabel={fixture ? `${fixture.home} v ${fixture.away}` : ""}
+              tripTitle={`ทริป ${length} วัน · ${city}`}
+              departDate={departDate}
+              returnDate={returnDate}
+            />
             <p className="trip-disclaimer">
               เวลาในแผนเป็นเวลาอังกฤษ · จัดวันแข่งโดยถอยหลังจากเวลาเตะ เผื่อถึงสนามก่อน 75 นาที
               และเผื่อเวลาเดินทางจากโรงแรม {selectedHotel?.minutesToStadium ?? 30} นาที + สำรองอีก 15 นาที
