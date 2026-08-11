@@ -760,10 +760,16 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
                       <div><dt>เวลาไทย</dt><dd>{bundle.fixture.kickoffBangkok} น.</dd></div>
                       {bundle.fixture.venue && <div><dt>สนาม</dt><dd>{bundle.fixture.venue.name} · {bundle.fixture.venue.city}</dd></div>}
                     </dl>
-                    <button type="button" className="mc-travel-cta" onClick={() => onPlanTrip?.(travel.tripFixtureKey)}>
-                      <Plane size={14} aria-hidden="true" /> วางแผนไปดูเกมนี้
-                    </button>
-                    <p className="mc-note">ราคาทั้งหมดในเครื่องมือวางแผนเป็นการประมาณการ ยังไม่ได้เชื่อมระบบจองจริง</p>
+                    {travel.plannable ? (
+                      <>
+                        <button type="button" className="mc-travel-cta" onClick={() => onPlanTrip?.(travel.tripFixtureKey)}>
+                          <Plane size={14} aria-hidden="true" /> วางแผนไปดูเกมนี้
+                        </button>
+                        <p className="mc-note">ราคาทั้งหมดในเครื่องมือวางแผนเป็นการประมาณการ ยังไม่ได้เชื่อมระบบจองจริง</p>
+                      </>
+                    ) : (
+                      <Unavailable reason="เครื่องมือวางแผนทริปยังรองรับเฉพาะนัดของแมนเชสเตอร์ ยูไนเต็ด — ราคาโดยประมาณด้านล่างยังใช้อ้างอิงได้ แต่ยังกดสร้างทริปเต็มรูปแบบไม่ได้" />
+                    )}
                   </div>
 
                   {/* ── STEP 65 · เส้นทางวันแข่ง ─────────────────────────── */}

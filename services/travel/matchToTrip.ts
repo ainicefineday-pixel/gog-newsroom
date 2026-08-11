@@ -5,6 +5,7 @@
 // ห้ามเขียนคำว่าราคาสด ห้ามบอกว่าเหลือกี่ที่นั่ง (STEP 64)
 
 import { ARRIVAL_AIRPORTS, BANGKOK, listFlights } from "@/services/flights";
+import { listPlannableFixtures } from "@/services/football/fixtures";
 import { defaultHotel } from "@/services/hotels";
 import { estimateTrip, railDayTripThb } from "@/services/pricing";
 import { getStadiumTravelPlan, totalTravelMinutes } from "@/config/stadium-travel";
@@ -17,6 +18,12 @@ const LONDON_CITIES = new Set(["London"]);
 export type MatchTravelPlan = {
   /** คีย์ของแมตช์ในเครื่องมือวางแผนทริป — ใช้เลือกแมตช์ให้อัตโนมัติตอนสลับแท็บ */
   tripFixtureKey: string;
+  /**
+   * เครื่องมือวางแผนทริปรู้จักแมตช์นี้หรือไม่
+   * ตอนนี้รองรับเฉพาะนัดของแมนเชสเตอร์ ยูไนเต็ด (38 นัด) ขณะที่ Match Center
+   * มีทั้งลีก 380 นัด ถ้าไม่เช็กก่อน กดปุ่มวางแผนแล้วจะได้ทริปของแมตช์อื่นแบบเงียบ ๆ
+   */
+  plannable: boolean;
   originAirport: string;
   originCity: string;
   /** เมืองฐานที่พักตลอดทริป */
@@ -85,8 +92,10 @@ export function buildMatchTravelPlan(fixture: GOGFixture): MatchTravelPlan {
     }),
   }));
 
+  const tripFixtureKey = tripFixtureKeyOf(fixture);
   return {
-    tripFixtureKey: tripFixtureKeyOf(fixture),
+    tripFixtureKey,
+    plannable: listPlannableFixtures().some((item) => item.key === tripFixtureKey),
     originAirport: BANGKOK.code,
     originCity: BANGKOK.city,
     baseCity,
