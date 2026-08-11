@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NEWS_SOURCE_DIRECTORY } from "@/config/news-sources";
+import { AnimatedSpan, Marquee, Terminal, TypingAnimation } from "@/app/terminal";
 
 type NodeKey = string;
 
@@ -40,7 +41,64 @@ const OUTPUTS = [
   { key: "trip", label: "วางแผนทริป", note: "จากข่าวสู่การเดินทาง" },
 ];
 
-export function NewsFlow({ storyCount, verifiedCount }: { storyCount: number; verifiedCount: number }) {
+/** สถานะที่ถือว่ารอบซิงก์สำเร็จ — ของจริงในฐานข้อมูลคือ "success" */
+const SUCCESS_STATUSES = new Set(["success", "ok", "completed"]);
+
+export type SyncLog = {
+  finished_at: string;
+  fetched: number;
+  matched: number;
+  stored: number;
+  status: string;
+} | null;
+
+/**
+ * log ของรอบซิงก์ล่าสุด — ตัวเลขทุกตัวมาจากตาราง ingest_runs ของจริง
+ * ไม่มีบรรทัดไหนเขียนตายตัวไว้ให้ดูเหมือนระบบทำงาน
+ * ยังไม่เคยซิงก์ = บอกตรง ๆ ว่ายังไม่เคยซิงก์
+ */
+function SyncTerminal({ log, sources }: { log: SyncLog; sources: number }) {
+  const finishedAt = log
+    ? new Intl.DateTimeFormat("th-TH", {
+        timeZone: "Asia/Bangkok", day: "numeric", month: "short",
+        hour: "2-digit", minute: "2-digit",
+      }).format(new Date(log.finished_at))
+    : null;
+
+  return (
+    <Terminal title="gog-newsroom · ingest">
+      <TypingAnimation delay={0}>{`$ gog ingest --sources ${sources}`}</TypingAnimation>
+      {log ? (
+        <>
+          <AnimatedSpan delay={1.5}>✔ อ่านฟีดครบทุกแหล่ง</AnimatedSpan>
+          <AnimatedSpan delay={2.0}>{`✔ พบรายการทั้งหมด ${log.fetched} ชิ้น`}</AnimatedSpan>
+          <AnimatedSpan delay={2.5}>{`✔ ตรงกับแมนเชสเตอร์ ยูไนเต็ด ${log.matched} ชิ้น`}</AnimatedSpan>
+          <AnimatedSpan delay={3.0}>{`✔ ตรวจข้ามแหล่งและให้คะแนนความน่าเชื่อถือแล้ว`}</AnimatedSpan>
+          <AnimatedSpan delay={3.5}>{`✔ บันทึกลงคลัง ${log.stored} ข่าว`}</AnimatedSpan>
+          {/* ตาราง ingest_runs เก็บสถานะเป็น "success" ไม่ใช่ "ok"
+              รุ่นแรกเช็กแค่ "ok" ทำให้รอบที่สำเร็จขึ้นเป็นสีเตือนทุกครั้ง */}
+          <AnimatedSpan delay={4.0} tone={SUCCESS_STATUSES.has(log.status) ? "info" : "warn"}>
+            <span>
+              {SUCCESS_STATUSES.has(log.status) ? "ℹ" : "!"} รอบล่าสุด {finishedAt} น.
+              {SUCCESS_STATUSES.has(log.status) ? "" : ` · สถานะ ${log.status}`}
+            </span>
+          </AnimatedSpan>
+          <TypingAnimation delay={4.6} className="muted">
+            {"ระบบซิงก์เองทุก 10 นาที ไม่ต้องกดเอง"}
+          </TypingAnimation>
+        </>
+      ) : (
+        <AnimatedSpan delay={1.5} tone="warn">! ยังไม่เคยซิงก์ในรอบนี้ — กดปุ่มซิงก์ที่มุมขวาบนได้เลย</AnimatedSpan>
+      )}
+    </Terminal>
+  );
+}
+
+export function NewsFlow({ storyCount, verifiedCount, lastSync }: {
+  storyCount: number;
+  verifiedCount: number;
+  lastSync: SyncLog;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const hubRef = useRef<HTMLDivElement>(null);
   // เก็บ ref ของทุกโหนดไว้ในแมปเดียว ไม่ต้องประกาศ useRef ทีละตัวแบบตัวอย่างต้นทาง
@@ -182,6 +240,26 @@ export function NewsFlow({ storyCount, verifiedCount }: { storyCount: number; ve
             </div>
           ))}
         </div>
+      </div>
+
+      {/* แหล่งข่าวทั้งหมดที่ระบบเฝ้าอยู่ — วิ่งผ่านให้เห็นครบ ไม่ต้องกดเปิดรายการ */}
+      <Marquee duration={46}>
+        {NEWS_SOURCE_DIRECTORY.map((source) => (
+          <a
+            key={`${source.kind}-${source.id}`}
+            className={`news-flow-chip tier-${source.tier}`}
+            href={source.homepage}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {source.kind === "x" && <em>X</em>}
+            {source.label}
+          </a>
+        ))}
+      </Marquee>
+
+      <div className="news-flow-terminal">
+        <SyncTerminal log={lastSync} sources={NEWS_SOURCE_DIRECTORY.length} />
       </div>
 
       <p className="news-flow-foot">

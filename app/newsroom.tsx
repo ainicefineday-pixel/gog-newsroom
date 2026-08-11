@@ -9,6 +9,7 @@ import { MatchCenter } from "@/app/match-center";
 import { AuroraText } from "@/app/aurora-text";
 import { NewsFlow } from "@/app/news-flow";
 import { AnimatedCircularProgressBar } from "@/app/circular-progress";
+import { GogHubBento } from "@/app/bento";
 
 /** ค้างพาดหัวไว้กี่มิลลิวินาทีก่อนสลับ — ความยาวการเฟดคุมด้วย CSS ฝั่ง .hero-rotator-slide */
 const HERO_HOLD_MS = 6_500;
@@ -717,7 +718,7 @@ export function Newsroom() {
           )}
         </section>
 
-        <NewsFlow storyCount={stories.length} verifiedCount={verifiedCount} />
+        <NewsFlow storyCount={stories.length} verifiedCount={verifiedCount} lastSync={lastSync} />
 
         <section className="filter-bar" aria-label="ตัวกรองข่าว">
           <div className="category-filters">
@@ -919,6 +920,8 @@ export function Newsroom() {
             </section>
           </aside>
         </div>
+
+        <GogHubBento stories={stories} verifiedCount={verifiedCount} onNavigate={switchView} />
         </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "matchcenter" ? (
           <MatchCenter
             onPlanTrip={(fixtureKey) => { setPlanFixtureKey(fixtureKey); switchView("trip"); }}

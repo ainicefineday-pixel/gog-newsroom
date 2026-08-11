@@ -80,6 +80,7 @@ import {
 import { leaveDaysFor, thaiHoliday, isThaiWeekend } from "@/config/thai-holidays";
 import type { MatchWeather } from "@/services/weather";
 import { buildCompanionView, inMinutesTh, type CompanionAlert } from "@/services/intelligence/companion";
+import { BackgroundGradient } from "@/app/glow";
 import { formatThb } from "@/services/pricing";
 import { FLIGHT_OPTIONS } from "@/services/flights";
 import { HOTEL_OPTIONS } from "@/services/hotels";
@@ -2131,6 +2132,9 @@ export function TripPlanner({ initialFixtureKey }: { initialFixtureKey?: string 
               <strong>ให้ GOG VISA UK ทำให้</strong>
               <span>บริการเสริมของเราเอง · ไปกัน 4 คนขึ้นไปได้ส่วนลดกลุ่มอัตโนมัติ</span>
             </div>
+            {/* ฮาโลไล่สีรอบทั้งบล็อก = ป้ายบอกว่านี่คือบริการที่ GOG ขายเอง
+                ใส่ครอบทั้งกลุ่มครั้งเดียว ไม่ใส่ทีละใบ ไม่งั้นสามใบแย่งกันเด่น */}
+            <BackgroundGradient className="visa-gog-halo">
             <div className="visa-grid gog-grid">
               {GOG_VISA_PACKAGES.map((pack) => {
                 const active = visa.packageId === pack.id;
@@ -2157,6 +2161,7 @@ export function TripPlanner({ initialFixtureKey }: { initialFixtureKey?: string 
                 );
               })}
             </div>
+            </BackgroundGradient>
 
             {hasVisa(visa) && (
               <>

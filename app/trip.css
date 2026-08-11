@@ -787,3 +787,8 @@ a.trip-cta { text-decoration: none; }
 
   .visa-doc-foot { margin-top: 14pt; padding-top: 5pt; border-top: .5pt solid #999; font-size: 7.5pt; color: #444; line-height: 1.5; }
 }
+
+/* ฮาโลรอบแพ็กเกจ GOG VISA UK — บล็อกเดียวครอบทั้งสามใบ */
+.visa-gog-halo { margin-top: 12px; }
+.visa-gog-halo .bg-gradient-inner { padding: 14px; background: #0d0f14; }
+.visa-gog-halo .visa-grid { margin-top: 0; }

@@ -915,3 +915,181 @@ h1, h2, h3, p, li, td, th, b, strong, small { overflow-wrap: break-word; }
 .translate-progress { display: flex; align-items: center; gap: 13px; margin-top: 12px; }
 .translate-progress b { display: block; color: #e7e9ec; font: 700 11.5px/1.5 "Kanit",sans-serif; }
 .translate-progress span { display: block; margin-top: 2px; color: var(--muted); font: 500 10px/1.5 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+
+/* ── เทอร์มินัลแสดง log การซิงก์ ──────────────────────────────────────── */
+.news-flow-terminal { margin-top: 16px; }
+.terminal { border: 1px solid var(--line); border-radius: 12px; background: #07080b; overflow: hidden; }
+.terminal-bar {
+  display: flex; align-items: center; gap: 6px; padding: 9px 13px;
+  background: #0e1015; border-bottom: 1px solid var(--line);
+}
+.terminal-bar i { width: 9px; height: 9px; border-radius: 50%; background: #2c3038; }
+.terminal-bar i:first-child { background: #e05c5c; }
+.terminal-bar i:nth-child(2) { background: #e8a83e; }
+.terminal-bar i:nth-child(3) { background: #3fc48d; }
+.terminal-bar span { margin-left: 7px; color: #5d626b; font: 600 9.5px/1.5 ui-monospace,"Kanit",monospace; }
+.terminal-body { display: grid; gap: 3px; padding: 15px 16px; }
+
+.terminal-line {
+  color: #c9ccd1; font: 500 11px/1.75 ui-monospace,"Kanit",monospace;
+  white-space: pre-wrap; word-break: break-word;
+}
+.terminal-line.ok { color: #3fc48d; }
+.terminal-line.info { color: #7dabff; }
+.terminal-line.warn { color: #e8a83e; }
+.terminal-line.muted { color: #5d626b; }
+
+/* พิมพ์ดีด: ตัดข้อความด้วยความกว้างแล้วเดินทีละตัวอักษรด้วย steps()
+   ต้องเป็น inline-block และ overflow hidden ไม่งั้นตัดไม่ได้ */
+.terminal-line.typing {
+  display: inline-block; overflow: hidden; white-space: nowrap;
+  width: 0; opacity: 0;
+  animation: terminal-type 1.2s steps(var(--chars, 30)) forwards, terminal-show 0s forwards;
+}
+@keyframes terminal-type { to { width: 100%; } }
+@keyframes terminal-show { to { opacity: 1; } }
+
+.terminal-line.reveal { opacity: 0; transform: translateX(-6px); animation: terminal-in .32s ease forwards; }
+@keyframes terminal-in { to { opacity: 1; transform: none; } }
+
+/* ลดการเคลื่อนไหว = โชว์ log ครบทันที ไม่ต้องรอ 5 วินาทีกว่าจะอ่านได้ */
+@media (prefers-reduced-motion: reduce) {
+  .terminal-line.typing { animation: none; width: auto; opacity: 1; white-space: pre-wrap; }
+  .terminal-line.reveal { animation: none; opacity: 1; transform: none; }
+}
+
+/* ── ป้ายวิ่ง ─────────────────────────────────────────────────────────── */
+.marquee {
+  position: relative; display: flex; gap: 9px; overflow: hidden; margin-top: 15px;
+  /* จางที่ขอบสองข้างให้ดูเหมือนวิ่งลอดออกไป ไม่ใช่ถูกตัดกลางคัน */
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.marquee-track {
+  display: flex; gap: 9px; flex-shrink: 0; min-width: 100%;
+  animation: marquee-run 34s linear infinite;
+}
+.marquee.reverse .marquee-track { animation-direction: reverse; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+@keyframes marquee-run { to { transform: translateX(calc(-100% - 9px)); } }
+@media (prefers-reduced-motion: reduce) {
+  .marquee { overflow-x: auto; }
+  .marquee-track { animation: none; }
+  .marquee-track[aria-hidden="true"] { display: none; }
+}
+
+.news-flow-chip {
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  padding: 7px 13px; border-radius: 999px; text-decoration: none;
+  background: #0f1218; border: 1px solid var(--line);
+  color: #9aa0a8; font: 600 10.5px/1.5 "Kanit",sans-serif;
+  transition: border-color .15s ease, color .15s ease;
+}
+.news-flow-chip:hover { border-color: #f0a50070; color: #f0cc78; }
+.news-flow-chip em {
+  padding: 1px 5px; border-radius: 4px; background: #ffffff12;
+  color: #e7e9ec; font: 800 8px/1.5 "Kanit",sans-serif; font-style: normal;
+}
+.news-flow-chip.tier-1 { border-color: rgba(63,196,141,.32); }
+.news-flow-chip.tier-1::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--green); }
+
+/* ── GOG HUB · การ์ดขนาดไม่เท่ากัน ───────────────────────────────────── */
+.bento-section { margin: 30px 0 0; }
+.bento-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
+.bento-card {
+  position: relative; overflow: hidden; isolation: isolate; cursor: pointer; text-align: left;
+  min-height: 170px; padding: 0; border-radius: 15px;
+  background: var(--panel); border: 1px solid var(--line);
+  transition: border-color .2s ease, transform .2s ease;
+}
+.bento-card:hover { border-color: rgba(240,204,120,.42); transform: translateY(-2px); }
+.bento-card.wide { grid-column: span 2; }
+.bento-card.tall { grid-row: span 2; }
+
+.bento-bg { position: absolute; inset: 0; z-index: 0; opacity: .5; transition: opacity .25s ease; }
+.bento-card:hover .bento-bg { opacity: .78; }
+.bento-body {
+  position: relative; z-index: 1; display: grid; align-content: end; gap: 5px;
+  height: 100%; padding: 17px 18px;
+  /* ไล่เฉดทึบด้านล่างเพื่อให้ตัวหนังสืออ่านออกเสมอ ไม่ว่าพื้นหลังจะเป็นอะไร */
+  background: linear-gradient(to top, var(--panel) 34%, rgba(17,19,24,.86) 62%, transparent);
+}
+.bento-body svg { color: #f0cc78; }
+.bento-body b { color: #fff; font: 800 14px/1.4 "Kanit",sans-serif; }
+.bento-body p { margin: 0; color: var(--muted); font: 400 10.5px/1.65 "Kanit",sans-serif; }
+.bento-cta { margin-top: 5px; color: #f0a500; font: 700 10px/1.5 "Kanit",sans-serif; }
+
+.bento-next-match {
+  display: grid; gap: 3px; padding: 17px 18px; text-align: left;
+  background: radial-gradient(90% 120% at 85% 10%, rgba(218,41,28,.24), transparent 70%);
+}
+.bento-next-match span { color: #6b7078; font: 600 9px/1.5 "Kanit",sans-serif; }
+.bento-next-match b { color: #e7e9ec; font: 800 15px/1.35 "Kanit",sans-serif; }
+.bento-next-match em { color: #6b7078; font: 600 9.5px/1.4 "Kanit",sans-serif; font-style: normal; }
+.bento-next-match .bento-tbd { color: #f0a500; }
+
+.bento-marquee { display: grid; gap: 7px; padding: 16px 18px; overflow: hidden; height: 100%; }
+.bento-marquee-track { display: grid; gap: 7px; animation: bento-scroll 26s linear infinite; }
+.bento-marquee span {
+  display: block; padding: 8px 11px; border-radius: 9px;
+  background: #0f1218; border: 1px solid var(--line);
+  color: #8a9099; font: 500 10px/1.5 "Kanit",sans-serif;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+@keyframes bento-scroll { to { transform: translateY(-100%); } }
+
+.bento-stadiums { display: flex; flex-wrap: wrap; gap: 5px; padding: 16px 18px; }
+.bento-stadiums span {
+  padding: 5px 9px; border-radius: 7px; background: #0f1218; border: 1px solid var(--line);
+  color: #6b7078; font: 600 9px/1.4 "Kanit",sans-serif; white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bento-marquee-track { animation: none; }
+  .bento-card:hover { transform: none; }
+}
+@media (max-width: 1100px) {
+  .bento-grid { grid-template-columns: repeat(2, 1fr); }
+  .bento-card.tall { grid-row: auto; }
+}
+@media (max-width: 620px) {
+  .bento-grid { grid-template-columns: 1fr; }
+  .bento-card.wide { grid-column: auto; }
+}
+
+/* ── ขอบเรืองแสงตามเมาส์ ──────────────────────────────────────────────── */
+.glowing-effect {
+  position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none;
+  opacity: var(--glow-opacity, 0); transition: opacity .18s ease;
+  /* วงแสงตรงตำแหน่งเมาส์ แล้วเจาะกลางออกด้วย mask ให้เหลือเฉพาะเส้นขอบ */
+  background: radial-gradient(var(--glow-spread, 130px) circle at var(--glow-x, 50%) var(--glow-y, 50%),
+    #f0cc78 0%, #f13b2e 42%, transparent 72%);
+  padding: 1.5px;
+  -webkit-mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+  mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+}
+
+/* ── ฮาโลไล่สีหมุนรอบกล่อง ────────────────────────────────────────────── */
+.bg-gradient-glow { position: relative; border-radius: 17px; }
+.bg-gradient-halo {
+  position: absolute; inset: -2px; border-radius: inherit; z-index: 0;
+  background: conic-gradient(from 0deg, #da291c, #f0cc78, #d9aa49, #f13b2e, #da291c);
+  filter: blur(9px); opacity: .55;
+  animation: halo-spin 7s linear infinite;
+}
+.bg-gradient-glow.tone-gold .bg-gradient-halo {
+  background: conic-gradient(from 0deg, #d9aa49, #f0cc78, #fff3d4, #d9aa49);
+}
+.bg-gradient-glow:hover .bg-gradient-halo { opacity: .85; }
+@keyframes halo-spin { to { transform: rotate(1turn); } }
+.bg-gradient-inner {
+  position: relative; z-index: 1; height: 100%; border-radius: inherit;
+  background: var(--panel); border: 1px solid var(--line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-gradient-halo { animation: none; }
+  .glowing-effect { transition: none; }
+}
