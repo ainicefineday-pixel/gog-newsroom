@@ -6,6 +6,7 @@ import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/ne
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 import { AnthemPlayer } from "@/app/anthem-player";
 import { MatchCenter } from "@/app/match-center";
+import { AuroraText } from "@/app/aurora-text";
 
 /** ค้างพาดหัวไว้กี่มิลลิวินาทีก่อนสลับ — ความยาวการเฟดคุมด้วย CSS ฝั่ง .hero-rotator-slide */
 const HERO_HOLD_MS = 6_500;
@@ -599,10 +600,18 @@ export function Newsroom() {
 
                       {slide.kind === "tagline" ? (
                         <h1 className="hero-headline">
-                          รู้จริงก่อนใคร<br /><em>เชื่อเฉพาะที่ยืนยันได้</em>
+                          รู้จริงก่อนใคร<br />
+                          <em><AuroraText>เชื่อเฉพาะที่ยืนยันได้</AuroraText></em>
                         </h1>
                       ) : (
-                        <p className="hero-headline story">{slide.headline}</p>
+                        /* พาดหัวข่าวใช้โทนสว่าง (ขาว → ทองอ่อน) ไม่ใช่โทนแดงเข้มแบบสโลแกน
+                           เพราะข้อความยาวกว่าและตัวเล็กกว่า ถ้าไล่สีเข้มจะอ่านยาก
+                           และหมุนช้ากว่าเพื่อไม่ให้แย่งความสนใจไปจากตัวข่าวเอง */
+                        <p className="hero-headline story">
+                          <AuroraText colors={["#ffffff", "#f0cc78", "#ffffff", "#e8d9b5"]} speed={0.6}>
+                            {slide.headline}
+                          </AuroraText>
+                        </p>
                       )}
 
                       <p className="hero-slide-meta">

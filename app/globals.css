@@ -149,6 +149,35 @@ main { max-width: 1440px; margin: 0 auto; padding: 0 28px 70px; }
 }
 .hero .hero-headline { margin: 0; color: var(--hero-ink); font-size: var(--hero-lead); font-weight: 700; line-height: 1.04; letter-spacing: -.035em; max-width: 660px; }
 .hero .hero-headline em { color: var(--red-bright); font-style: normal; }
+
+/* ── AURORA TEXT ─────────────────────────────────────────────────────────
+   ตัวอักษรไล่สีเคลื่อนช้า ๆ ใช้กับพาดหัวที่หมุนอยู่หน้าแรก
+   ชั้นไล่สีต้องวางทับตัวอักษรจริงที่ซ่อนไว้ ไม่ใช่แทนที่
+   เพราะตัวจริงคือสิ่งที่กำหนดขนาดกล่องและเป็นตัวที่โปรแกรมอ่านหน้าจออ่าน */
+.aurora-text {
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  /* slice = ไล่สีต่อเนื่องข้ามบรรทัดเหมือนเป็นกล่องเดียว ไม่ใช่เริ่มใหม่ทุกบรรทัด */
+  box-decoration-break: slice;
+  -webkit-box-decoration-break: slice;
+  animation: aurora-pan 10s linear infinite;
+}
+@keyframes aurora-pan {
+  from { background-position: 0% center; }
+  to { background-position: 200% center; }
+}
+/* คนที่ตั้งค่าลดการเคลื่อนไหวยังได้เห็นไล่สี แค่ไม่ขยับ ไม่ใช่ตัดทิ้งจนกลายเป็นตัวอักษรใส */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-text { animation: none; background-position: 25% center; }
+}
+/* โหมดคอนทราสต์สูงของ Windows ทิ้งภาพพื้นหลังทั้งหมด ตัวอักษรโปร่งใสจะหายไปเลย
+   ต้องคืนสีทึบให้ ไม่งั้นพาดหัวหน้าแรกกลายเป็นที่ว่าง */
+@media (forced-colors: active) {
+  .aurora-text { color: CanvasText; -webkit-text-fill-color: CanvasText; background-image: none !important; }
+}
 /* พาดหัวข่าวยาวกว่าสโลแกน จึงเล็กลงหนึ่งขั้นและตัดที่ 3 บรรทัด */
 .hero .hero-headline.story {
   font-size: var(--hero-news); line-height: 1.24; letter-spacing: -.02em; font-weight: 600;
