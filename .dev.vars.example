@@ -23,3 +23,8 @@ API_FOOTBALL_KEY=
 
 # TheSportsDB — ยังไม่ได้เขียน adapter ตัวนี้ ใส่ไว้เฉย ๆ ได้
 THESPORTSDB_KEY=
+
+# The Guardian Open Platform — สมัครฟรีที่ https://open-platform.theguardian.com/access/
+# ใช้ดึงข่าวแมนยูจาก The Guardian แทนฟีด The Telegraph ที่ถูกระบบกันบอทของเขาบล็อก
+# ไม่ใส่คีย์ก็รันได้ ระบบจะข้ามแหล่งนี้แล้วรายงานในผังสายข่าวว่ายังไม่ได้ตั้งค่า
+GUARDIAN_API_KEY=

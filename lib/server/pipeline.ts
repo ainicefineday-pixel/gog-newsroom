@@ -1,4 +1,5 @@
 import { MU_KEYWORDS } from "@/config/mu-keywords";
+import { fetchGuardian } from "@/services/news/guardian";
 import { RSS_NEWS_SOURCES } from "@/config/news-sources";
 import type { Category, EditorialAngle, Story, StorySource } from "@/lib/types";
 import {
@@ -490,6 +491,41 @@ export async function runIngest(env: RuntimeEnv) {
     if (env.NEWSAPI_KEY && rssItems.filter(matchesManchesterUnited).length < 5) {
       try { extras.push(...await fetchNewsApi(env.NEWSAPI_KEY)); } catch { note += "NewsAPI unavailable. "; }
     }
+    // The Guardian — API ทางการ ต้องมีคีย์ ไม่มีคีย์ก็ข้ามไปเงียบ ๆ แต่รายงานว่าข้าม
+    await progress("guardian", "กำลังดึงข่าวจาก The Guardian");
+    if (env.GUARDIAN_API_KEY) {
+      try {
+        const items = await fetchGuardian(env.GUARDIAN_API_KEY, fetchText);
+        extras.push(...items.map((item) => ({
+          title: item.title,
+          description: item.description,
+          url: item.url,
+          publishedAt: item.publishedAt,
+          sourceName: item.sourceName,
+          author: item.author,
+        })));
+        sourceOutcomes.push({
+          sourceId: "guardian",
+          sourceName: "The Guardian",
+          ok: true,
+          items: items.map((item) => ({
+            title: item.title, description: item.description, url: item.url,
+            publishedAt: item.publishedAt, sourceName: item.sourceName,
+          })),
+          error: "",
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Guardian unavailable";
+        note += "Guardian unavailable. ";
+        sourceOutcomes.push({ sourceId: "guardian", sourceName: "The Guardian", ok: false, items: [], error: message.slice(0, 200) });
+      }
+    } else {
+      sourceOutcomes.push({
+        sourceId: "guardian", sourceName: "The Guardian", ok: false, items: [],
+        error: "ยังไม่ได้ใส่ GUARDIAN_API_KEY",
+      });
+    }
+
     await progress("x", "กำลังเก็บโพสต์จากนักข่าวใน X");
     try {
       const xCollection = await collectXWatchlist(env);

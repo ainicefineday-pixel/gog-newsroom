@@ -3,6 +3,8 @@ import type { Digest, Story } from "@/lib/types";
 export type RuntimeEnv = {
   DB?: D1Database;
   NEWSAPI_KEY?: string;
+  /** The Guardian Open Platform — https://open-platform.theguardian.com/access/ */
+  GUARDIAN_API_KEY?: string;
   ANTHROPIC_API_KEY?: string;
   ANTHROPIC_MODEL?: string;
   YOUTUBE_API_KEY?: string;

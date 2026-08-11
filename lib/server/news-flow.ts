@@ -18,6 +18,7 @@ const NODE_LABELS: Array<[string, string]> = [
   ["telegraph", "The Telegraph"],
   ["skysports", "Sky Sports"],
   ["bbc", "BBC Sport"],
+  ["guardian", "The Guardian"],
 ];
 
 /** กี่ชั่วโมงที่ไม่มีข่าวเข้าเลยถึงจะถือว่าแหล่งนั้นน่าสงสัย */
@@ -144,7 +145,7 @@ export async function getNewsFlow(env: RuntimeEnv, nowMs = Date.now()): Promise<
     buildSource("bbc", "BBC Sport"),
     buildSource("athletic", "The Athletic"),
     buildSource("skysports", "Sky Sports"),
-    buildSource("telegraph", "The Telegraph"),
+    buildSource("guardian", "The Guardian"),
     buildSource("men", "Manchester Evening News"),
     buildSource("x", "X Watchlist", true),
   ];

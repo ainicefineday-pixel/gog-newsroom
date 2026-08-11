@@ -28,14 +28,11 @@ export const RSS_NEWS_SOURCES = [
     feedUrl: "https://www.nytimes.com/athletic/rss/football/",
     tier: 1,
   },
-  {
-    id: "telegraph",
-    name: "The Telegraph",
-    homepage: "https://www.telegraph.co.uk/football/",
-    domain: "telegraph.co.uk",
-    feedUrl: "https://www.telegraph.co.uk/football/rss.xml",
-    tier: 2,
-  },
+  // The Telegraph ถูกถอดออกเมื่อ 12 ส.ค. 2569
+  // ระบบกันบอทของเขาตอบ 403 กับทุก user-agent ที่ไม่อยู่ในรายการอนุญาต
+  // (ทดสอบแล้ว: curl ผ่าน แต่ Wget, Chrome, Feedly และชื่อของเราเองโดนบล็อกหมด)
+  // และ robots.txt ของเขาห้ามบอท AI ไว้ชัดเจน การปลอม user-agent เพื่อหลบ
+  // คือการใช้เนื้อหาโดยเจ้าของไม่ยินยอม จึงเลิกเรียกและใช้ Guardian แทน
   {
     // ฟีดเฉพาะแมนยูของ Sky Sports (feed id 11667) ไม่ใช่ฟีดฟุตบอลรวม
     // ทุกข่าวในฟีดนี้เกี่ยวกับสโมสรอยู่แล้ว จึงผ่านตัวกรองคีย์เวิร์ดเกือบทั้งหมด
@@ -75,8 +72,30 @@ function xTier(handle: XSourceHandle): SourceTier {
   return 3;
 }
 
+/**
+ * แหล่งที่ดึงผ่าน API ไม่ใช่ RSS — ต้องมีคีย์ถึงจะทำงาน
+ * แยกจาก RSS_NEWS_SOURCES เพราะไม่มี feedUrl ให้ parse
+ */
+export const API_NEWS_SOURCES = [
+  {
+    id: "guardian",
+    name: "The Guardian",
+    homepage: "https://www.theguardian.com/football/manchester-united",
+    domain: "theguardian.com",
+    tier: 1 as SourceTier,
+  },
+] as const;
+
 export const NEWS_SOURCE_DIRECTORY: readonly NewsSourceDirectoryItem[] = [
   ...RSS_NEWS_SOURCES.map((source) => ({
+    id: source.id,
+    label: source.name,
+    kind: "rss" as const,
+    homepage: source.homepage,
+    domain: source.domain,
+    tier: source.tier,
+  })),
+  ...API_NEWS_SOURCES.map((source) => ({
     id: source.id,
     label: source.name,
     kind: "rss" as const,

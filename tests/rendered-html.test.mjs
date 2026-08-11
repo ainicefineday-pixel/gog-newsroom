@@ -65,7 +65,7 @@ test("keeps the official 38-match 2026/27 fixture calendar and channel analytics
   assert.match(layout, /gog-logo-dark\.png/);
 });
 
-test("keeps the exact 18-source directory and durable storage wiring", async () => {
+test("keeps the source directory and durable storage wiring", async () => {
   const [pipeline, newsSources, xSources, hosting, packageJson] = await Promise.all([
     readFile(new URL("../lib/server/pipeline.ts", import.meta.url), "utf8"),
     readFile(new URL("../config/news-sources.ts", import.meta.url), "utf8"),
@@ -74,11 +74,15 @@ test("keeps the exact 18-source directory and durable storage wiring", async () 
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
   assert.match(newsSources, /www\.bbc\.com\/sport\/football/);
-  assert.match(newsSources, /www\.telegraph\.co\.uk\/football/);
   assert.match(newsSources, /www\.nytimes\.com\/athletic\/uk/);
   assert.match(newsSources, /feeds\.bbci\.co\.uk/);
-  assert.match(newsSources, /telegraph\.co\.uk\/football\/rss\.xml/);
   assert.match(newsSources, /nytimes\.com\/athletic\/rss\/football/);
+  // The Telegraph ถูกถอดออก 12 ส.ค. 2569 — ระบบกันบอทของเขาตอบ 403 กับทุก
+  // user-agent ที่ไม่อยู่ในรายการอนุญาต และ robots.txt ห้ามบอท AI ไว้ชัด
+  // ยืนยันว่าไม่มีฟีดเขาค้างอยู่ และมี The Guardian API มาแทนที่แล้ว
+  assert.doesNotMatch(newsSources, /telegraph\.co\.uk\/football\/rss\.xml/);
+  assert.match(newsSources, /theguardian\.com\/football\/manchester-united/);
+  assert.match(newsSources, /API_NEWS_SOURCES/);
   const configuredHandles = [...xSources.matchAll(/^\s*"([a-z0-9_]+)",?$/gmi)].map((match) => match[1]);
   assert.deepEqual(configuredHandles, [
     "jacobsben", "andymitten", "telegraphducker", "david_ornstein", "fabrizioromano",
