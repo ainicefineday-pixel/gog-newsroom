@@ -34,7 +34,18 @@ export const COMPETITIONS: readonly GogCompetition[] = [
 
 export const DEFAULT_COMPETITION_ID = "premier-league";
 
-/** ฤดูกาลปัจจุบัน — ทั้งสองเจ้าใช้ปีที่ฤดูกาลเริ่ม (2026 = ฤดูกาล 2026/27) */
+/**
+ * ฤดูกาลปัจจุบัน — ทั้งสองเจ้าใช้ปีที่ฤดูกาลเริ่ม (2026 = ฤดูกาล 2026/27)
+ *
+ * ทดสอบเมื่อ 11 ส.ค. 2026: แพ็กฟรีของ API-Football เข้าถึงฤดูกาลนี้ไม่ได้
+ * ("Free plans do not have access to this season, try from 2022 to 2024")
+ * ปฏิทินและตารางคะแนนจึงมาจาก football-data.org เจ้าเดียว
+ * ส่วนเหตุการณ์ ไลน์อัพ และสถิติยังไม่มีข้อมูล ซึ่งหน้าเว็บขึ้นสถานะให้ถูกต้องแล้ว
+ *
+ * อยากทดสอบท่อเหตุการณ์/ไลน์อัพ/สถิติกับข้อมูลจริงโดยไม่เสียเงิน
+ * ให้เปลี่ยนค่านี้เป็น "2023" ชั่วคราว แล้วล้าง football_cache
+ * รายละเอียดทั้งหมดอยู่ใน docs/FOOTBALL-DATA.md
+ */
 export const DEFAULT_SEASON = "2026";
 
 export function competitionById(id: string) {
