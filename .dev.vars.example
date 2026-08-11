@@ -1,0 +1,25 @@
+# คีย์ผู้ให้บริการข้อมูลฟุตบอลสำหรับรันบนเครื่อง (STEP 119)
+# ---------------------------------------------------------------------------
+# คัดลอกไฟล์นี้เป็น .dev.vars แล้วใส่คีย์จริงลงไป
+#   cp .dev.vars.example .dev.vars
+#
+# .dev.vars ถูก gitignore ไว้แล้ว — ห้าม commit ไฟล์ที่มีคีย์จริงเด็ดขาด
+# repo นี้เป็น public ใครก็อ่านได้
+#
+# ไม่ใส่คีย์เลยก็รันได้ ระบบจะทำงานในโหมดสาธิตและติดป้าย DEMO DATA ให้เอง
+#
+# ขึ้น production ไม่ได้ใช้ไฟล์นี้ ให้ใส่เป็น secret ของ Cloudflare แทน:
+#   npx wrangler secret put FOOTBALL_DATA_KEY --config dist/server/wrangler.json
+#   npx wrangler secret put API_FOOTBALL_KEY  --config dist/server/wrangler.json
+
+# football-data.org — สมัครที่ https://www.football-data.org/client/register
+# ใช้กับ ปฏิทินโปรแกรมแข่ง ผลการแข่งขัน และตารางคะแนน (ข้อมูลดีเลย์)
+FOOTBALL_DATA_KEY=
+
+# API-Football — สมัครที่ https://dashboard.api-football.com/register
+# ใช้กับ เหตุการณ์ในเกม ไลน์อัพ สถิติแมตช์ และ H2H
+# ต้องเป็นคีย์แบบสมัครตรง (v3.football.api-sports.io) ไม่ใช่คีย์ผ่าน RapidAPI
+API_FOOTBALL_KEY=
+
+# TheSportsDB — ยังไม่ได้เขียน adapter ตัวนี้ ใส่ไว้เฉย ๆ ได้
+THESPORTSDB_KEY=

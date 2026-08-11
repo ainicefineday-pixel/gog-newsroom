@@ -35,6 +35,12 @@ yarn-error.log*
 # Cloudflare API token used by deploy.ps1
 .cloudflare-token
 
+# Wrangler local secrets — API keys for football data providers live here during
+# development. This repository is public, so this file must never be committed.
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
 # TypeScript incremental cache
 *.tsbuildinfo
 
