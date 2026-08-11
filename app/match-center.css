@@ -308,6 +308,106 @@
 .mc-changed li em { color: #f0a500; font: 700 11px/1.6 "Kanit",sans-serif; font-style: normal; margin-right: 6px; }
 .mc-changed small { display: block; margin-top: 8px; color: #9aa0a8; font: 400 10px/1.6 "Kanit",sans-serif; }
 
+/* ── แมตช์ไหนเหมาะกับผม (STEP 73) ────────────────────────────────────── */
+.mc-fit { margin-bottom: 18px; }
+.mc-fit-lead { margin: 6px 0 0; max-width: 62ch; color: var(--muted); font: 400 11px/1.7 "Kanit",sans-serif; }
+.mc-fit-toggle {
+  align-self: flex-start; padding: 9px 18px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  background: #f0a500; border: none; color: #10121a; font: 800 11px/1 "Kanit",sans-serif;
+}
+.mc-fit-toggle:hover { background: #ffc94d; }
+
+.mc-fit-form { display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 12px; margin-top: 18px; }
+.mc-fit-form label { display: grid; gap: 5px; }
+.mc-fit-form label > span { color: #e7e9ec; font: 700 11px/1.5 "Kanit",sans-serif; }
+.mc-fit-form input, .mc-fit-form select, .mc-fit-blackout input {
+  padding: 9px 12px; border-radius: 9px; background: #0f1218; border: 1px solid var(--line);
+  color: #e7e9ec; font: 600 12px/1.4 "Kanit",sans-serif; font-variant-numeric: tabular-nums;
+}
+.mc-fit-form input:focus, .mc-fit-form select:focus, .mc-fit-blackout input:focus { outline: 2px solid #f0a50070; outline-offset: 1px; }
+.mc-fit-form small { color: #6b7078; font: 400 9.5px/1.6 "Kanit",sans-serif; }
+
+.mc-fit-blackout { margin-top: 15px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 11px; background: #0f1218; }
+.mc-fit-blackout > b { display: block; margin-bottom: 9px; color: #e7e9ec; font: 700 11px/1.5 "Kanit",sans-serif; }
+.mc-fit-blackout-form { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.mc-fit-blackout-form > span { color: #6b7078; font: 500 10.5px/1.5 "Kanit",sans-serif; }
+.mc-fit-blackout-form input[type="text"] { flex: 1 1 180px; }
+.mc-fit-blackout-form button {
+  padding: 8px 16px; border-radius: 8px; cursor: pointer;
+  background: #ffffff12; border: 1px solid var(--line); color: #e7e9ec; font: 700 10.5px/1 "Kanit",sans-serif;
+}
+.mc-fit-blackout-form button:hover:not(:disabled) { background: #ffffff20; }
+.mc-fit-blackout-form button:disabled { opacity: .4; cursor: not-allowed; }
+.mc-fit-blackout ul { list-style: none; margin: 11px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 7px; }
+.mc-fit-blackout li {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 8px 6px 12px; border-radius: 999px;
+  background: #e05c5c14; border: 1px solid #e05c5c40; color: #e7e9ec;
+  font: 600 10px/1.5 "Kanit",sans-serif; font-variant-numeric: tabular-nums;
+}
+.mc-fit-blackout li em { color: #e05c5c; font: 600 9.5px/1.5 "Kanit",sans-serif; font-style: normal; }
+.mc-fit-blackout li button { padding: 0 4px; background: none; border: none; color: #8a9099; cursor: pointer; font-size: 11px; }
+.mc-fit-blackout li button:hover { color: #e05c5c; }
+
+.mc-fit-run {
+  margin-top: 16px; padding: 12px 26px; border-radius: 10px; cursor: pointer;
+  background: linear-gradient(135deg,#f0a500,#ffc94d); border: none; color: #10121a;
+  font: 800 12px/1 "Kanit",sans-serif;
+}
+.mc-fit-run:disabled { opacity: .5; cursor: not-allowed; }
+.mc-fit-error { margin: 10px 0 0; color: #e05c5c; font: 600 10.5px/1.6 "Kanit",sans-serif; }
+
+.mc-fit-result { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+.mc-fit-count { margin: 0; color: #9aa0a8; font: 500 12px/1.6 "Kanit",sans-serif; }
+.mc-fit-count b { color: #f0a500; font: 800 15px/1 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.mc-fit-count em { color: #6b7078; font: 400 10px/1.6 "Kanit",sans-serif; font-style: normal; }
+.mc-fit-unlock { list-style: none; margin: 11px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 7px; }
+.mc-fit-unlock li {
+  padding: 6px 12px; border-radius: 999px; background: #2ecc7112; border: 1px solid #2ecc7138;
+  color: #2ecc71; font: 600 10px/1.5 "Kanit",sans-serif; font-variant-numeric: tabular-nums;
+}
+
+.mc-fit-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 9px; counter-reset: fit; }
+.mc-fit-list > li { counter-increment: fit; }
+.mc-fit-list > li button {
+  display: block; width: 100%; text-align: left; cursor: pointer; padding: 14px 16px 14px 46px; position: relative;
+  border: 1px solid var(--line); border-radius: 11px; background: #0f1218; font-family: inherit;
+  transition: border-color .15s ease, background .15s ease;
+}
+.mc-fit-list > li button::before {
+  content: counter(fit); position: absolute; left: 15px; top: 15px;
+  color: #4e535b; font: 800 13px/1 "Kanit",sans-serif; font-variant-numeric: tabular-nums;
+}
+.mc-fit-list > li button:hover { border-color: #f0a50060; background: #14171d; }
+.mc-fit-teams b { display: block; color: #fff; font: 800 13px/1.45 "Kanit",sans-serif; }
+.mc-fit-teams span { display: block; margin-top: 2px; color: #6b7078; font: 500 10px/1.55 "Kanit",sans-serif; }
+.mc-fit-plan { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+.mc-fit-plan span {
+  display: inline-flex; align-items: baseline; gap: 5px; padding: 6px 11px; border-radius: 8px;
+  background: #14171d; color: #e7e9ec; font: 700 11px/1.4 "Kanit",sans-serif; font-variant-numeric: tabular-nums;
+}
+.mc-fit-plan em { color: #6b7078; font: 500 9px/1.4 "Kanit",sans-serif; font-style: normal; }
+.mc-fit-why { margin: 9px 0 0; color: #f0a500; font: 500 10px/1.6 "Kanit",sans-serif; }
+
+.mc-fit-misses { margin-top: 16px; }
+.mc-fit-misses summary { cursor: pointer; color: #8a9099; font: 600 10.5px/1.6 "Kanit",sans-serif; }
+.mc-fit-misses summary:hover { color: #e7e9ec; }
+.mc-fit-misses ul { list-style: none; margin: 11px 0 0; padding: 0; display: grid; gap: 6px; }
+.mc-fit-misses li {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 3px 10px; align-items: baseline;
+  padding: 9px 13px; border-radius: 9px; background: #0f1218; border: 1px solid var(--line);
+}
+.mc-fit-misses li b { color: #c9ccd1; font: 700 11px/1.5 "Kanit",sans-serif; }
+.mc-fit-misses li span { color: #6b7078; font: 500 9.5px/1.5 "Kanit",sans-serif; }
+.mc-fit-misses li em {
+  padding: 2px 8px; border-radius: 999px; background: #e05c5c14; border: 1px solid #e05c5c38;
+  color: #e05c5c; font: 700 9px/1.5 "Kanit",sans-serif; font-style: normal; white-space: nowrap;
+}
+.mc-fit-misses li small { grid-column: 1 / -1; color: #6b7078; font: 400 9.5px/1.6 "Kanit",sans-serif; }
+
+@media (max-width: 720px) {
+  .mc-fit-misses li { grid-template-columns: 1fr auto; }
+}
+
 /* ── ข่าวที่เกี่ยวกับนัดนี้ (STEP 71) ────────────────────────────────── */
 .mc-news { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
 .mc-news ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 9px; }

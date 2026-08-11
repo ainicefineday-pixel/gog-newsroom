@@ -25,6 +25,8 @@ import { buildMatchStory } from "@/services/intelligence/matchStory";
 import { buildKeyMoments } from "@/services/intelligence/keyMoments";
 import { controlScore } from "@/services/intelligence/controlScore";
 import { linkStories, storiesForFixture } from "@/services/intelligence/newsMatch";
+import { rankMatches, type MatchFitResult } from "@/services/intelligence/matchFit";
+import type { BudgetStyle } from "@/services/trip/types";
 import type { GOGFixture } from "@/services/football/types";
 import type { Story } from "@/lib/types";
 
@@ -117,6 +119,23 @@ async function newsForFixture(env: RuntimeEnv, fixture: GOGFixture) {
   } catch {
     return [];
   }
+}
+
+/** ย่อผลจัดอันดับให้เหลือเฉพาะที่การ์ดใช้ — ไม่ส่ง GOGFixture เต็มก้อน 380 ครั้ง */
+function slimFit(result: MatchFitResult) {
+  return {
+    fixtureId: result.fixtureId,
+    homeTh: result.fixture.home.nameTh,
+    awayTh: result.fixture.away.nameTh,
+    kickoffUtc: result.fixture.kickoffUtc,
+    kickoffTimeAnnounced: result.fixture.kickoffTimeAnnounced,
+    venue: result.fixture.venue?.name ?? null,
+    matchweek: result.fixture.matchweek,
+    worthScore: result.worthScore,
+    highlights: result.highlights.slice(0, 4),
+    best: result.best,
+    verdict: result.verdict,
+  };
 }
 
 function sourceCapabilities(env: RuntimeEnv) {
@@ -335,6 +354,47 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
       impact: leagueImpact(bundle.fixture, bundle.standings),
       changes,
       news: await newsForFixture(env, bundle.fixture),
+    });
+  }
+
+  // แมตช์ไหนเหมาะกับผม (STEP 73) — กรอกข้อจำกัด แล้วไล่ทั้งลีกให้
+  if (url.pathname === "/api/football/match-fit" && request.method === "POST") {
+    if (env.DB) await ensureFootballTables(env.DB);
+    let body: Record<string, unknown> = {};
+    try { body = (await request.json()) as Record<string, unknown>; } catch { return json({ error: "invalid_body" }, 400); }
+
+    const leaveDaysAvailable = Math.max(0, Math.min(Number(body.leaveDaysAvailable) || 0, 60));
+    const budgetPerPerson = Math.max(0, Math.min(Number(body.budgetPerPerson) || 0, 5_000_000));
+    const budget = ["saver", "comfort", "premium"].includes(String(body.budget)) ? String(body.budget) as BudgetStyle : "comfort";
+    const earliestDeparture = /^\d{4}-\d{2}-\d{2}$/.test(String(body.earliestDeparture))
+      ? String(body.earliestDeparture)
+      : new Date().toISOString().slice(0, 10);
+    // จำกัดจำนวนช่วงห้ามเดินทาง เพราะทุกช่วงต้องเทียบกับทุกนัด × ทุกความยาวทริป
+    const blackouts = (Array.isArray(body.blackouts) ? body.blackouts : []).slice(0, 20)
+      .map((entry) => entry as Record<string, unknown>)
+      .filter((entry) => /^\d{4}-\d{2}-\d{2}$/.test(String(entry.from)) && /^\d{4}-\d{2}-\d{2}$/.test(String(entry.to)))
+      .map((entry) => ({
+        from: String(entry.from),
+        to: String(entry.to),
+        label: typeof entry.label === "string" ? entry.label.slice(0, 60) : undefined,
+      }));
+
+    const competition = typeof body.competition === "string" ? body.competition : DEFAULT_COMPETITION_ID;
+    const season = typeof body.season === "string" ? body.season : DEFAULT_SEASON;
+    const { fixtures, demo } = await getFixtures(env, competition, season);
+    const report = rankMatches(fixtures, { leaveDaysAvailable, budgetPerPerson, budget, blackouts, earliestDeparture });
+
+    // ส่งเฉพาะที่หน้าเว็บใช้จริง — payload เต็มของ 380 นัดใหญ่เกินจำเป็น
+    return json({
+      ok: true,
+      demo,
+      version: report.version,
+      totalFixtures: fixtures.length,
+      fitCount: report.fits.length,
+      fits: report.fits.slice(0, 30).map(slimFit),
+      misses: report.misses.slice(0, 12).map(slimFit),
+      unlockByLeave: report.unlockByLeave,
+      unlockByBudget: report.unlockByBudget,
     });
   }
 

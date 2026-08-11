@@ -7,7 +7,7 @@
 // ไม่ใช่กล่องเทาว่างเปล่าและไม่ใช่ตัวเลขปลอม (STEP 17, 84)
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Clock, Info, MapPin, Plane, Star, TriangleAlert } from "lucide-react";
+import { CalendarDays, Clock, Filter, Info, MapPin, Plane, Star, TriangleAlert } from "lucide-react";
 import { FIXTURE_STATE_TH, STAT_LABELS } from "@/services/football/thai";
 import { UNAVAILABLE_REASON_TH } from "@/services/football/capabilities";
 import { thaiFullDate, thaiShortDate } from "@/services/football/normalize";
@@ -84,6 +84,224 @@ function Unavailable({ reason }: { reason: string }) {
     <div className="mc-unavailable">
       <Info size={14} aria-hidden="true" />
       <span>{reason}</span>
+    </div>
+  );
+}
+
+// ── แมตช์ไหนเหมาะกับผม (STEP 73) ─────────────────────────────────────────
+// กลับด้านการค้นหา: แทนที่จะไล่ดู 380 นัดเอง กรอกว่าลาได้กี่วัน มีงบเท่าไหร่
+// ติดงานช่วงไหน แล้วให้ระบบบอกว่านัดไหนไปได้จริง
+
+type FitEntry = {
+  fixtureId: string;
+  homeTh: string; awayTh: string; kickoffUtc: string; matchweek: number | null;
+  venue: string | null; worthScore: number; highlights: string[];
+  best: { length: number; departDate: string; returnDate: string; leaveDays: number; weekendDays: number; holidayNames: string[]; pricePerPerson: number } | null;
+  verdict: { fits: true } | { fits: false; reason: string; detail: string };
+};
+
+type FitReport = {
+  totalFixtures: number; fitCount: number;
+  fits: FitEntry[]; misses: FitEntry[];
+  unlockByLeave: Array<{ extraDays: number; extraMatches: number }>;
+  unlockByBudget: Array<{ extraThb: number; extraMatches: number }>;
+};
+
+const MISS_REASON_TH: Record<string, string> = {
+  leave: "วันลาไม่พอ",
+  budget: "เกินงบ",
+  blackout: "ติดช่วงที่ไปไม่ได้",
+  too_early: "ต้องออกเดินทางเร็วเกินไป",
+  not_plannable: "ยังไม่มีเส้นทางในระบบ",
+};
+
+function MatchFitPanel({ onOpen }: { onOpen: (fixtureId: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [leaveDays, setLeaveDays] = useState(5);
+  const [budgetThb, setBudgetThb] = useState(120_000);
+  const [style, setStyle] = useState<BudgetStyle>("comfort");
+  const [earliest, setEarliest] = useState("");
+  const [blackFrom, setBlackFrom] = useState("");
+  const [blackTo, setBlackTo] = useState("");
+  const [blackLabel, setBlackLabel] = useState("");
+  const [blackouts, setBlackouts] = useState<Array<{ from: string; to: string; label?: string }>>([]);
+  const [report, setReport] = useState<FitReport | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  // วันแรกที่เดินทางได้ ตั้งต้นเป็นวันนี้ + 45 วัน เพราะยังต้องทำวีซ่าอังกฤษก่อน
+  useEffect(() => {
+    if (earliest) return;
+    const soonest = new Date(Date.now() + 45 * 86_400_000).toISOString().slice(0, 10);
+    window.queueMicrotask(() => setEarliest(soonest));
+  }, [earliest]);
+
+  const run = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/football/match-fit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          leaveDaysAvailable: leaveDays, budgetPerPerson: budgetThb, budget: style,
+          earliestDeparture: earliest, blackouts,
+        }),
+      });
+      const payload = await response.json() as FitReport & { ok?: boolean };
+      if (!response.ok || !payload.ok) throw new Error("คำนวณไม่สำเร็จ");
+      setReport(payload);
+    } catch {
+      setError("คำนวณไม่สำเร็จ ลองใหม่อีกครั้ง");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="trip-block mc-fit">
+      <header className="trip-block-head">
+        <div>
+          <span className="eyebrow">MATCH FINDER</span>
+          <h3><Filter size={15} aria-hidden="true" /> แมตช์ไหนเหมาะกับผม</h3>
+          <p className="mc-fit-lead">
+            บอกแค่ว่าลาได้กี่วัน มีงบเท่าไหร่ ช่วงไหนไปไม่ได้ แล้วระบบจะไล่ทั้งลีกให้ว่านัดไหนไปได้จริง
+            พร้อมวันบิน วันกลับ และจำนวนวันลาที่ต้องใช้
+          </p>
+        </div>
+        <button type="button" className="mc-fit-toggle" onClick={() => setOpen((value) => !value)}>
+          {open ? "ซ่อน" : "เริ่มหาแมตช์"}
+        </button>
+      </header>
+
+      {open && (
+        <>
+          <div className="mc-fit-form">
+            <label>
+              <span>ลางานได้กี่วัน</span>
+              <input type="number" min={0} max={30} value={leaveDays}
+                onChange={(event) => setLeaveDays(Math.max(0, Math.min(30, Number(event.target.value) || 0)))} />
+              <small>ไม่นับเสาร์-อาทิตย์และวันหยุดราชการ ระบบคำนวณให้แล้ว</small>
+            </label>
+            <label>
+              <span>งบต่อคน (บาท)</span>
+              <input type="number" min={0} step={5000} value={budgetThb}
+                onChange={(event) => setBudgetThb(Math.max(0, Number(event.target.value) || 0))} />
+              <small>รวมตั๋วเครื่องบิน ที่พัก อาหาร และเดินทางในเมือง</small>
+            </label>
+            <label>
+              <span>สไตล์การใช้เงิน</span>
+              <select value={style} onChange={(event) => setStyle(event.target.value as BudgetStyle)}>
+                {(["saver", "comfort", "premium"] as BudgetStyle[]).map((value) => (
+                  <option key={value} value={value}>{BUDGET_LABELS[value].name}</option>
+                ))}
+              </select>
+              <small>{BUDGET_LABELS[style].tagline}</small>
+            </label>
+            <label>
+              <span>เดินทางได้ตั้งแต่วันที่</span>
+              <input type="date" value={earliest} onChange={(event) => setEarliest(event.target.value)} />
+              <small>เผื่อเวลาทำวีซ่าอังกฤษไว้ด้วย ตั้งต้นให้ 45 วันจากวันนี้</small>
+            </label>
+          </div>
+
+          <div className="mc-fit-blackout">
+            <b>ช่วงที่ไปไม่ได้</b>
+            <div className="mc-fit-blackout-form">
+              <input type="date" value={blackFrom} onChange={(event) => setBlackFrom(event.target.value)} aria-label="ช่วงที่ไปไม่ได้ เริ่มวันที่" />
+              <span>ถึง</span>
+              <input type="date" value={blackTo} onChange={(event) => setBlackTo(event.target.value)} aria-label="ช่วงที่ไปไม่ได้ ถึงวันที่" />
+              <input type="text" value={blackLabel} placeholder="เหตุผล เช่น ปิดงบสิ้นปี" maxLength={60}
+                onChange={(event) => setBlackLabel(event.target.value)} aria-label="เหตุผลของช่วงที่ไปไม่ได้" />
+              <button type="button" disabled={!blackFrom || !blackTo || blackTo < blackFrom}
+                onClick={() => {
+                  setBlackouts((current) => [...current, { from: blackFrom, to: blackTo, label: blackLabel || undefined }]);
+                  setBlackFrom(""); setBlackTo(""); setBlackLabel("");
+                }}>
+                เพิ่ม
+              </button>
+            </div>
+            {blackouts.length > 0 && (
+              <ul>
+                {blackouts.map((window, index) => (
+                  <li key={`${window.from}-${window.to}-${index}`}>
+                    {thaiShortDate(window.from)} – {thaiShortDate(window.to)}
+                    {window.label && <em>{window.label}</em>}
+                    <button type="button" onClick={() => setBlackouts((current) => current.filter((_, at) => at !== index))} aria-label="ลบช่วงนี้">✕</button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <button type="button" className="mc-fit-run" onClick={run} disabled={loading || !earliest}>
+            {loading ? "กำลังไล่ทั้งลีก…" : "หาแมตช์ที่ไปได้"}
+          </button>
+          {error && <p className="mc-fit-error">{error}</p>}
+
+          {report && (
+            <div className="mc-fit-result">
+              <p className="mc-fit-count">
+                ไปได้ <b>{report.fitCount}</b> นัด จากทั้งหมด {report.totalFixtures} นัด
+                {report.fitCount > report.fits.length && <em> — แสดง {report.fits.length} นัดแรกที่น่าไปที่สุด</em>}
+              </p>
+
+              {(report.unlockByLeave.length > 0 || report.unlockByBudget.length > 0) && (
+                <ul className="mc-fit-unlock">
+                  {report.unlockByLeave.map((entry) => (
+                    <li key={`leave-${entry.extraDays}`}>ลาเพิ่มอีก {entry.extraDays} วัน → ไปได้อีก {entry.extraMatches} นัด</li>
+                  ))}
+                  {report.unlockByBudget.map((entry) => (
+                    <li key={`budget-${entry.extraThb}`}>เพิ่มงบอีก {entry.extraThb.toLocaleString("th-TH")} บาท → ไปได้อีก {entry.extraMatches} นัด</li>
+                  ))}
+                </ul>
+              )}
+
+              {report.fits.length === 0 ? (
+                <Unavailable reason="ไม่มีนัดไหนผ่านเงื่อนไขนี้ — ลองเพิ่มวันลา เพิ่มงบ หรือขยับช่วงที่ไปไม่ได้" />
+              ) : (
+                <ol className="mc-fit-list">
+                  {report.fits.map((entry) => (
+                    <li key={entry.fixtureId}>
+                      <button type="button" onClick={() => onOpen(entry.fixtureId)}>
+                        <div className="mc-fit-teams">
+                          <b>{entry.homeTh} พบ {entry.awayTh}</b>
+                          <span>{thaiFullDate(entry.kickoffUtc)}{entry.venue ? ` · ${entry.venue}` : ""}</span>
+                        </div>
+                        <div className="mc-fit-plan">
+                          <span><em>บิน</em>{thaiShortDate(entry.best!.departDate)}</span>
+                          <span><em>กลับ</em>{thaiShortDate(entry.best!.returnDate)}</span>
+                          <span><em>ลา</em>{entry.best!.leaveDays} วัน</span>
+                          <span><em>ประมาณ</em>{formatThb(entry.best!.pricePerPerson)}</span>
+                        </div>
+                        {entry.highlights.length > 0 && (
+                          <p className="mc-fit-why">{entry.highlights.slice(0, 2).join(" · ")}</p>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              )}
+
+              {report.misses.length > 0 && (
+                <details className="mc-fit-misses">
+                  <summary>นัดที่ไปไม่ได้ และเพราะอะไร</summary>
+                  <ul>
+                    {report.misses.map((entry) => (
+                      <li key={entry.fixtureId}>
+                        <b>{entry.homeTh} พบ {entry.awayTh}</b>
+                        <span>{thaiShortDate(entry.kickoffUtc)}</span>
+                        <em>{entry.verdict.fits ? "" : MISS_REASON_TH[entry.verdict.reason] ?? entry.verdict.reason}</em>
+                        <small>{entry.verdict.fits ? "" : entry.verdict.detail}</small>
+                      </li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -456,6 +674,8 @@ export function MatchCenter({ onPlanTrip, openFixtureId }: {
           </span>
         )}
       </div>
+
+      {!openId && <MatchFitPanel onOpen={openMatch} />}
 
       {!openId && (
         <div className="trip-block">
