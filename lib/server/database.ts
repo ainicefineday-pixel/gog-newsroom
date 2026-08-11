@@ -17,6 +17,10 @@ export type RuntimeEnv = {
   X_MAX_ACCOUNTS_PER_RUN?: string;
   X_REQUEST_TIMEOUT_SECONDS?: string;
   CRON_SECRET?: string;
+  // ── GOG FOOTBALL MATCH CENTER (STEP 119) — ไม่ใส่คีย์ = ทำงานในโหมดสาธิต
+  API_FOOTBALL_KEY?: string;
+  FOOTBALL_DATA_KEY?: string;
+  THESPORTSDB_KEY?: string;
 };
 
 type StoryRow = {
