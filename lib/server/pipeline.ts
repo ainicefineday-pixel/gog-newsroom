@@ -288,6 +288,9 @@ function sourceAssessment(item: RawItem) {
   if (identity.includes("fabrizio") && text.includes("here we go")) return { tier: 1 as const, score: 98 };
   if (identity.includes("bbc")) return { tier: 1 as const, score: 95 };
   if (identity.includes("athletic")) return { tier: 1 as const, score: 92 };
+  // หนังสือพิมพ์ที่มีโต๊ะข่าวฟุตบอลของตัวเอง ให้เท่า The Athletic
+  // ถ้าไม่ใส่กฎนี้ ข่าว Guardian จะตกไปเป็น tier 3 คะแนน 55 ตามค่าเริ่มต้น
+  if (identity.includes("guardian")) return { tier: 1 as const, score: 92 };
   if (identity.includes("telegraph")) return { tier: 2 as const, score: 82 };
   if (["lauriewhitwell", "andy mitten", "andymitten", "simonpeach", "simon peach"].some((name) => identity.includes(name))) {
     return { tier: 2 as const, score: 86 };
