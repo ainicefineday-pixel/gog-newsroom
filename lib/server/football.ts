@@ -9,6 +9,8 @@
 
 import type { RuntimeEnv } from "@/lib/server/database";
 import { createProviders, tryProviders, type AttemptLog } from "@/services/football/providers/router";
+import type { ProviderFetchResult } from "@/services/football/providers/types";
+import { providerCompetitionCode } from "@/services/football/competitions";
 import { getMatchCapabilities } from "@/services/football/capabilities";
 import type {
   GOGEvent, GOGFixture, GOGHeadToHead, GOGLineup, GOGMatchBundle, GOGStanding, GOGTeamStats,
@@ -146,20 +148,83 @@ function fixtureTtl(fixture: GOGFixture | null) {
   return hoursToKickoff <= 168 ? CACHE_TTL.fixtureSoon : CACHE_TTL.fixtures;
 }
 
-export async function getFixtures(env: RuntimeEnv, competition: string, season: string) {
+/**
+ * ดึงปฏิทินจากผู้ให้บริการ "ทุกเจ้าที่ตั้งค่าไว้" แล้วรวม id ของแต่ละเจ้าเข้ากับแมตช์เดียวกัน
+ * ผ่าน gogFixtureId (คู่ทีม + วันเตะ) ซึ่งเป็นการสร้าง provider entity map ตาม STEP 13
+ *
+ * ย้ำว่านี่ไม่ใช่การเอาค่ามาผสมกันแบบที่ STEP 7 ห้าม — ค่าของแมตช์ (สกอร์ เวลา สนาม)
+ * ยังมาจากเจ้าที่ลำดับสูงสุดเจ้าเดียว รวมเฉพาะ "รหัสอ้างอิง" เท่านั้น
+ *
+ * จำเป็นต้องทำ เพราะถ้าไม่มี id ของเจ้าไหน แล้วเอา id ของอีกเจ้าไปยิงถาม
+ * จะได้ข้อมูลของ "คนละแมตช์" กลับมาโดยไม่มีอะไรเตือนเลย
+ */
+export async function getFixtures(env: RuntimeEnv, competitionId: string, season: string) {
   const set = providersFor(env);
-  const key = `fixtures:${competition}:${season}`;
-  const loaded = await cached<GOGFixture[]>(env, key, CACHE_TTL.fixtures, "fixtures", () =>
-    tryProviders<GOGFixture[]>(set.all, "fixtures", (provider) =>
-      provider.getFixtures?.({ competition, season })));
+  const key = `fixtures:${competitionId}:${season}`;
+
+  const loaded = await cached<GOGFixture[]>(env, key, CACHE_TTL.fixtures, "fixtures", async () => {
+    const attempts: AttemptLog[] = [];
+    const collected: Array<{ provider: string; fixtures: GOGFixture[] }> = [];
+
+    for (const provider of set.all) {
+      if (!provider.capabilities.fixtures || !provider.getFixtures) continue;
+      const code = providerCompetitionCode(competitionId, provider.id);
+      if (!code) continue;
+      try {
+        const result = await provider.getFixtures({ competition: code, season });
+        collected.push({ provider: provider.id, fixtures: result.data });
+        attempts.push({ provider: provider.id, ok: true });
+      } catch (error) {
+        attempts.push({
+          provider: provider.id,
+          ok: false,
+          error: error instanceof Error ? error.message : "unknown_error",
+        });
+      }
+    }
+
+    if (collected.length === 0) return { result: null, attempts };
+
+    // เจ้าแรกที่สำเร็จเป็นเจ้าของค่าทั้งหมด เจ้าที่เหลือมาเติมแค่รหัสอ้างอิง
+    const [primary, ...rest] = collected;
+    const merged = new Map(primary.fixtures.map((fixture) => [fixture.id, fixture]));
+
+    for (const extra of rest) {
+      for (const fixture of extra.fixtures) {
+        const existing = merged.get(fixture.id);
+        if (existing) {
+          existing.providerIds = { ...existing.providerIds, ...fixture.providerIds };
+          existing.home.providerIds = { ...existing.home.providerIds, ...fixture.home.providerIds };
+          existing.away.providerIds = { ...existing.away.providerIds, ...fixture.away.providerIds };
+          // เติมสนามให้เมื่อเจ้าหลักไม่ได้ส่งมา — เป็นการเติมช่องว่าง ไม่ใช่ทับค่าที่มีอยู่
+          if (!existing.venue && fixture.venue) existing.venue = fixture.venue;
+        } else {
+          merged.set(fixture.id, fixture);
+        }
+      }
+    }
+
+    return {
+      result: {
+        data: [...merged.values()].sort((a, b) => a.kickoffUtc.localeCompare(b.kickoffUtc)),
+        provider: primary.provider,
+        retrievedAt: new Date().toISOString(),
+      },
+      attempts,
+    };
+  });
+
   return { fixtures: loaded.data ?? [], stale: loaded.stale, retrievedAt: loaded.retrievedAt, demo: set.demoMode };
 }
 
-export async function getStandings(env: RuntimeEnv, competition: string, season: string) {
+export async function getStandings(env: RuntimeEnv, competitionId: string, season: string) {
   const set = providersFor(env);
-  const loaded = await cached<GOGStanding[]>(env, `standings:${competition}:${season}`, CACHE_TTL.standings, "standings", () =>
-    tryProviders<GOGStanding[]>(set.all, "standings", (provider) =>
-      provider.getStandings?.(competition, season)));
+  const loaded = await cached<GOGStanding[]>(env, `standings:${competitionId}:${season}`, CACHE_TTL.standings, "standings", () =>
+    tryProviders<GOGStanding[]>(set.all, "standings", (provider) => {
+      const code = providerCompetitionCode(competitionId, provider.id);
+      if (!code) return undefined;
+      return provider.getStandings?.(code, season);
+    }));
   return { standings: loaded.data ?? [], stale: loaded.stale, demo: set.demoMode };
 }
 
@@ -180,25 +245,37 @@ export async function getMatchBundle(
   const fixture = calendar.fixtures.find((item) => item.id === fixtureId);
   if (!fixture) return null;
 
-  const providerFixtureId = fixture.providerIds.api_football
-    ?? fixture.providerIds.football_data
-    ?? fixture.providerIds.gog_demo
-    ?? fixtureId;
-
   const ttl = fixtureTtl(fixture);
+
+  /**
+   * ยิงถามได้เฉพาะเจ้าที่มี id ของแมตช์นี้จริง ๆ เท่านั้น
+   * ก่อนหน้านี้ใช้ id ของเจ้าไหนก็ได้ที่หาเจอ ทำให้เอา id ของ football-data.org
+   * ไปถาม API-Football แล้วได้เหตุการณ์ของคนละแมตช์กลับมาโดยไม่มีอะไรเตือน
+   */
+  const withOwnId = <T>(
+    capability: "events" | "lineups" | "teamStats",
+    call: (provider: (typeof set.all)[number], providerFixtureId: string) => Promise<ProviderFetchResult<T>> | undefined,
+  ) => tryProviders<T>(set.all, capability, (provider) => {
+    const providerFixtureId = fixture.providerIds[provider.id];
+    if (!providerFixtureId) return undefined;
+    return call(provider, providerFixtureId);
+  });
+
   const [events, lineups, teamStats, headToHead, standings] = await Promise.all([
     cached<GOGEvent[]>(env, `events:${fixtureId}`, Math.min(ttl, CACHE_TTL.events), "events", () =>
-      tryProviders<GOGEvent[]>(set.all, "events", (provider) => provider.getEvents?.(providerFixtureId))),
+      withOwnId<GOGEvent[]>("events", (provider, id) => provider.getEvents?.(id))),
     cached<GOGLineup[]>(env, `lineups:${fixtureId}`, Math.min(ttl, CACHE_TTL.lineups), "lineups", () =>
-      tryProviders<GOGLineup[]>(set.all, "lineups", (provider) => provider.getLineups?.(providerFixtureId))),
+      withOwnId<GOGLineup[]>("lineups", (provider, id) => provider.getLineups?.(id))),
     cached<GOGTeamStats[]>(env, `stats:${fixtureId}`, Math.min(ttl, CACHE_TTL.stats), "stats", () =>
-      tryProviders<GOGTeamStats[]>(set.all, "teamStats", (provider) => provider.getTeamStats?.(providerFixtureId))),
+      withOwnId<GOGTeamStats[]>("teamStats", (provider, id) => provider.getTeamStats?.(id))),
+    // H2H ใช้ id ของ "ทีม" ไม่ใช่ของแมตช์ จึงต้องมี id ทีมของเจ้านั้นครบทั้งสองฝั่ง
     cached<GOGHeadToHead>(env, `h2h:${fixture.home.id}:${fixture.away.id}`, CACHE_TTL.headToHead, "h2h", () =>
-      tryProviders<GOGHeadToHead>(set.all, "headToHead", (provider) =>
-        provider.getHeadToHead?.(
-          fixture.providerIds.api_football ? fixture.home.providerIds.api_football ?? "" : fixture.home.id,
-          fixture.providerIds.api_football ? fixture.away.providerIds.api_football ?? "" : fixture.away.id,
-        ))),
+      tryProviders<GOGHeadToHead>(set.all, "headToHead", (provider) => {
+        const homeId = fixture.home.providerIds[provider.id];
+        const awayId = fixture.away.providerIds[provider.id];
+        if (!homeId || !awayId) return undefined;
+        return provider.getHeadToHead?.(homeId, awayId);
+      })),
     getStandings(env, competition, season),
   ]);
 

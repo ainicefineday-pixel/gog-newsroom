@@ -93,6 +93,16 @@ export const TEAM_NAMES: Record<string, TeamNameRecord> = {
   "Southampton": { th: "เซาแธมป์ตัน", short: "เซาแธมป์ตัน", aliases: ["SOU"] },
 };
 
+/**
+ * คำบอกประเภทสโมสรที่ผู้ให้บริการแต่ละเจ้าเติมไม่เหมือนกัน
+ * football-data.org ส่ง "Arsenal FC" / "Hull City AFC" ส่วน API-Football ส่ง "Arsenal"
+ * ถ้าไม่ตัดออกก่อนเทียบ จะกลายเป็นคนละทีมกันทันที ทั้งชื่อไทยและ id ของ GOG
+ *
+ * ต้องประกาศไว้เหนือ ALIAS_TO_OFFICIAL เพราะลูปข้างล่างเรียก normalizeName
+ * ตั้งแต่ตอนโหลดโมดูล ถ้าอยู่ใต้จะติด temporal dead zone
+ */
+const CLUB_TYPE_TOKENS = new Set(["fc", "afc", "cf", "sc", "ac"]);
+
 // ตารางกลับด้าน สร้างครั้งเดียวตอนโหลดโมดูล ใช้จับ alias ให้ชี้กลับไปชื่อทางการ
 const ALIAS_TO_OFFICIAL = new Map<string, string>();
 for (const [official, record] of Object.entries(TEAM_NAMES)) {
@@ -101,14 +111,20 @@ for (const [official, record] of Object.entries(TEAM_NAMES)) {
   for (const alias of record.aliases) ALIAS_TO_OFFICIAL.set(normalizeName(alias), official);
 }
 
-/** ตัดอักขระที่ผู้ให้บริการเขียนไม่ตรงกัน (จุด ขีด เครื่องหมาย &) ก่อนจับคู่ (STEP 13) */
+/** ตัดอักขระและคำต่อท้ายที่ผู้ให้บริการเขียนไม่ตรงกันก่อนจับคู่ (STEP 13) */
 export function normalizeName(value: string) {
-  return value
+  const base = value
     .toLowerCase()
     .replace(/&/g, "and")
     .replace(/[.'`’-]/g, "")
     .replace(/\s+/g, " ")
     .trim();
+
+  const tokens = base.split(" ");
+  // ตัดเฉพาะหัวกับท้าย ไม่ตัดกลางชื่อ เพราะบางสโมสรมีคำพวกนี้อยู่กลางชื่อจริง ๆ
+  while (tokens.length > 1 && CLUB_TYPE_TOKENS.has(tokens[0])) tokens.shift();
+  while (tokens.length > 1 && CLUB_TYPE_TOKENS.has(tokens[tokens.length - 1])) tokens.pop();
+  return tokens.join(" ");
 }
 
 /** หาชื่อทางการจากชื่อที่ผู้ให้บริการส่งมา — คืน null เมื่อยังไม่รู้จัก */

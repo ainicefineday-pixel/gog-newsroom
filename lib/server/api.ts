@@ -24,9 +24,7 @@ import { buildMatchStory } from "@/services/intelligence/matchStory";
 import { buildKeyMoments } from "@/services/intelligence/keyMoments";
 import { controlScore } from "@/services/intelligence/controlScore";
 
-/** พรีเมียร์ลีกฤดูกาลปัจจุบัน — id ของ API-Football คือ 39, football-data.org ใช้ "PL" */
-const DEFAULT_COMPETITION = "39";
-const DEFAULT_SEASON = "2026";
+import { DEFAULT_COMPETITION_ID, DEFAULT_SEASON } from "@/services/football/competitions";
 import { generateDailyDigest, runIngest, translateStories } from "@/lib/server/pipeline";
 import { getChannelAnalytics } from "@/lib/server/channel-analytics";
 import {
@@ -267,14 +265,14 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
   // เบราว์เซอร์คุยกับ endpoint พวกนี้เท่านั้น ไม่เคยเห็นคีย์หรือ payload ดิบของผู้ให้บริการ
   if (url.pathname === "/api/football/fixtures" && request.method === "GET") {
     if (env.DB) await ensureFootballTables(env.DB);
-    const competition = url.searchParams.get("competition") ?? DEFAULT_COMPETITION;
+    const competition = url.searchParams.get("competition") ?? DEFAULT_COMPETITION_ID;
     const season = url.searchParams.get("season") ?? DEFAULT_SEASON;
     return json({ ok: true, ...(await getFixtures(env, competition, season)) });
   }
 
   if (url.pathname === "/api/football/standings" && request.method === "GET") {
     if (env.DB) await ensureFootballTables(env.DB);
-    const competition = url.searchParams.get("competition") ?? DEFAULT_COMPETITION;
+    const competition = url.searchParams.get("competition") ?? DEFAULT_COMPETITION_ID;
     const season = url.searchParams.get("season") ?? DEFAULT_SEASON;
     return json({ ok: true, ...(await getStandings(env, competition, season)) });
   }
@@ -282,7 +280,7 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
   const matchMatch = url.pathname.match(/^\/api\/football\/match\/([A-Za-z0-9_-]+)$/);
   if (matchMatch && request.method === "GET") {
     if (env.DB) await ensureFootballTables(env.DB);
-    const competition = url.searchParams.get("competition") ?? DEFAULT_COMPETITION;
+    const competition = url.searchParams.get("competition") ?? DEFAULT_COMPETITION_ID;
     const season = url.searchParams.get("season") ?? DEFAULT_SEASON;
     const bundle = await getMatchBundle(env, matchMatch[1], competition, season);
     if (!bundle) return json({ ok: false, error: "fixture_not_found" }, 404);
