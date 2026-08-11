@@ -23,8 +23,34 @@ import type {
 import type { ControlScoreResult } from "@/services/intelligence/controlScore";
 import type { MatchStory } from "@/services/intelligence/matchStory";
 import type { KeyMoment } from "@/services/intelligence/keyMoments";
+import type { ImpactOutcome, LeagueImpact, TeamImpact } from "@/services/intelligence/leagueImpact";
 
 type MatchTab = "overview" | "lineups" | "events" | "stats" | "h2h" | "table" | "venue" | "travel";
+
+/** การเปลี่ยนแปลงตารางแข่งที่เซิร์ฟเวอร์ตรวจเจอ (STEP 67) */
+type FixtureChange = {
+  fixtureId: string;
+  field: "kickoff" | "venue" | "status";
+  oldValue: string;
+  newValue: string;
+  detectedAt: string;
+};
+
+const CHANGE_LABEL: Record<FixtureChange["field"], string> = {
+  kickoff: "เปลี่ยนวัน/เวลาแข่ง",
+  venue: "เปลี่ยนสนาม",
+  status: "เลื่อนหรือยกเลิก",
+};
+
+function changeText(change: FixtureChange) {
+  if (change.field === "kickoff") {
+    const format = (value: string) => new Intl.DateTimeFormat("th-TH", {
+      timeZone: "Asia/Bangkok", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    }).format(new Date(value));
+    return `${format(change.oldValue)} → ${format(change.newValue)} (เวลาไทย)`;
+  }
+  return `${change.oldValue} → ${change.newValue}`;
+}
 
 const TAB_LABELS: Array<[MatchTab, string]> = [
   ["overview", "ภาพรวม"],
@@ -56,6 +82,56 @@ function Unavailable({ reason }: { reason: string }) {
   );
 }
 
+const OUTCOME_TH: Record<ImpactOutcome, string> = { win: "ชนะ", draw: "เสมอ", loss: "แพ้" };
+
+/**
+ * "ผลนี้แปลว่าอะไร" (STEP 55, 56)
+ * ตัวเลขทุกตัวมาจากการบวกแต้มแล้วเรียงตารางใหม่ ไม่ใช่การทำนาย
+ */
+function ImpactPanel({ impact }: { impact: LeagueImpact | null }) {
+  if (!impact) {
+    return <Unavailable reason="ยังไม่มีตารางคะแนนของรายการนี้ จึงคำนวณผลกระทบไม่ได้" />;
+  }
+  const teams = [impact.home, impact.away].filter((team): team is TeamImpact => team !== null);
+  if (teams.length === 0) return null;
+
+  return (
+    <section className="mc-impact">
+      <h4>ผลนี้แปลว่าอะไร</h4>
+      <p className="mc-impact-note">
+        คำนวณจากตารางคะแนนปัจจุบัน + แต้มที่จะได้จากนัดนี้ แล้วเรียงใหม่ตามกติกาพรีเมียร์ลีก
+        (แต้ม → ผลต่างประตู → ประตูได้) ไม่ใช่การทำนายผล
+      </p>
+      <div className="mc-impact-grid">
+        {teams.map((team) => (
+          <article key={team.teamId}>
+            <header>
+              <b>{team.teamNameTh}</b>
+              <span>ตอนนี้อันดับ {team.currentPosition} · {team.currentPoints} แต้ม</span>
+            </header>
+            <ul>
+              {team.scenarios.map((scenario) => (
+                <li key={scenario.outcome} className={`mc-impact-${scenario.outcome}`}>
+                  <em>{OUTCOME_TH[scenario.outcome]}</em>
+                  <span className="mc-impact-points">{scenario.points} แต้ม</span>
+                  <span className="mc-impact-move">
+                    {scenario.positionDelta > 0 && `↑ ${scenario.positionDelta} อันดับ · `}
+                    {scenario.positionDelta < 0 && `↓ ${Math.abs(scenario.positionDelta)} อันดับ · `}
+                    อันดับ {scenario.position}
+                  </span>
+                  {scenario.overtakes.length > 0 && (
+                    <span className="mc-impact-overtake">แซง{scenario.overtakes.join(" · ")}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function StateBadge({ fixture }: { fixture: GOGFixture }) {
   return (
     <span className={`mc-state mc-state-${fixture.state}`}>
@@ -66,20 +142,24 @@ function StateBadge({ fixture }: { fixture: GOGFixture }) {
   );
 }
 
-function MatchCard({ fixture, onOpen, saved, onToggleSave, showWorth }: {
+function MatchCard({ fixture, onOpen, saved, onToggleSave, showWorth, changed }: {
   fixture: GOGFixture;
   onOpen: () => void;
   saved: boolean;
   onToggleSave: () => void;
   /** โชว์ป้ายความคุ้มค่าบินไปดู — เปิดเฉพาะตอนเรียงตามความน่าไป */
   showWorth?: boolean;
+  changed?: FixtureChange;
 }) {
   const decided = fixture.homeScore !== null && fixture.awayScore !== null;
   const worth = showWorth ? travelWorthiness(fixture) : null;
   return (
     <article className={`mc-card ${fixture.state === "live" ? "live" : ""} ${saved ? "saved" : ""}`}>
       <header>
-        <span className="mc-card-week">{fixture.matchweek ? `นัดที่ ${fixture.matchweek}` : fixture.competitionName}</span>
+        <span className="mc-card-week">
+          {fixture.matchweek ? `นัดที่ ${fixture.matchweek}` : fixture.competitionName}
+          {changed && <em className="mc-changed-tag">ตารางเปลี่ยน</em>}
+        </span>
         <span className="mc-card-head-right">
           <button
             type="button"
@@ -205,6 +285,8 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
   const [demo, setDemo] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [bundle, setBundle] = useState<GOGMatchBundle | null>(null);
+  const [changes, setChanges] = useState<FixtureChange[]>([]);
+  const [impact, setImpact] = useState<LeagueImpact | null>(null);
   const [story, setStory] = useState<MatchStory | null>(null);
   const [moments, setMoments] = useState<KeyMoment[]>([]);
   const [control, setControl] = useState<ControlScoreResult | null>(null);
@@ -260,10 +342,11 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
     let alive = true;
     fetch("/api/football/fixtures")
       .then((response) => (response.ok ? response.json() : null))
-      .then((payload: { fixtures?: GOGFixture[]; demo?: boolean } | null) => {
+      .then((payload: { fixtures?: GOGFixture[]; demo?: boolean; changes?: FixtureChange[] } | null) => {
         if (!alive || !payload) return;
         setFixtures(payload.fixtures ?? []);
         setDemo(Boolean(payload.demo));
+        setChanges(payload.changes ?? []);
       })
       .catch(() => { if (alive) setFixtures([]); });
     return () => { alive = false; };
@@ -279,11 +362,14 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
       .then((payload: {
         bundle?: GOGMatchBundle; story?: MatchStory | null;
         keyMoments?: KeyMoment[]; control?: ControlScoreResult | null;
+        impact?: LeagueImpact | null; changes?: FixtureChange[];
       } | null) => {
         setBundle(payload?.bundle ?? null);
         setStory(payload?.story ?? null);
         setMoments(payload?.keyMoments ?? []);
         setControl(payload?.control ?? null);
+        setImpact(payload?.impact ?? null);
+        if (payload?.changes) setChanges((current) => [...payload.changes!, ...current.filter((item) => item.fixtureId !== fixtureId)]);
       })
       .catch(() => setBundle(null))
       .finally(() => setLoadingMatch(false));
@@ -317,6 +403,13 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
         return a.kickoffUtc.localeCompare(b.kickoffUtc);
       });
   }, [fixtures, monthFilter, statusFilter, now, savedOnly, savedIds, sort]);
+
+  // การเปลี่ยนแปลงตารางของนัดที่เปิดอยู่ ใหม่สุดขึ้นก่อน
+  const matchChanges = useMemo(
+    () => changes.filter((change) => change.fixtureId === openId)
+      .sort((a, b) => b.detectedAt.localeCompare(a.detectedAt)),
+    [changes, openId],
+  );
 
   const homeStats = bundle?.teamStats.find((row) => row.teamId === bundle.fixture.home.id);
   const awayStats = bundle?.teamStats.find((row) => row.teamId === bundle.fixture.away.id);
@@ -430,6 +523,7 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
                   saved={savedIds.includes(fixture.id)}
                   onToggleSave={() => toggleSaved(fixture.id)}
                   showWorth={sort === "worth"}
+                  changed={changes.find((change) => change.fixtureId === fixture.id)}
                 />
               ))}
             </div>
@@ -486,6 +580,24 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
                   )}
                   {bundle.fixture.venue && <div><dt>สนาม</dt><dd>{bundle.fixture.venue.name} · {bundle.fixture.venue.city}</dd></div>}
                 </dl>
+
+                {/* ── STEP 67 · ตารางแข่งนัดนี้เคยเปลี่ยน ───────────────── */}
+                {matchChanges.length > 0 && (
+                  <div className="mc-changed" role="status">
+                    <TriangleAlert size={14} aria-hidden="true" />
+                    <div>
+                      <b>ตารางแข่งนัดนี้มีการเปลี่ยนแปลง</b>
+                      <ul>
+                        {matchChanges.map((change) => (
+                          <li key={`${change.field}-${change.detectedAt}`}>
+                            <em>{CHANGE_LABEL[change.field]}</em> {changeText(change)}
+                          </li>
+                        ))}
+                      </ul>
+                      <small>ถ้าจองตั๋วเครื่องบินหรือที่พักไว้แล้ว ตรวจสอบกับผู้ให้บริการทันที</small>
+                    </div>
+                  </div>
+                )}
 
                 {!bundle.fixture.scheduleConfirmed && (
                   <p className="mc-schedule-note">
@@ -670,6 +782,7 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
 
               {tab === "table" && (
                 <div className="mc-panel">
+                  <ImpactPanel impact={impact} />
                   {bundle.capabilities.standings ? (
                     <table className="mc-table">
                       <thead>

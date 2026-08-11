@@ -58,9 +58,91 @@ export async function ensureFootballTables(db: D1Database) {
       created_at TEXT NOT NULL,
       PRIMARY KEY (gog_id, provider, entity_type)
     )`),
+    // ประวัติการเปลี่ยนแปลงตารางแข่ง (STEP 67)
+    // พรีเมียร์ลีกเลื่อนวัน เปลี่ยนเวลา และย้ายสนามตามการถ่ายทอดสดอยู่เรื่อย
+    // คนที่จองตั๋วเครื่องบินไปแล้วต้องรู้ก่อนใคร เพราะตั๋วส่วนใหญ่คืนเงินไม่ได้
+    db.prepare(`CREATE TABLE IF NOT EXISTS football_fixture_changes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      fixture_id TEXT NOT NULL,
+      field TEXT NOT NULL,
+      old_value TEXT NOT NULL,
+      new_value TEXT NOT NULL,
+      detected_at TEXT NOT NULL
+    )`),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_football_cache_expires ON football_cache(expires_at)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_football_log_created ON football_provider_log(created_at)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_fixture_changes_fixture ON football_fixture_changes(fixture_id, detected_at)"),
   ]);
+}
+
+/** ชนิดการเปลี่ยนแปลงที่ผู้ใช้ต้องรู้จริง ๆ — ไม่เก็บทุกฟิลด์เพราะจะกลายเป็นขยะ */
+export type FixtureChange = {
+  fixtureId: string;
+  field: "kickoff" | "venue" | "status";
+  oldValue: string;
+  newValue: string;
+  detectedAt: string;
+};
+
+/**
+ * เทียบปฏิทินชุดเก่ากับชุดใหม่แล้วคืนเฉพาะสิ่งที่เปลี่ยนจริง
+ * เทียบด้วย gogFixtureId ซึ่งประกอบจากคู่ทีม + วันเตะ
+ * แปลว่าถ้า "เลื่อนวัน" id จะเปลี่ยนไปด้วย จึงต้องจับคู่ด้วยคู่ทีมอีกชั้นหนึ่ง
+ * ไม่งั้นการเลื่อนวันจะดูเหมือนแมตช์เก่าหายไปแล้วมีแมตช์ใหม่โผล่มาแทน
+ */
+export function diffFixtures(previous: GOGFixture[], next: GOGFixture[]): FixtureChange[] {
+  const pairKey = (fixture: GOGFixture) => `${fixture.home.id}|${fixture.away.id}`;
+  const before = new Map(previous.map((fixture) => [pairKey(fixture), fixture]));
+  const detectedAt = new Date().toISOString();
+  const changes: FixtureChange[] = [];
+
+  for (const fixture of next) {
+    const old = before.get(pairKey(fixture));
+    if (!old) continue;
+
+    if (old.kickoffUtc !== fixture.kickoffUtc) {
+      changes.push({
+        fixtureId: fixture.id, field: "kickoff",
+        oldValue: old.kickoffUtc, newValue: fixture.kickoffUtc, detectedAt,
+      });
+    }
+    const oldVenue = old.venue?.name ?? "";
+    const newVenue = fixture.venue?.name ?? "";
+    // สนามว่างเปล่ากลายเป็นมีชื่อ = ผู้ให้บริการเพิ่งเติมข้อมูล ไม่ใช่ย้ายสนาม
+    if (oldVenue && newVenue && oldVenue !== newVenue) {
+      changes.push({ fixtureId: fixture.id, field: "venue", oldValue: oldVenue, newValue: newVenue, detectedAt });
+    }
+    if (old.state !== fixture.state && (fixture.state === "postponed" || fixture.state === "cancelled")) {
+      changes.push({ fixtureId: fixture.id, field: "status", oldValue: old.state, newValue: fixture.state, detectedAt });
+    }
+  }
+  return changes;
+}
+
+async function recordFixtureChanges(db: D1Database, changes: FixtureChange[]) {
+  if (changes.length === 0) return;
+  await db.batch(changes.map((change) =>
+    db.prepare(`INSERT INTO football_fixture_changes (fixture_id, field, old_value, new_value, detected_at)
+      VALUES (?, ?, ?, ?, ?)`)
+      .bind(change.fixtureId, change.field, change.oldValue, change.newValue, change.detectedAt)));
+}
+
+/** การเปลี่ยนแปลงล่าสุด — ใช้ติดป้ายบนการ์ดแมตช์และหน้าแมตช์ */
+export async function listFixtureChanges(env: RuntimeEnv, days = 30): Promise<FixtureChange[]> {
+  if (!env.DB) return [];
+  await ensureFootballTables(env.DB);
+  const since = new Date(Date.now() - days * 24 * 3_600_000).toISOString();
+  const rows = await env.DB.prepare(`SELECT fixture_id, field, old_value, new_value, detected_at
+    FROM football_fixture_changes WHERE detected_at >= ? ORDER BY id DESC LIMIT 200`)
+    .bind(since)
+    .all<{ fixture_id: string; field: string; old_value: string; new_value: string; detected_at: string }>();
+  return (rows.results ?? []).map((row) => ({
+    fixtureId: row.fixture_id,
+    field: row.field as FixtureChange["field"],
+    oldValue: row.old_value,
+    newValue: row.new_value,
+    detectedAt: row.detected_at,
+  }));
 }
 
 type CacheRow = { payload_json: string; retrieved_at: string; expires_at: string; provider: string };
@@ -161,6 +243,8 @@ function fixtureTtl(fixture: GOGFixture | null) {
 export async function getFixtures(env: RuntimeEnv, competitionId: string, season: string) {
   const set = providersFor(env);
   const key = `fixtures:${competitionId}:${season}`;
+  // อ่านชุดเดิมไว้ก่อน เพื่อเทียบหาการเปลี่ยนแปลงหลังดึงชุดใหม่ (STEP 67)
+  const previous = env.DB ? await readCache<GOGFixture[]>(env.DB, key) : null;
 
   const loaded = await cached<GOGFixture[]>(env, key, CACHE_TTL.fixtures, "fixtures", async () => {
     const attempts: AttemptLog[] = [];
@@ -213,6 +297,12 @@ export async function getFixtures(env: RuntimeEnv, competitionId: string, season
       attempts,
     };
   });
+
+  // provider ไม่เป็น null = เพิ่งดึงมาใหม่จริง ๆ ไม่ใช่อ่านจากแคช จึงค่อยเทียบ
+  if (env.DB && loaded.provider && previous && loaded.data) {
+    const changes = diffFixtures(previous.value, loaded.data);
+    await recordFixtureChanges(env.DB, changes);
+  }
 
   return { fixtures: loaded.data ?? [], stale: loaded.stale, retrievedAt: loaded.retrievedAt, demo: set.demoMode };
 }

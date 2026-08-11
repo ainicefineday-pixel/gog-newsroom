@@ -18,8 +18,9 @@ import {
 import { fetchMatchWeather } from "@/services/weather";
 import { gbpToThb } from "@/lib/server/fx";
 import {
-  ensureFootballTables, getFixtures, getMatchBundle, getProviderHealth, getStandings,
+  ensureFootballTables, getFixtures, getMatchBundle, getProviderHealth, getStandings, listFixtureChanges,
 } from "@/lib/server/football";
+import { leagueImpact } from "@/services/intelligence/leagueImpact";
 import { buildMatchStory } from "@/services/intelligence/matchStory";
 import { buildKeyMoments } from "@/services/intelligence/keyMoments";
 import { controlScore } from "@/services/intelligence/controlScore";
@@ -267,7 +268,9 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
     if (env.DB) await ensureFootballTables(env.DB);
     const competition = url.searchParams.get("competition") ?? DEFAULT_COMPETITION_ID;
     const season = url.searchParams.get("season") ?? DEFAULT_SEASON;
-    return json({ ok: true, ...(await getFixtures(env, competition, season)) });
+    const result = await getFixtures(env, competition, season);
+    // ส่งการเปลี่ยนแปลงตารางแข่งไปด้วย เพื่อให้การ์ดติดป้ายได้โดยไม่ต้องยิงซ้ำ
+    return json({ ok: true, ...result, changes: await listFixtureChanges(env) });
   }
 
   if (url.pathname === "/api/football/standings" && request.method === "GET") {
@@ -284,6 +287,7 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
     const season = url.searchParams.get("season") ?? DEFAULT_SEASON;
     const bundle = await getMatchBundle(env, matchMatch[1], competition, season);
     if (!bundle) return json({ ok: false, error: "fixture_not_found" }, 404);
+    const changes = (await listFixtureChanges(env)).filter((change) => change.fixtureId === bundle.fixture.id);
     return json({
       ok: true,
       bundle,
@@ -293,6 +297,8 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
         bundle.teamStats.find((row) => row.teamId === bundle.fixture.home.id),
         bundle.teamStats.find((row) => row.teamId === bundle.fixture.away.id),
       ),
+      impact: leagueImpact(bundle.fixture, bundle.standings),
+      changes,
     });
   }
 

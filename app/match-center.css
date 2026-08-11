@@ -291,6 +291,49 @@
 
 .mc-sync { display: flex; align-items: center; gap: 7px; margin: 16px 0 0; color: #5d626b; font: 500 9.5px/1.6 "Kanit",sans-serif; }
 
+/* ── ตารางแข่งเปลี่ยน (STEP 67) ──────────────────────────────────────── */
+.mc-changed-tag {
+  margin-left: 8px; padding: 2px 7px; border-radius: 999px;
+  background: #f0a5001f; border: 1px solid #f0a50055; color: #f0a500;
+  font: 800 8.5px/1.5 "Kanit",sans-serif; font-style: normal; letter-spacing: .04em;
+}
+.mc-changed {
+  display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start;
+  margin-bottom: 16px; padding: 13px 16px; border-radius: 11px;
+  background: #f0a5000f; border: 1px solid #f0a50040; color: #f0a500;
+}
+.mc-changed b { display: block; color: #ffc94d; font: 800 12px/1.5 "Kanit",sans-serif; }
+.mc-changed ul { list-style: none; margin: 7px 0 0; padding: 0; display: grid; gap: 5px; }
+.mc-changed li { color: #e7e9ec; font: 500 11px/1.6 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.mc-changed li em { color: #f0a500; font: 700 11px/1.6 "Kanit",sans-serif; font-style: normal; margin-right: 6px; }
+.mc-changed small { display: block; margin-top: 8px; color: #9aa0a8; font: 400 10px/1.6 "Kanit",sans-serif; }
+
+/* ── ผลนี้แปลว่าอะไร (STEP 55, 56) ───────────────────────────────────── */
+.mc-impact { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.mc-impact > h4 { margin: 0; color: #fff; font: 800 14px/1.5 "Kanit",sans-serif; }
+.mc-impact-note { margin: 5px 0 0; color: var(--muted); font: 400 10.5px/1.65 "Kanit",sans-serif; }
+.mc-impact-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 11px; margin-top: 14px; }
+.mc-impact-grid article { border: 1px solid var(--line); border-radius: 11px; background: #0f1218; padding: 14px 16px; }
+.mc-impact-grid header b { display: block; color: #fff; font: 800 13px/1.45 "Kanit",sans-serif; }
+.mc-impact-grid header span { display: block; margin-top: 2px; color: #6b7078; font: 500 10px/1.55 "Kanit",sans-serif; }
+.mc-impact-grid ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
+.mc-impact-grid li {
+  display: grid; grid-template-columns: 40px auto 1fr; gap: 4px 9px; align-items: baseline;
+  padding: 8px 11px; border-radius: 9px; background: #14171d; border-left: 3px solid #3a3f47;
+}
+.mc-impact-grid li em { color: #e7e9ec; font: 800 11.5px/1.5 "Kanit",sans-serif; font-style: normal; }
+.mc-impact-points { color: #fff; font: 800 12px/1.5 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.mc-impact-move { color: #9aa0a8; font: 500 10.5px/1.55 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.mc-impact-overtake { grid-column: 2 / -1; color: #f0a500; font: 600 10px/1.55 "Kanit",sans-serif; }
+.mc-impact-win { border-left-color: #2ecc71; }
+.mc-impact-draw { border-left-color: #8a9099; }
+.mc-impact-loss { border-left-color: #e05c5c; }
+
+@media (max-width: 720px) {
+  .mc-impact-grid li { grid-template-columns: 38px auto; }
+  .mc-impact-move { grid-column: 1 / -1; }
+}
+
 @media (max-width: 720px) {
   .mc-tabs { top: 0; }
   .mc-match-teams { gap: 10px; }
