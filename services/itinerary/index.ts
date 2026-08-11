@@ -303,7 +303,8 @@ function buildMatchDay(dayNumber: number, date: string, input: ItineraryInput, u
     {
       time: minutesToClock(leaveHotel),
       icon: "transport",
-      title: input.awayDay ? `นั่งรถไฟไป${input.venueCity ?? "สนาม"}` : "ออกจากโรงแรมไปสนาม",
+      // ชื่อเมืองและชื่อสนามเป็นอักษรละติน ต้องเว้นวรรคหน้า ไม่งั้นได้ "นั่งรถไฟไปHull"
+      title: input.awayDay ? `นั่งรถไฟไป ${input.venueCity ?? "สนาม"}` : "ออกจากโรงแรมไปสนาม",
       detail: input.awayDay
         ? `เผื่อเวลาไปกลับสถานี + นั่งรถไฟรวม ${input.minutesToStadium} นาที + 15 นาทีสำรอง — จองตั๋วล่วงหน้าถูกกว่าและได้ที่นั่งแน่นอน`
         : `เผื่อเวลาเดินทาง ${input.minutesToStadium} นาที + 15 นาทีสำรอง วันแข่งรถไฟแน่นกว่าปกติมาก`,
@@ -324,7 +325,7 @@ function buildMatchDay(dayNumber: number, date: string, input: ItineraryInput, u
     {
       time: minutesToClock(arriveStadium),
       icon: "ticket",
-      title: `ถึง${input.stadium ?? "สนาม"} — เข้าประตูและหาที่นั่ง`,
+      title: `ถึง ${input.stadium ?? "สนาม"} — เข้าประตูและหาที่นั่ง`,
       detail: "เช็กกฎกระเป๋าของสนามก่อนออกจากโรงแรม ส่วนใหญ่ห้ามกระเป๋าใหญ่กว่า A4",
       durationMinutes: 75,
       costThb: 0,

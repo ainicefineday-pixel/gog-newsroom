@@ -79,6 +79,72 @@
 .cost-line small { display: block; color: var(--muted); font-size: 9.5px; margin-top: 4px; }
 .trip-disclaimer { color: var(--muted); font: 400 10.5px/1.7 "Kanit",sans-serif; margin: 14px 0 0; }
 
+/* ── โหมดเพื่อนคู่ใจวันแข่ง (STEP 77) ────────────────────────────────── */
+.companion {
+  margin-bottom: 18px; padding: 18px 20px; border-radius: 13px;
+  background: #0f1218; border: 1px solid var(--line);
+}
+/* วันแข่งเปลี่ยนสีทั้งกล่อง เพื่อให้รู้ทันทีว่าวันนี้คือวันนั้น */
+.companion.matchday { background: linear-gradient(135deg,#1c0d0d,#0f1218); border-color: #da020240; }
+.companion > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.companion strong {
+  display: flex; align-items: center; gap: 7px; margin-top: 5px;
+  color: #fff; font: 800 14px/1.45 "Kanit",sans-serif;
+}
+.companion.matchday strong { color: #ff5a5a; }
+.companion > header small { display: block; margin-top: 4px; color: #6b7078; font: 500 10px/1.6 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.companion-preview {
+  padding: 7px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  background: #ffffff0d; border: 1px solid var(--line); color: #9aa0a8; font: 700 10px/1 "Kanit",sans-serif;
+}
+.companion-preview:hover { background: #ffffff18; color: #e7e9ec; }
+
+.companion-alerts { list-style: none; margin: 15px 0 0; padding: 0; display: grid; gap: 6px; }
+.companion-alerts li {
+  display: grid; grid-template-columns: auto 1fr; gap: 9px; align-items: start;
+  padding: 10px 13px; border-radius: 9px; background: #14171d; border-left: 3px solid #3a3f47;
+  color: #c9ccd1; font: 500 11px/1.6 "Kanit",sans-serif;
+}
+.companion-alerts li.urgent { background: #da020218; border-left-color: #da0202; color: #ff8a8a; font-weight: 700; }
+.companion-alerts li.warn { background: #f0a50014; border-left-color: #f0a500; color: #ffc94d; }
+.companion-alerts li svg { margin-top: 2px; }
+
+.companion-cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); gap: 11px; margin-top: 13px; }
+.companion-cards article { padding: 14px 16px; border-radius: 11px; background: #14171d; border: 1px solid var(--line); }
+.companion-now { border-left: 3px solid #2ecc71 !important; }
+.companion-next { border-left: 3px solid #f0a500 !important; }
+.companion-cards span {
+  display: block; margin-bottom: 6px; color: #6b7078;
+  font: 800 9px/1.5 "Kanit",sans-serif; letter-spacing: .08em; text-transform: uppercase;
+}
+.companion-cards b { display: block; color: #fff; font: 800 13px/1.5 "Kanit",sans-serif; }
+.companion-cards b.companion-idle { color: #8a9099; font-weight: 600; }
+.companion-cards p { margin: 5px 0 0; color: #9aa0a8; font: 400 10.5px/1.65 "Kanit",sans-serif; }
+.companion-cards small { display: block; margin-top: 5px; color: #6b7078; font: 500 9.5px/1.55 "Kanit",sans-serif; }
+
+.companion-deadlines { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 5px; }
+.companion-deadlines li {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 11px; align-items: baseline;
+  padding: 9px 13px; border-radius: 9px; background: #14171d;
+}
+.companion-deadlines b { color: #f0a500; font: 800 11px/1.5 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.companion-deadlines span { color: #c9ccd1; font: 600 11px/1.5 "Kanit",sans-serif; }
+.companion-deadlines em {
+  padding: 2px 9px; border-radius: 999px; background: #ffffff0d;
+  color: #8a9099; font: 700 9.5px/1.5 "Kanit",sans-serif; font-style: normal; white-space: nowrap;
+}
+
+.companion-stadium { margin-top: 13px; padding: 13px 16px; border-radius: 11px; background: #14171d; border: 1px solid var(--line); }
+.companion-stadium > b { display: block; margin-bottom: 8px; color: #fff; font: 800 12px/1.5 "Kanit",sans-serif; }
+.companion-stadium dl { margin: 0; display: grid; gap: 7px; }
+.companion-stadium dt { color: #6b7078; font: 700 9.5px/1.5 "Kanit",sans-serif; }
+.companion-stadium dd { margin: 2px 0 0; color: #c9ccd1; font: 500 10.5px/1.6 "Kanit",sans-serif; }
+
+@media (max-width: 720px) {
+  .companion-deadlines li { grid-template-columns: auto 1fr; }
+  .companion-deadlines em { grid-column: 2; justify-self: start; }
+}
+
 /* ── ส่งคำขอทั้งทริปในครั้งเดียว (STEP 76) ───────────────────────────── */
 .trip-request {
   margin-top: 18px; padding: 18px 20px; border-radius: 13px;

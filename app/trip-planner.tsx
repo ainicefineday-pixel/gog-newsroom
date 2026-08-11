@@ -10,13 +10,16 @@ import {
   Check,
   ChevronDown,
   Clock,
+  CloudRain,
   CloudSun,
   Coffee,
   Coins,
   Handshake,
   Hotel,
+  Info,
   Landmark,
   MapPin,
+  Navigation,
   Plane,
   Plus,
   Share2,
@@ -75,6 +78,7 @@ import {
 } from "@/services/visa";
 import { leaveDaysFor, thaiHoliday, isThaiWeekend } from "@/config/thai-holidays";
 import type { MatchWeather } from "@/services/weather";
+import { buildCompanionView, inMinutesTh, type CompanionAlert } from "@/services/intelligence/companion";
 import { formatThb } from "@/services/pricing";
 import { FLIGHT_OPTIONS } from "@/services/flights";
 import { HOTEL_OPTIONS } from "@/services/hotels";
@@ -331,6 +335,154 @@ function TripCalendar({ departDate, returnDate, matchDate, lodgeBy }: {
         <li><i className="dot leave" /> ต้องลางาน</li>
         <li><i className="dot lodge" /> เส้นตายยื่นวีซ่า</li>
       </ul>
+    </div>
+  );
+}
+
+// ── โหมดเพื่อนคู่ใจวันแข่ง (STEP 77) ────────────────────────────────────
+// ตอนยืนอยู่กลางแมนเชสเตอร์ ไม่มีใครอยากเลื่อนดูแผนทั้ง 5 วัน
+// อยากรู้แค่ "ตอนนี้ควรทำอะไร แล้วอีกกี่นาทีต้องออก"
+
+const ALERT_ICON: Record<CompanionAlert["level"], typeof Clock> = {
+  urgent: TriangleAlert,
+  warn: CloudRain,
+  info: Info,
+};
+
+/**
+ * เวลาอังกฤษปัจจุบัน — ต้องใช้ Intl เท่านั้น
+ * Europe/London เปลี่ยนเวลาปีละสองครั้ง (GMT ฤดูหนาว BST ฤดูร้อน)
+ * ถ้าบวกลบชั่วโมงเองจะผิดทุกครั้งที่ข้ามช่วง DST ซึ่งกินเวลาครึ่งฤดูกาลพอดี
+ */
+function ukNow(at: Date) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(at);
+  const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "00";
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    minutes: Number(get("hour")) * 60 + Number(get("minute")),
+    clock: `${get("hour")}:${get("minute")}`,
+  };
+}
+
+function MatchdayCompanion({ itinerary, matchDate, kickoffUtc, venueName, weather }: {
+  itinerary: ItineraryDay[];
+  matchDate: string | null;
+  kickoffUtc: string | null;
+  venueName: string | null;
+  weather: MatchWeather | null;
+}) {
+  // เวลาปัจจุบันอ่านหลัง hydrate เท่านั้น ไม่งั้น server กับ client เรนเดอร์คนละเวลา
+  const [at, setAt] = useState<Date | null>(null);
+  const [preview, setPreview] = useState(false);
+
+  useEffect(() => {
+    window.queueMicrotask(() => setAt(new Date()));
+    const timer = window.setInterval(() => setAt(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  // โหมดพรีวิว: ให้ดูได้ว่าวันแข่งหน้าตาเป็นยังไง ทั้งที่ยังไม่ถึงวัน
+  // ไม่ใช่ของปลอม — เป็นแผนวันแข่งจริง แค่สมมติว่าตอนนี้ 9 โมงเช้าอังกฤษ
+  const effective = useMemo(() => {
+    if (preview && matchDate) return { date: matchDate, minutes: 9 * 60, clock: "09:00" };
+    return at ? ukNow(at) : null;
+  }, [preview, matchDate, at]);
+
+  const view = useMemo(() => (effective ? buildCompanionView({
+    itinerary,
+    ukDate: effective.date,
+    ukMinutes: effective.minutes,
+    matchDate: matchDate ?? "",
+    kickoffUtc, venueName, weather,
+  }) : null), [itinerary, effective, matchDate, kickoffUtc, venueName, weather]);
+
+  if (itinerary.length === 0) return null;
+
+  return (
+    <div className={`companion ${view?.status ?? "loading"}`}>
+      <header>
+        <div>
+          <span className="eyebrow">MATCHDAY COMPANION</span>
+          <strong><Navigation size={15} aria-hidden="true" /> ตอนนี้ควรทำอะไร</strong>
+          <small>
+            {effective
+              ? `เวลาอังกฤษ ${effective.clock} · ${thaiDate(effective.date)}${preview ? " (พรีวิววันแข่ง)" : ""}`
+              : "กำลังอ่านเวลา…"}
+          </small>
+        </div>
+        {matchDate && (
+          <button type="button" className="companion-preview" onClick={() => setPreview((value) => !value)}>
+            {preview ? "กลับไปเวลาจริง" : "พรีวิววันแข่ง"}
+          </button>
+        )}
+      </header>
+
+      {view && (
+        <>
+          {view.alerts.length > 0 && (
+            <ul className="companion-alerts">
+              {view.alerts.map((alert, index) => {
+                const AlertIcon = ALERT_ICON[alert.level];
+                return (
+                  <li key={`${alert.level}-${index}`} className={alert.level}>
+                    <AlertIcon size={13} aria-hidden="true" />
+                    <span>{alert.text}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {(view.now || view.next) && (
+            <div className="companion-cards">
+              <article className="companion-now">
+                <span>ตอนนี้</span>
+                {view.now ? (
+                  <>
+                    <b>{view.now.title}</b>
+                    <p>{view.now.detail}</p>
+                    {view.now.area && <small>{view.now.area}</small>}
+                  </>
+                ) : (
+                  <b className="companion-idle">ช่วงว่าง — เดินเล่นได้ตามสบาย</b>
+                )}
+              </article>
+              {view.next && (
+                <article className="companion-next">
+                  <span>ถัดไป · {inMinutesTh(view.next.inMinutes)}</span>
+                  <b>{view.next.item.time} {view.next.item.title}</b>
+                  <p>{view.next.item.detail}</p>
+                </article>
+              )}
+            </div>
+          )}
+
+          {view.deadlines.length > 0 && (
+            <ol className="companion-deadlines">
+              {view.deadlines.map((entry) => (
+                <li key={`${entry.item.time}-${entry.item.title}`}>
+                  <b>{entry.item.time}</b>
+                  <span>{entry.item.title}</span>
+                  <em>{inMinutesTh(entry.inMinutes)}</em>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          {view.status === "matchday" && view.stadium && (
+            <div className="companion-stadium">
+              <b>{view.stadium.stadium}</b>
+              <dl>
+                <div><dt>สถานีใกล้สุด</dt><dd>{view.stadium.nearestStation}</dd></div>
+                <div><dt>เดินทางในเมือง</dt><dd>{view.stadium.localTransit}</dd></div>
+              </dl>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -1516,6 +1668,13 @@ export function TripPlanner({ initialFixtureKey }: { initialFixtureKey?: string 
               </div>
             )}
 
+            <MatchdayCompanion
+              itinerary={visibleItinerary}
+              matchDate={matchDate}
+              kickoffUtc={fixture?.kickoffUtc ?? null}
+              venueName={fixture?.stadium ?? null}
+              weather={weather}
+            />
             <div className="itinerary-days">
               {visibleItinerary.map((day) => (
                 <ItineraryDayCard
