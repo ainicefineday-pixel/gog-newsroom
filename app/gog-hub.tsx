@@ -249,13 +249,13 @@ export function GogTeamPanel() {
         </div>
       </div>
 
+      {/* ลำดับทีม: อ.ดุ๊ก · อั้ม · โยโย่ — เลขบนการ์ดไล่ตามลำดับที่แสดงจริง */}
       <div className="creator-grid">
-        <article className="creator-card creator-yo">
+        <article className="creator-card creator-duke">
           <span className="creator-number">01</span>
-          <div><span className="eyebrow">GOG CREATOR</span><h3>โยโย่</h3><strong>ธีรัตน์ ภิรมย์สวัสดิ์</strong></div>
-          <div className="creator-links">
-            <a href="https://www.tiktok.com/@yo_theerat" target="_blank" rel="noreferrer"><span>TT</span>TikTok @yo_theerat<b>↗</b></a>
-            <a href="https://www.instagram.com/yo_theerat/" target="_blank" rel="noreferrer"><span>IG</span>Instagram @yo_theerat<b>↗</b></a>
+          <div><span className="eyebrow">AI ENGINEERING &amp; PROJECT LEAD</span><h3>อ.ดุ๊ก</h3><strong>อ.ธาริน กุลชล</strong></div>
+          <div className="creator-role-note">
+            <p>ออกแบบและคุมระบบเบื้องหลังทั้งหมดของ GOG NEWSROOM ตั้งแต่สายข่าวอัตโนมัติ การตรวจแหล่งที่มา ไปจนถึงการนำ AI มาเรียบเรียงเป็นภาษาไทย</p>
           </div>
         </article>
         <article className="creator-card creator-aum">
@@ -267,11 +267,12 @@ export function GogTeamPanel() {
             <a href="https://www.tiktok.com/@footballgenius_official" target="_blank" rel="noreferrer"><span>TT</span>TikTok @footballgenius_official<b>↗</b></a>
           </div>
         </article>
-        <article className="creator-card creator-duke">
+        <article className="creator-card creator-yo">
           <span className="creator-number">03</span>
-          <div><span className="eyebrow">AI ENGINEERING &amp; PROJECT LEAD</span><h3>อ.ดุ๊ก</h3><strong>อ.ธาริน กุลชล</strong></div>
-          <div className="creator-role-note">
-            <p>ออกแบบและคุมระบบเบื้องหลังทั้งหมดของ GOG NEWSROOM ตั้งแต่สายข่าวอัตโนมัติ การตรวจแหล่งที่มา ไปจนถึงการนำ AI มาเรียบเรียงเป็นภาษาไทย</p>
+          <div><span className="eyebrow">GOG CREATOR</span><h3>โยโย่</h3><strong>ธีรัตน์ ภิรมย์สวัสดิ์</strong></div>
+          <div className="creator-links">
+            <a href="https://www.tiktok.com/@yo_theerat" target="_blank" rel="noreferrer"><span>TT</span>TikTok @yo_theerat<b>↗</b></a>
+            <a href="https://www.instagram.com/yo_theerat/" target="_blank" rel="noreferrer"><span>IG</span>Instagram @yo_theerat<b>↗</b></a>
           </div>
         </article>
       </div>
