@@ -130,6 +130,25 @@ export async function ensureDatabase(db: D1Database) {
       done INTEGER NOT NULL DEFAULT 0,
       updated_at TEXT NOT NULL
     )`),
+    // ข่าวเรื่องเดียวกันที่คนละสำนักพาดหัวคนละแบบ
+    // ต้องเก็บถาวร ไม่ใช่รวมทีเดียวจบ เพราะรอบซิงก์ถัดไป (อีก 10 นาที)
+    // จะเขียนข่าวที่ถูกยุบกลับเข้ามาใหม่จาก id เดิมที่คิดจากพาดหัว
+    db.prepare(`CREATE TABLE IF NOT EXISTS story_merges (
+      absorbed_id TEXT PRIMARY KEY,
+      primary_id TEXT NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      decided_by TEXT NOT NULL DEFAULT 'claude',
+      created_at TEXT NOT NULL
+    )`),
+    // รอบการจัดกลุ่มข่าวซ้ำ — คุมไม่ให้เรียกโมเดลถี่เกินจำเป็น
+    db.prepare(`CREATE TABLE IF NOT EXISTS merge_runs (
+      slot TEXT PRIMARY KEY,
+      examined INTEGER NOT NULL DEFAULT 0,
+      grouped INTEGER NOT NULL DEFAULT 0,
+      note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    )`),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_story_merges_primary ON story_merges(primary_id)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_source_runs_started ON source_runs(run_started_at)"),
     db.prepare(`CREATE TABLE IF NOT EXISTS x_posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

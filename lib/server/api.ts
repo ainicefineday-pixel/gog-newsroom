@@ -30,6 +30,7 @@ import { linkStories, storiesForFixture } from "@/services/intelligence/newsMatc
 import { rankMatches, type MatchFitResult } from "@/services/intelligence/matchFit";
 import { publishFinishedMatchReports } from "@/lib/server/match-reports";
 import { getIngestProgress, getNewsFlow } from "@/lib/server/news-flow";
+import { applyStoryMerges, decideStoryMerges } from "@/lib/server/story-merge";
 import type { BudgetStyle } from "@/services/trip/types";
 import type { GOGFixture } from "@/services/football/types";
 import type { Story } from "@/lib/types";
@@ -173,6 +174,19 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
     // เชื่อมข่าวกับโปรแกรมแข่ง (STEP 71) — ผูกไม่ได้ก็ส่งลิสต์ว่าง ไม่ทำให้ฟีดข่าวพัง
     const matchLinks = await newsMatchLinks(env, stories);
     return json({ stories, lastSync, matchLinks, capabilities: sourceCapabilities(env) });
+  }
+
+  // สั่งจัดกลุ่มข่าวซ้ำด้วยมือ — ปกติครอนทำให้วันละ 3 ครั้ง
+  // ต้องมี CRON_SECRET เพราะเรียกโมเดลซึ่งมีค่าใช้จ่าย และแก้คลังข่าวจริง
+  if (url.pathname === "/api/stories/merge" && request.method === "POST") {
+    const denied = adminAuthorizationError(request, env);
+    if (denied) return denied;
+    const force = url.searchParams.get("force") === "1";
+    // dry=1 คือลองดูเฉย ๆ ไม่บันทึกและไม่ลบข่าว — ควรรันก่อนเสมอ
+    const dryRun = url.searchParams.get("dry") === "1";
+    const decision = await decideStoryMerges(env, force, dryRun);
+    const applied = dryRun ? { folded: 0, removed: 0 } : await applyStoryMerges(env);
+    return json({ ok: true, dryRun, decision, applied });
   }
 
   // ผังสายข่าว — ตัวเลขทุกตัวมาจากตารางจริง ไม่มีค่าประดับ

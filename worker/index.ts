@@ -4,6 +4,7 @@ import handler from "vinext/server/app-router-entry";
 import { handleApi } from "../lib/server/api";
 import { maybeGenerateMorningDigest, runIngest } from "../lib/server/pipeline";
 import { publishFinishedMatchReports } from "../lib/server/match-reports";
+import { applyStoryMerges, decideStoryMerges } from "../lib/server/story-merge";
 import type { RuntimeEnv } from "../lib/server/database";
 
 interface Env extends RuntimeEnv {
@@ -108,6 +109,10 @@ const worker = {
   async scheduled(_controller: unknown, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(
       runIngest(env)
+        // จัดกลุ่มข่าวซ้ำ — ตัดสินวันละ 3 ครั้ง (เรียกโมเดล) แต่บังคับใช้ทุกรอบ
+        // เพราะรอบซิงก์เพิ่งเขียนข่าวที่เคยยุบไปแล้วกลับเข้ามาใหม่
+        .then(() => decideStoryMerges(env).catch(() => undefined))
+        .then(() => applyStoryMerges(env).catch(() => undefined))
         .then(() => maybeGenerateMorningDigest(env))
         // รายงานผลบอลอัตโนมัติ (STEP 45) — ต่อท้ายรอบเดิม ไม่ต้องตั้ง cron แยก
         // catch ไว้เพราะผู้ให้บริการฟุตบอลล่มไม่ควรทำให้การดึงข่าวรอบนี้ถือว่าล้มเหลว
