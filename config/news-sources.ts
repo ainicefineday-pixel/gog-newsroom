@@ -28,6 +28,37 @@ export const RSS_NEWS_SOURCES = [
     feedUrl: "https://www.nytimes.com/athletic/rss/football/",
     tier: 1,
   },
+  {
+    // ฟีดเฉพาะแมนยูของ BBC — รายการน้อย (ราว 4 ชิ้น) แต่เกี่ยวกับสโมสรทุกชิ้น
+    // ต่างจากฟีดฟุตบอลรวมข้างบนที่มี 76 ชิ้นแต่เกี่ยวกับแมนยูแค่ 2-4 ชิ้น
+    // เก็บทั้งสองฟีดไว้ ตัวจับกลุ่มข่าวซ้ำจัดการเรื่องซ้ำให้เอง
+    id: "bbcmutd",
+    name: "BBC Sport · แมนยู",
+    homepage: "https://www.bbc.com/sport/football/teams/manchester-united",
+    domain: "bbc.com",
+    feedUrl: "https://feeds.bbci.co.uk/sport/football/teams/manchester-united/rss.xml",
+    tier: 1,
+  },
+  {
+    // ทดสอบ 12 ส.ค. 2569: 25 รายการ เจอคำว่าแมนยู 110 ครั้ง
+    // เป็นแท็บลอยด์ ข่าวลือเยอะ จึงตกไปเป็น tier 3 ตามค่าเริ่มต้นของตัวให้คะแนน
+    // ซึ่งถูกต้องแล้ว ไม่ต้องเพิ่มกฎให้
+    id: "mirror",
+    name: "Mirror Football",
+    homepage: "https://www.mirror.co.uk/all-about/manchester-united-fc",
+    domain: "mirror.co.uk",
+    feedUrl: "https://www.mirror.co.uk/all-about/manchester-united-fc/?service=rss",
+    tier: 3,
+  },
+  {
+    // ทดสอบ 12 ส.ค. 2569: 100 รายการ เจอคำว่าแมนยู 71 ครั้ง
+    id: "talksport",
+    name: "talkSPORT",
+    homepage: "https://talksport.com/football/",
+    domain: "talksport.com",
+    feedUrl: "https://talksport.com/football/feed/",
+    tier: 3,
+  },
   // The Telegraph ถูกถอดออกเมื่อ 12 ส.ค. 2569
   // ระบบกันบอทของเขาตอบ 403 กับทุก user-agent ที่ไม่อยู่ในรายการอนุญาต
   // (ทดสอบแล้ว: curl ผ่าน แต่ Wget, Chrome, Feedly และชื่อของเราเองโดนบล็อกหมด)

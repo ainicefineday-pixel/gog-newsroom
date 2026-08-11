@@ -579,7 +579,14 @@ export async function runIngest(env: RuntimeEnv) {
       try { await db.batch(runRows); } catch { /* สถิติรายแหล่งพลาด ไม่ควรทำให้ซิงก์ล้ม */ }
     }
 
-    const clusters = clusterItems(relevant).slice(0, 40);
+    // เพดานจำนวนข่าวต่อรอบ
+    // เดิม 40 ตั้งไว้ตอนมี 5 แหล่งและผ่านเกณฑ์รอบละ ~47 ชิ้น
+    // พอเพิ่ม Guardian, Mirror, talkSPORT และฟีดแมนยูของ BBC เป็น 9 แหล่ง
+    // ยอดผ่านเกณฑ์ขึ้นเป็น ~99 ชิ้น เพดานเดิมจึงทิ้งข่าวที่เกี่ยวกับแมนยูจริง
+    // ไปเกือบ 60 ชิ้นทุกรอบ และเป็นชิ้นที่เก่ากว่าเพื่อนจึงไม่มีวันได้เข้าคลังเลย
+    // 90 พอสำหรับโหลดปัจจุบัน คิดเป็นการเขียน D1 ราว 13,000 ครั้งต่อวัน
+    // (90 × 144 รอบ) ยังห่างจากเพดานฟรี 100,000 ครั้งต่อวันมาก
+    const clusters = clusterItems(relevant).slice(0, 90);
     const categories = clusters.map((cluster) => categorizeStory(cluster.title, cluster.description));
     const existingStories = await listStories(db, { days: 21 });
     // เก็บข่าวดิบอย่างเดียว — ไม่เรียก Claude ที่นี่ การแปลเป็นไทยเกิดตอนกดปุ่มเท่านั้น

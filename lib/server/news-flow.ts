@@ -8,18 +8,21 @@
 //   stories            → พาดหัวล่าสุดของแต่ละแหล่ง และข่าวที่ยังไม่ยืนยัน
 
 import { listStories, type RuntimeEnv } from "@/lib/server/database";
-import { NEWS_SOURCE_DIRECTORY } from "@/config/news-sources";
+import { API_NEWS_SOURCES, NEWS_SOURCE_DIRECTORY, RSS_NEWS_SOURCES } from "@/config/news-sources";
 
-/** โหนดในผังกับชื่อแหล่งที่ใช้จับคู่ — ต้องเรียงจากชื่อยาวไปสั้น ไม่งั้น
-    "Manchester Evening News" จะไปโดน "Manchester" ของโหนดอื่นก่อน */
+/**
+ * โหนดในผังกับชื่อแหล่งที่ใช้จับคู่
+ *
+ * สร้างจาก config โดยตรง ไม่เขียนรายชื่อซ้ำไว้ที่นี่
+ * รุ่นก่อนเขียนมือแล้วลืมแก้ตอนถอด Telegraph กับเพิ่ม Guardian ผังเลยไม่ตรงของจริง
+ *
+ * เรียงจากชื่อยาวไปสั้น เพราะจับคู่แบบ "มีคำนี้อยู่ในชื่อ"
+ * ถ้าไม่เรียง ข่าวจาก "BBC Sport · แมนยู" จะไปตกอยู่โหนด "BBC Sport" แทน
+ */
 const NODE_LABELS: Array<[string, string]> = [
-  ["men", "Manchester Evening News"],
-  ["athletic", "The Athletic"],
-  ["telegraph", "The Telegraph"],
-  ["skysports", "Sky Sports"],
-  ["bbc", "BBC Sport"],
-  ["guardian", "The Guardian"],
-];
+  ...RSS_NEWS_SOURCES.map((source) => [source.id, source.name] as [string, string]),
+  ...API_NEWS_SOURCES.map((source) => [source.id, source.name] as [string, string]),
+].sort((a, b) => b[1].length - a[1].length);
 
 /** กี่ชั่วโมงที่ไม่มีข่าวเข้าเลยถึงจะถือว่าแหล่งนั้นน่าสงสัย */
 const QUIET_HOURS = 12;
@@ -142,11 +145,8 @@ export async function getNewsFlow(env: RuntimeEnv, nowMs = Date.now()): Promise<
   };
 
   const sources: FlowSourceState[] = [
-    buildSource("bbc", "BBC Sport"),
-    buildSource("athletic", "The Athletic"),
-    buildSource("skysports", "Sky Sports"),
-    buildSource("guardian", "The Guardian"),
-    buildSource("men", "Manchester Evening News"),
+    // ไล่ตาม config ทั้งหมด เพิ่มแหล่งใหม่ในไฟล์เดียวแล้วผังขึ้นเองทันที
+    ...NODE_LABELS.map(([id, label]) => buildSource(id, label)),
     buildSource("x", "X Watchlist", true),
   ];
 
