@@ -110,8 +110,14 @@ function MatchCard({ fixture, onOpen, saved, onToggleSave, showWorth }: {
 
       <dl className="mc-card-meta">
         <div><dt>วันแข่ง</dt><dd>{thaiShortDate(fixture.kickoffUtc)}</dd></div>
-        <div><dt>เวลาไทย</dt><dd>{fixture.kickoffBangkok} น.</dd></div>
-        <div><dt>เวลาอังกฤษ</dt><dd>{fixture.kickoffLocal}</dd></div>
+        {fixture.kickoffTimeAnnounced ? (
+          <>
+            <div><dt>เวลาไทย</dt><dd>{fixture.kickoffBangkok} น.</dd></div>
+            <div><dt>เวลาอังกฤษ</dt><dd>{fixture.kickoffLocal}</dd></div>
+          </>
+        ) : (
+          <div className="mc-card-tbd"><dt>เวลาเตะ</dt><dd>ยังไม่ประกาศ</dd></div>
+        )}
       </dl>
 
       {fixture.venue && (
@@ -455,10 +461,12 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
                     <b>{bundle.fixture.home.nameTh}</b>
                     <small>{bundle.fixture.home.name}</small>
                   </span>
-                  <span className="mc-match-score">
+                  <span className={`mc-match-score ${!bundle.capabilities.score && !bundle.fixture.kickoffTimeAnnounced ? "tbd" : ""}`}>
                     {bundle.capabilities.score
                       ? `${bundle.fixture.homeScore}–${bundle.fixture.awayScore}`
-                      : bundle.fixture.kickoffBangkok}
+                      : bundle.fixture.kickoffTimeAnnounced
+                        ? bundle.fixture.kickoffBangkok
+                        : "รอเวลา"}
                   </span>
                   <span className="mc-match-team">
                     <b>{bundle.fixture.away.nameTh}</b>
@@ -468,8 +476,14 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
 
                 <dl className="mc-match-meta">
                   <div><dt>วันแข่ง</dt><dd>{thaiFullDate(bundle.fixture.kickoffUtc)}</dd></div>
-                  <div><dt>เวลาอังกฤษ</dt><dd>{bundle.fixture.kickoffLocal}</dd></div>
-                  <div><dt>เวลาไทย</dt><dd>{bundle.fixture.kickoffBangkok} น.</dd></div>
+                  {bundle.fixture.kickoffTimeAnnounced ? (
+                    <>
+                      <div><dt>เวลาอังกฤษ</dt><dd>{bundle.fixture.kickoffLocal}</dd></div>
+                      <div><dt>เวลาไทย</dt><dd>{bundle.fixture.kickoffBangkok} น.</dd></div>
+                    </>
+                  ) : (
+                    <div><dt>เวลาเตะ</dt><dd className="mc-tbd">ยังไม่ประกาศ — พรีเมียร์ลีกเคาะเวลาตามการถ่ายทอดสดทีหลัง</dd></div>
+                  )}
                   {bundle.fixture.venue && <div><dt>สนาม</dt><dd>{bundle.fixture.venue.name} · {bundle.fixture.venue.city}</dd></div>}
                 </dl>
 

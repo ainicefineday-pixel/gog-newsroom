@@ -40,6 +40,7 @@ function toDemoFixture(row: (typeof MU_PREMIER_LEAGUE_FIXTURES)[number], now: nu
     matchweek: row.matchday,
     kickoffUtc,
     ...kickoffTimes(kickoffUtc),
+    kickoffTimeAnnounced: true,
     state: finished ? "full_time" : live ? "live" : "pre",
     minute: live ? Math.min(Math.floor((now - started) / 60_000), 90) : null,
     home: buildTeam(row.home, "gog_demo"),

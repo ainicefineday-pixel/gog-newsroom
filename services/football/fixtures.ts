@@ -3,6 +3,7 @@
 // ให้เปลี่ยนเฉพาะข้างในไฟล์นี้ UI ไม่ต้องแก้ (STEP 31)
 
 import { MU_PREMIER_LEAGUE_FIXTURES, type MuFixture } from "@/config/mu-fixtures";
+import { STADIUM_LOCATIONS } from "@/config/stadium-locations";
 import type { DestinationCity, TripLength } from "@/services/trip/types";
 
 export type PlannableFixture = MuFixture & {
@@ -16,6 +17,12 @@ export type PlannableFixture = MuFixture & {
   railDay: boolean;
   /** ชื่อเมืองที่สนามตั้งอยู่จริง — ใช้บอกผู้ใช้ว่าต้องเดินทางต่อไปไหน */
   venueCity: string;
+  /**
+   * ประกาศเวลาเตะแล้วหรือยัง — undefined เมื่อมาจากไฟล์ในโปรเจกต์ที่ทานเวลาแล้ว
+   * false เมื่อผู้ให้บริการยังไม่เคาะเวลา ซึ่งทำให้แผนวันแข่งที่คิดถอยหลัง
+   * จากเวลาเตะยังเชื่อไม่ได้
+   */
+  kickoffTimeAnnounced?: boolean;
 };
 
 /** สนามในลอนดอนใช้ลอนดอนเป็นฐาน — ที่เหลือทั้งประเทศบินลงแมนเชสเตอร์แล้วต่อรถไฟ */
@@ -60,6 +67,42 @@ export function listAllPlannable() {
 
 export function findFixture(key: string) {
   return listAllPlannable().find((fixture) => fixture.key === key) ?? null;
+}
+
+/**
+ * แปลงแมตช์จาก Match Center (ข้อมูลจริงผ่าน API) ให้เป็นรูปแบบที่เครื่องมือ
+ * วางแผนทริปใช้อยู่ เพื่อให้ทั้งแอปอ่านโปรแกรมแข่งจากแหล่งเดียวกัน
+ *
+ * ทำไมต้องมีตัวสำรองสนาม: football-data.org ไม่ส่งชื่อสนามมาทุกนัด
+ * แต่แผนเที่ยว การคิดค่ารถไฟ และการเลือกเมืองฐาน ต้องรู้สนามกับเมืองเสมอ
+ * จึงเติมจาก config/stadium-locations.ts ของเราเองโดยดูจากทีมเจ้าบ้าน
+ * ซึ่งเป็นข้อมูลที่นิ่งกว่าและเราตรวจเองแล้ว
+ */
+export function gogToPlannable(fixture: {
+  matchweek: number | null;
+  kickoffUtc: string;
+  home: { name: string };
+  away: { name: string };
+  venue: { name: string; city: string } | null;
+  scheduleConfirmed: boolean;
+  kickoffTimeAnnounced?: boolean;
+}): PlannableFixture | null {
+  const homeGround = STADIUM_LOCATIONS.find((entry) => entry.club === fixture.home.name);
+  const stadium = fixture.venue?.name || homeGround?.stadium;
+  const city = fixture.venue?.city || homeGround?.city;
+  // ไม่รู้สนามเลยก็วางแผนทริปไม่ได้ ตัดทิ้งดีกว่าเดาแล้วพาไปผิดเมือง
+  if (!stadium || !city) return null;
+
+  const base: MuFixture = {
+    matchday: fixture.matchweek ?? 0,
+    kickoffUtc: fixture.kickoffUtc,
+    home: fixture.home.name,
+    away: fixture.away.name,
+    stadium,
+    city,
+    status: fixture.scheduleConfirmed ? "confirmed" : "provisional",
+  };
+  return { ...toPlannable(base), kickoffTimeAnnounced: fixture.kickoffTimeAnnounced };
 }
 
 function addDays(date: Date, days: number) {

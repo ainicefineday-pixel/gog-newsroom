@@ -32,7 +32,7 @@ import {
   Wand2,
   X,
 } from "lucide-react";
-import { listPlannableFixtures, recommendTripDates, hotelNights, type PlannableFixture } from "@/services/football/fixtures";
+import { listPlannableFixtures, recommendTripDates, hotelNights, gogToPlannable, type PlannableFixture } from "@/services/football/fixtures";
 import { ARRIVAL_AIRPORTS, BANGKOK, arrivalWarning, listFlights, type FlightSort } from "@/services/flights";
 import { defaultHotel, listHotels } from "@/services/hotels";
 import { GBP_TO_THB, estimateTrip, formatMoney, railDayTripThb } from "@/services/pricing";
@@ -422,7 +422,34 @@ function ItineraryDayCard({ day, money, onRemove, partnersByKind, travellers, tr
  * ส่งเป็นคีย์เดียวกับ fixtureKey() ของ services/football/fixtures จึงเลือกแมตช์ได้ตรง
  */
 export function TripPlanner({ initialFixtureKey }: { initialFixtureKey?: string } = {}) {
-  const fixtures = useMemo(() => listPlannableFixtures(), []);
+  // เริ่มจากไฟล์ในโปรเจกต์ก่อนเพื่อให้หน้าใช้งานได้ทันทีโดยไม่ต้องรอเน็ต
+  // แล้วค่อยสลับเป็นข้อมูลจริงจาก API เมื่อโหลดเสร็จ — คีย์แมตช์เป็นรูปแบบเดียวกัน
+  // แมตช์ที่ผู้ใช้เลือกไว้จึงไม่หลุดตอนสลับ
+  const localFixtures = useMemo(() => listPlannableFixtures(), []);
+  const [liveFixtures, setLiveFixtures] = useState<PlannableFixture[] | null>(null);
+  const [fixtureSource, setFixtureSource] = useState<"local" | "live">("local");
+  const fixtures = liveFixtures ?? localFixtures;
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/football/fixtures")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { fixtures?: Parameters<typeof gogToPlannable>[0][]; demo?: boolean } | null) => {
+        // โหมดสาธิตไม่ต้องสลับ เพราะไฟล์ในโปรเจกต์เป็นโปรแกรมจริงที่ตรวจแล้ว
+        if (!alive || !payload?.fixtures || payload.demo) return;
+        const mapped = payload.fixtures
+          .map(gogToPlannable)
+          .filter((item): item is PlannableFixture => item !== null)
+          // เครื่องมือนี้วางแผนทริปตามแมนเชสเตอร์ ยูไนเต็ดเท่านั้น
+          .filter((item) => item.home === "Manchester United" || item.away === "Manchester United")
+          .filter((item) => new Date(item.kickoffUtc).getTime() > Date.now());
+        if (mapped.length === 0) return;
+        setLiveFixtures(mapped);
+        setFixtureSource("live");
+      })
+      .catch(() => { /* ดึงไม่ได้ก็ใช้ไฟล์ในโปรเจกต์ต่อไป */ });
+    return () => { alive = false; };
+  }, []);
   const [fixtureKey, setFixtureKey] = useState<string>(() => {
     if (initialFixtureKey && fixtures.some((item) => item.key === initialFixtureKey)) return initialFixtureKey;
     return fixtures[0]?.key ?? "";
@@ -1120,6 +1147,9 @@ export function TripPlanner({ initialFixtureKey }: { initialFixtureKey?: string 
               </button>
             )}
             <p className="trip-disclaimer">
+              {fixtureSource === "live"
+                ? "โปรแกรมแข่งชุดนี้ดึงสดจากผู้ให้บริการข้อมูล ตรงกับที่แสดงใน Match Center · "
+                : "โปรแกรมแข่งชุดนี้มาจากไฟล์ในระบบที่ทานกับโปรแกรมทางการแล้ว · "}
               วันและเวลาแข่งของพรีเมียร์ลีกเปลี่ยนได้จากการถ่ายทอดสดหรือรายการอื่น — ตรวจสอบอีกครั้งก่อนจองตั๋วที่คืนเงินไม่ได้
               · นัดที่สนามอยู่นอกแมนเชสเตอร์และลอนดอน ระบบวางให้พักเมืองฐานแล้วนั่งรถไฟไปกลับในวันแข่ง
               คิดค่ารถไฟและเวลาเดินทางให้ในแผนแล้ว
@@ -1251,6 +1281,18 @@ export function TripPlanner({ initialFixtureKey }: { initialFixtureKey?: string 
               <div className="removed-bar">
                 <span>ตัดออกจากแผนแล้ว {removedPlaceIds.length} รายการ</span>
                 <button type="button" onClick={() => setRemovedPlaceIds([])}>เอากลับทั้งหมด</button>
+              </div>
+            )}
+
+            {/* เวลาเตะยังไม่ประกาศ = ตารางวันแข่งที่คิดถอยหลังจากเวลาเตะยังเชื่อไม่ได้
+                ต้องบอกตรง ๆ ไม่ใช่ปล่อยให้ดูเหมือนแผนที่ใช้ได้จริง */}
+            {fixture?.kickoffTimeAnnounced === false && (
+              <div className="trip-warning" role="status">
+                <TriangleAlert size={15} aria-hidden="true" />
+                <span>
+                  พรีเมียร์ลีกยังไม่ประกาศเวลาเตะของนัดนี้ — ตารางวันแข่งด้านล่างคิดจากเวลาชั่วคราว
+                  ที่ผู้ให้บริการส่งมา ยังใช้อ้างอิงเวลาจริงไม่ได้ วันแข่งเชื่อได้ แต่เวลาต้องรอประกาศ
+                </span>
               </div>
             )}
 

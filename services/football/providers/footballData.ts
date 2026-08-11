@@ -55,6 +55,9 @@ export function createFootballDataProvider(apiKey: string | undefined, fetchImpl
       matchweek: row.matchday ?? null,
       kickoffUtc,
       ...kickoffTimes(kickoffUtc),
+      // เจ้านี้ส่ง 00:00:00Z มาเมื่อยังไม่เคาะเวลาเตะ (ทดสอบ 11 ส.ค. 2026 เจอ 330/380 นัด)
+      // พรีเมียร์ลีกไม่มีนัดที่เตะเที่ยงคืน UTC จริง จึงใช้เป็นสัญญาณได้ปลอดภัย
+      kickoffTimeAnnounced: !kickoffUtc.endsWith("T00:00:00Z"),
       state,
       minute: null,
       home: buildTeam(homeName, "football_data", String(row.homeTeam?.id ?? ""), row.homeTeam?.crest ?? null),

@@ -96,6 +96,8 @@ export function createApiFootballProvider(apiKey: string | undefined, fetchImpl:
       matchweek: matchweekFrom(row.league?.round),
       kickoffUtc,
       ...times,
+      // API-Football ส่งเวลาเตะจริงเสมอ ไม่มีค่าแทนแบบ football-data.org
+      kickoffTimeAnnounced: true,
       state,
       minute: row.fixture?.status?.elapsed ?? null,
       home: buildTeam(homeName, "api_football", String(row.teams?.home?.id ?? ""), row.teams?.home?.logo ?? null),

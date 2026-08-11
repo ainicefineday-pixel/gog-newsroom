@@ -61,6 +61,9 @@
 .mc-card-meta { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; margin: 0; padding-top: 10px; border-top: 1px solid #ffffff0d; }
 .mc-card-meta dt { color: #6b7078; font: 600 8.5px/1.5 "Kanit",sans-serif; }
 .mc-card-meta dd { margin: 2px 0 0; color: #cfd3da; font: 700 11px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.mc-card-tbd dd { color: #8a9099 !important; font-weight: 500 !important; }
+.mc-tbd { color: #f0a500 !important; font-weight: 500 !important; }
+.mc-match-score.tbd { font-size: clamp(16px,1.7vw,22px); color: #8a9099; }
 .mc-card-venue { display: flex; align-items: center; gap: 5px; margin: 0; color: var(--muted); font: 500 10px/1.5 "Kanit",sans-serif; }
 .mc-card-cta { margin-top: auto; padding: 11px; border: 1px solid var(--line); border-radius: 9px; background: transparent; color: #d5d8dd; font: 700 11px/1.45 "Kanit",sans-serif; cursor: pointer; }
 .mc-card-cta:hover { border-color: #7dabff; color: #7dabff; }
