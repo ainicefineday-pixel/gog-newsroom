@@ -14,6 +14,7 @@ import { thaiFullDate, thaiShortDate } from "@/services/football/normalize";
 import { buildMatchTravelPlan } from "@/services/travel/matchToTrip";
 import { gogStadium } from "@/config/gog-stadiums";
 import { TRAVEL_TIER_LABEL, travelWorthiness } from "@/services/football/travelWorthy";
+import { SEARCH_KIND_LABEL, searchFootball } from "@/services/football/search";
 import { formatThb } from "@/services/pricing";
 import { BUDGET_LABELS, type BudgetStyle } from "@/services/trip/types";
 import type {
@@ -215,6 +216,7 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
   const [sort, setSort] = useState<"date" | "worth">("date");
   // เครื่องมือของทีมพัฒนา เปิดด้วย ?datalab=1 — ผู้ใช้ทั่วไปไม่เห็น (STEP 123)
   const [dataLab, setDataLab] = useState(false);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     window.queueMicrotask(() => {
@@ -280,6 +282,9 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
       .catch(() => setBundle(null))
       .finally(() => setLoadingMatch(false));
   }, []);
+
+  // ค้นหารวม — พิมพ์ไทยหรืออังกฤษก็เจอเหมือนกัน (STEP 70)
+  const searchHits = useMemo(() => searchFootball(query, fixtures ?? []), [query, fixtures]);
 
   const months = useMemo(() => {
     const set = new Set((fixtures ?? []).map((item) => item.kickoffUtc.slice(0, 7)));
@@ -347,6 +352,43 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
               </button>
             </div>
           </header>
+
+          <div className="mc-search">
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="ค้นหาสโมสร สนาม หรือแมตช์ — พิมพ์ไทยหรืออังกฤษก็ได้"
+              aria-label="ค้นหาสโมสร สนาม หรือแมตช์"
+            />
+            {query.trim().length > 0 && (
+              <div className="mc-search-results">
+                {searchHits.length === 0 ? (
+                  <p className="mc-search-empty">ไม่พบผลลัพธ์สำหรับ &ldquo;{query}&rdquo;</p>
+                ) : (
+                  searchHits.map((hit) => (
+                    <button
+                      key={hit.id}
+                      type="button"
+                      className="mc-search-hit"
+                      onClick={() => {
+                        if (hit.kind === "fixture") { openMatch(hit.fixtureId); setQuery(""); return; }
+                        // สโมสรกับสนามยังไม่มีหน้าของตัวเอง — ใช้คำค้นกรองปฏิทินไปก่อน
+                        setStatusFilter("all");
+                        setMonthFilter("all");
+                      }}
+                    >
+                      <span className={`mc-search-kind ${hit.kind}`}>{SEARCH_KIND_LABEL[hit.kind]}</span>
+                      <span>
+                        <strong>{hit.title}</strong>
+                        <small>{hit.subtitle}</small>
+                      </span>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="fixture-sort">
             <span>เรียงตาม</span>
