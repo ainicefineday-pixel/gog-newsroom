@@ -291,6 +291,11 @@ function sourceAssessment(item: RawItem) {
   // หนังสือพิมพ์ที่มีโต๊ะข่าวฟุตบอลของตัวเอง ให้เท่า The Athletic
   // ถ้าไม่ใส่กฎนี้ ข่าว Guardian จะตกไปเป็น tier 3 คะแนน 55 ตามค่าเริ่มต้น
   if (identity.includes("guardian")) return { tier: 1 as const, score: 92 };
+  // สองแหล่งนี้เคยตกไปเป็น tier 3 ทั้งที่ไดเรกทอรีประกาศไว้ Tier 1 และ Tier 2
+  // Sky ต่ำกว่า BBC/Athletic นิดหน่อยเพราะข่าวตลาดซื้อขายพลาดบ่อยกว่า
+  // ส่วน MEN เป็นหนังสือพิมพ์ท้องถิ่นที่เข้าถึงสโมสรดีที่สุด แต่ก็ลงข่าวลือด้วย
+  if (identity.includes("sky sports") || identity.includes("skysports")) return { tier: 1 as const, score: 90 };
+  if (identity.includes("manchester evening news")) return { tier: 2 as const, score: 84 };
   if (identity.includes("telegraph")) return { tier: 2 as const, score: 82 };
   if (["lauriewhitwell", "andy mitten", "andymitten", "simonpeach", "simon peach"].some((name) => identity.includes(name))) {
     return { tier: 2 as const, score: 86 };
