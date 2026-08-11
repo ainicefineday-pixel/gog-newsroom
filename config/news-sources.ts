@@ -36,6 +36,26 @@ export const RSS_NEWS_SOURCES = [
     feedUrl: "https://www.telegraph.co.uk/football/rss.xml",
     tier: 2,
   },
+  {
+    // ฟีดเฉพาะแมนยูของ Sky Sports (feed id 11667) ไม่ใช่ฟีดฟุตบอลรวม
+    // ทุกข่าวในฟีดนี้เกี่ยวกับสโมสรอยู่แล้ว จึงผ่านตัวกรองคีย์เวิร์ดเกือบทั้งหมด
+    id: "skysports",
+    name: "Sky Sports",
+    homepage: "https://www.skysports.com/manchester-united",
+    domain: "skysports.com",
+    feedUrl: "https://www.skysports.com/rss/11667",
+    tier: 1,
+  },
+  {
+    // หนังสือพิมพ์ท้องถิ่นแมนเชสเตอร์ ตามข่าวสโมสรใกล้ชิดที่สุด
+    // แต่ลงข่าวลือตลาดนักเตะเยอะกว่าเจ้าอื่น จึงจัดเป็น tier 2
+    id: "men",
+    name: "Manchester Evening News",
+    homepage: "https://www.manchestereveningnews.co.uk/all-about/manchester-united-fc",
+    domain: "manchestereveningnews.co.uk",
+    feedUrl: "https://www.manchestereveningnews.co.uk/all-about/manchester-united-fc/?service=rss",
+    tier: 2,
+  },
 ] as const;
 
 const X_TIER_1 = new Set<XSourceHandle>(["david_ornstein", "fabrizioromano", "theathleticfc"]);
