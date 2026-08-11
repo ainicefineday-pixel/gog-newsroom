@@ -5,7 +5,6 @@
 // ห้ามเขียนคำว่าราคาสด ห้ามบอกว่าเหลือกี่ที่นั่ง (STEP 64)
 
 import { ARRIVAL_AIRPORTS, BANGKOK, listFlights } from "@/services/flights";
-import { listPlannableFixtures } from "@/services/football/fixtures";
 import { defaultHotel } from "@/services/hotels";
 import { estimateTrip, railDayTripThb } from "@/services/pricing";
 import { getStadiumTravelPlan, totalTravelMinutes } from "@/config/stadium-travel";
@@ -93,9 +92,13 @@ export function buildMatchTravelPlan(fixture: GOGFixture): MatchTravelPlan {
   }));
 
   const tripFixtureKey = tripFixtureKeyOf(fixture);
+  // เครื่องมือวางแผนทริปโหลดโปรแกรมชุดเดียวกับ Match Center แล้ว จึงเช็กจากกติกาจริง
+  // (เป็นนัดของแมนเชสเตอร์ ยูไนเต็ด และยังไม่เตะ) แทนการเทียบกับไฟล์ในโปรเจกต์
+  // ซึ่งอาจไม่ตรงกับข้อมูลสดเมื่อลีกเลื่อนนัด
+  const involvesManUtd = fixture.home.name === "Manchester United" || fixture.away.name === "Manchester United";
   return {
     tripFixtureKey,
-    plannable: listPlannableFixtures().some((item) => item.key === tripFixtureKey),
+    plannable: involvesManUtd && new Date(fixture.kickoffUtc).getTime() > Date.now(),
     originAirport: BANGKOK.code,
     originCity: BANGKOK.city,
     baseCity,

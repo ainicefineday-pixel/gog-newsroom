@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { recommendFixture } from "@/services/football/recommendation";
-import { toPlannable } from "@/services/football/fixtures";
+import { gogToPlannable, toPlannable } from "@/services/football/fixtures";
 import {
   FIXTURE_DATA_UPDATED_AT,
   MU_PREMIER_LEAGUE_FIXTURES,
@@ -114,13 +114,36 @@ export function FixturesPanel() {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
-  const fixtures = useMemo(() => MU_PREMIER_LEAGUE_FIXTURES.filter((fixture) => {
+  // โปรแกรมแข่งต้องมาจากแหล่งเดียวกับ Match Center ไม่งั้นสองแท็บจะแสดงคนละวัน
+  // เริ่มจากไฟล์ในโปรเจกต์ก่อนเพื่อให้หน้าใช้งานได้ทันที แล้วสลับเป็นข้อมูลจริงเมื่อโหลดเสร็จ
+  const [liveFixtures, setLiveFixtures] = useState<readonly MuFixture[] | null>(null);
+  const source = liveFixtures ?? MU_PREMIER_LEAGUE_FIXTURES;
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/football/fixtures")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { fixtures?: Parameters<typeof gogToPlannable>[0][]; demo?: boolean } | null) => {
+        if (!alive || !payload?.fixtures || payload.demo) return;
+        const mapped = payload.fixtures
+          .map(gogToPlannable)
+          .filter((item): item is NonNullable<ReturnType<typeof gogToPlannable>> => item !== null)
+          .filter((item) => item.home === "Manchester United" || item.away === "Manchester United")
+          .sort((a, b) => a.kickoffUtc.localeCompare(b.kickoffUtc));
+        if (mapped.length === 0) return;
+        setLiveFixtures(mapped);
+      })
+      .catch(() => { /* ดึงไม่ได้ก็ใช้ไฟล์ในโปรเจกต์ต่อไป */ });
+    return () => { alive = false; };
+  }, []);
+
+  const fixtures = useMemo(() => source.filter((fixture) => {
     if (filter === "home") return fixture.home === "Manchester United";
     if (filter === "away") return fixture.away === "Manchester United";
     if (filter === "confirmed") return fixture.status === "confirmed";
     return true;
-  }), [filter]);
-  const nextMatch = MU_PREMIER_LEAGUE_FIXTURES.find((fixture) => new Date(fixture.kickoffUtc).getTime() > openedAt) ?? MU_PREMIER_LEAGUE_FIXTURES[0];
+  }), [filter, source]);
+  const nextMatch = source.find((fixture) => new Date(fixture.kickoffUtc).getTime() > openedAt) ?? source[0];
 
   return (
     <section className="fixture-view" id="fixtures" aria-labelledby="fixtures-heading">
