@@ -95,7 +95,14 @@ export function BackgroundGradient({ children, className = "", tone = "gold" }: 
 }) {
   return (
     <div className={`bg-gradient-glow tone-${tone} ${className}`.trim()}>
-      <span className="bg-gradient-halo" aria-hidden="true" />
+      {/* ตัวนอกเป็นหน้ากากรูปกรอบ ตัวในเป็นวงไล่สีที่หมุนอยู่ข้างหลังหน้ากาก
+          แยกสองชั้นแทนการหมุนมุมของ conic-gradient ผ่าน @property
+          เพราะถ้าเบราว์เซอร์ไม่รู้จัก @property ตัวแปรจะใช้ไม่ได้ทั้ง gradient
+          กลายเป็นไม่มีพื้นหลังเลย = ขอบหายไปทั้งเส้น ไม่ใช่แค่ไม่หมุน
+          วิธีนี้แย่ที่สุดคือไม่หมุน แต่เส้นขอบยังอยู่ */}
+      <span className="bg-gradient-halo" aria-hidden="true">
+        <i className="bg-gradient-spin" />
+      </span>
       <div className="bg-gradient-inner">{children}</div>
     </div>
   );

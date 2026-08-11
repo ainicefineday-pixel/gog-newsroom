@@ -1071,25 +1071,47 @@ h1, h2, h3, p, li, td, th, b, strong, small { overflow-wrap: break-word; }
   mask-composite: exclude;
 }
 
-/* ── ฮาโลไล่สีหมุนรอบกล่อง ────────────────────────────────────────────── */
+/* ── เส้นขอบไล่สีวิ่งรอบกล่อง ─────────────────────────────────────────────
+   ของเดิมเป็นแสงฟุ้งหลังกล่อง (blur 9px) ซึ่งสว่างเกินไปจนแย่งความสนใจ
+   จากตัวการ์ดเอง เปลี่ยนเป็นส่วนโค้งสั้น ๆ วิ่งไปตามขอบอย่างเดียว
+   หมุนมุมของ conic-gradient ตรง ๆ ผ่าน @property แทนการหมุนทั้งอิลิเมนต์
+   เพราะกล่องไม่ใช่สี่เหลี่ยมจัตุรัส ถ้าหมุนทั้งอิลิเมนต์มุมจะโผล่ออกนอกกรอบ */
 .bg-gradient-glow { position: relative; border-radius: 17px; }
+
+/* ชั้นนอก = หน้ากากรูปกรอบ เจาะกลางออกด้วย mask-composite เหลือขอบ 1.4px
+   วางเหนือเนื้อหาได้ เพราะกลางถูกเจาะทิ้งแล้ว */
 .bg-gradient-halo {
-  position: absolute; inset: -2px; border-radius: inherit; z-index: 0;
-  background: conic-gradient(from 0deg, #da291c, #f0cc78, #d9aa49, #f13b2e, #da291c);
-  filter: blur(9px); opacity: .55;
-  animation: halo-spin 7s linear infinite;
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  z-index: 2; overflow: hidden;
+  padding: 1.4px;
+  -webkit-mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+  mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
 }
-.bg-gradient-glow.tone-gold .bg-gradient-halo {
-  background: conic-gradient(from 0deg, #d9aa49, #f0cc78, #fff3d4, #d9aa49);
+/* ชั้นใน = วงไล่สีที่หมุน ต้องใหญ่กว่ากล่องมากพอที่หมุนมุมไหนก็ยังคลุมเต็ม
+   inset ติดลบเท่ากันทุกด้าน จุดศูนย์กลางจึงตรงกับกล่องพอดี */
+.bg-gradient-spin {
+  position: absolute; inset: -100%; display: block;
+  background: conic-gradient(
+    transparent 0deg, transparent 232deg,
+    #da291c 276deg, #f0cc78 318deg, #fff3d4 338deg, transparent 360deg);
+  animation: halo-run 3.6s linear infinite;
 }
-.bg-gradient-glow:hover .bg-gradient-halo { opacity: .85; }
-@keyframes halo-spin { to { transform: rotate(1turn); } }
+.bg-gradient-glow.tone-gold .bg-gradient-spin {
+  background: conic-gradient(
+    transparent 0deg, transparent 232deg,
+    #d9aa49 276deg, #f0cc78 318deg, #fff3d4 338deg, transparent 360deg);
+}
+@keyframes halo-run { to { transform: rotate(1turn); } }
+
 .bg-gradient-inner {
   position: relative; z-index: 1; height: 100%; border-radius: inherit;
   background: var(--panel); border: 1px solid var(--line);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bg-gradient-halo { animation: none; }
+  /* หยุดวิ่งแต่ยังเหลือเส้นขอบไล่สีให้เห็นว่ากล่องนี้พิเศษ */
+  .bg-gradient-spin { animation: none; transform: rotate(300deg); }
   .glowing-effect { transition: none; }
 }
