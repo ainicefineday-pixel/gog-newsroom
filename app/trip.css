@@ -704,3 +704,86 @@ a.trip-cta { text-decoration: none; }
 @media (max-width: 720px) {
   .gog-book-form { grid-template-columns: 1fr; }
 }
+
+/* ── เอกสารกำหนดการเดินทาง A4 สำหรับยื่นวีซ่า (STEP 78) ─────────────── */
+.visa-doc-block {
+  margin-bottom: 18px; padding: 18px 20px; border-radius: 13px;
+  background: #0f1218; border: 1px solid #4a7dff38;
+}
+.visa-doc-block > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.visa-doc-block strong {
+  display: flex; align-items: center; gap: 7px; margin-top: 5px;
+  color: #8fb0ff; font: 800 14px/1.45 "Kanit",sans-serif;
+}
+.visa-doc-block > header small { display: block; margin-top: 5px; max-width: 62ch; color: var(--muted); font: 400 10.5px/1.7 "Kanit",sans-serif; }
+.visa-doc-toggle {
+  padding: 8px 16px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  background: #4a7dff18; border: 1px solid #4a7dff55; color: #8fb0ff; font: 700 10.5px/1 "Kanit",sans-serif;
+}
+.visa-doc-toggle:hover { background: #4a7dff30; }
+.visa-doc-form { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 11px; margin-top: 15px; }
+.visa-doc-form label { display: grid; gap: 5px; }
+.visa-doc-form label > span { color: #e7e9ec; font: 700 10.5px/1.5 "Kanit",sans-serif; }
+.visa-doc-form input {
+  padding: 9px 12px; border-radius: 9px; background: #14171d; border: 1px solid var(--line);
+  color: #e7e9ec; font: 600 12px/1.4 "Kanit",sans-serif; letter-spacing: .02em;
+}
+.visa-doc-form input:focus { outline: 2px solid #4a7dff70; outline-offset: 1px; }
+.visa-doc-warn { margin: 13px 0 0; color: #ffc94d; font: 400 10px/1.7 "Kanit",sans-serif; }
+.visa-doc-warn b { color: #f0a500; font-weight: 800; }
+.visa-doc-print {
+  margin-top: 13px; padding: 12px 26px; border-radius: 10px; cursor: pointer;
+  background: linear-gradient(135deg,#4a7dff,#8fb0ff); border: none; color: #0a0d14; font: 800 12px/1 "Kanit",sans-serif;
+}
+
+/* หน้ากระดาษเอง — ไม่แสดงบนจอ เห็นเฉพาะตอนพิมพ์ */
+.visa-doc { display: none; }
+
+@media print {
+  /* ซ่อนทุกอย่างด้วย visibility แทน display เพราะเอกสารซ้อนอยู่ลึกหลายชั้น
+     ถ้าใช้ display:none กับพาเรนต์ ตัวเอกสารจะหายไปด้วย */
+  body * { visibility: hidden; }
+  .visa-doc, .visa-doc * { visibility: visible; }
+  .visa-doc {
+    display: block; position: absolute; left: 0; top: 0; width: 100%;
+    padding: 0; background: #fff; color: #000;
+    font-family: "Sarabun","Kanit",sans-serif;
+  }
+  @page { size: A4; margin: 16mm 14mm; }
+
+  .visa-doc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; border-bottom: 2px solid #000; padding-bottom: 8pt; }
+  .visa-doc-head h1 { margin: 0; font-size: 15pt; font-weight: 800; letter-spacing: .01em; }
+  .visa-doc-head p { margin: 2pt 0 0; font-size: 9pt; color: #333; }
+  .visa-doc-meta { text-align: right; }
+  .visa-doc-meta span { display: block; font-size: 7pt; color: #555; text-transform: uppercase; letter-spacing: .06em; }
+  .visa-doc-meta b { font-size: 9pt; }
+
+  .visa-doc-notice { margin: 8pt 0 0; padding: 6pt 8pt; border: 1pt solid #000; font-size: 8pt; line-height: 1.5; }
+
+  .visa-doc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5pt 16pt; margin-top: 10pt; }
+  .visa-doc-grid div { border-bottom: .5pt solid #bbb; padding-bottom: 3pt; }
+  .visa-doc-grid dt { font-size: 7pt; color: #555; text-transform: uppercase; letter-spacing: .04em; }
+  .visa-doc-grid dd { margin: 1pt 0 0; font-size: 9.5pt; font-weight: 600; }
+
+  .visa-doc-section { margin-top: 12pt; }
+  .visa-doc-section h2 { margin: 0 0 5pt; font-size: 10pt; font-weight: 800; border-bottom: 1pt solid #000; padding-bottom: 2pt; }
+  .visa-doc-section table { width: 100%; border-collapse: collapse; }
+  .visa-doc-section th {
+    width: 30%; text-align: left; vertical-align: top; padding: 4pt 8pt 4pt 0;
+    font-size: 8pt; font-weight: 700; color: #333; border-bottom: .5pt solid #ddd;
+  }
+  .visa-doc-section td { padding: 4pt 0; font-size: 9.5pt; border-bottom: .5pt solid #ddd; }
+
+  /* วันหนึ่งวันห้ามถูกตัดครึ่งข้ามหน้า อ่านยากและดูไม่เป็นเอกสารทางการ */
+  .visa-doc-day { margin-top: 8pt; break-inside: avoid; page-break-inside: avoid; }
+  .visa-doc-day h3 { margin: 0 0 3pt; font-size: 9pt; font-weight: 700; display: flex; align-items: baseline; gap: 7pt; }
+  .visa-doc-day h3 span {
+    padding: 1pt 5pt; background: #000; color: #fff;
+    font-size: 7pt; font-weight: 800; letter-spacing: .04em;
+  }
+  .visa-doc-day ul { list-style: none; margin: 0; padding: 0 0 0 4pt; }
+  .visa-doc-day li { display: grid; grid-template-columns: 34pt 1fr; gap: 6pt; font-size: 8.5pt; line-height: 1.55; }
+  .visa-doc-day li b { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .visa-doc-foot { margin-top: 14pt; padding-top: 5pt; border-top: .5pt solid #999; font-size: 7.5pt; color: #444; line-height: 1.5; }
+}

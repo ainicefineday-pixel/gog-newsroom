@@ -14,6 +14,7 @@ import {
   CloudSun,
   Coffee,
   Coins,
+  FileText,
   Handshake,
   Hotel,
   Info,
@@ -335,6 +336,183 @@ function TripCalendar({ departDate, returnDate, matchDate, lodgeBy }: {
         <li><i className="dot leave" /> ต้องลางาน</li>
         <li><i className="dot lodge" /> เส้นตายยื่นวีซ่า</li>
       </ul>
+    </div>
+  );
+}
+
+// ── เอกสารกำหนดการเดินทาง A4 สำหรับยื่นวีซ่า (STEP 78) ──────────────────
+// สถานทูตอังกฤษขอ "กำหนดการเดินทาง" ประกอบใบสมัคร คนไทยส่วนใหญ่ต้องนั่งพิมพ์
+// ตารางเองใน Word ทั้งที่ระบบมีข้อมูลครบอยู่แล้ว หน้านี้จัดหน้า A4 สองภาษาให้
+// กด Ctrl+P แล้วเลือก Save as PDF ได้เลย
+//
+// สำคัญมาก: เอกสารนี้ต้องไม่ทำตัวเป็นหลักฐานการจอง
+// ราคาทุกตัวเป็นการประมาณการ และเที่ยวบิน/โรงแรมเป็นแผนที่ตั้งใจจะจอง
+// ยังไม่ใช่ booking ที่ยืนยันแล้ว ถ้าปล่อยให้ดูเหมือนหลักฐานการจอง
+// = ยื่นเอกสารเท็จต่อหน่วยงานรัฐ ซึ่งทำให้ผู้ใช้ถูกปฏิเสธวีซ่าและติดแบล็กลิสต์
+// จึงเขียนกำกับไว้ชัดทั้งสองภาษาทั้งหัวและท้ายเอกสาร
+
+const DAY_THEME_EN: Record<string, string> = {
+  takeoff: "Departure from Bangkok",
+  arrival: "Arrival in the UK",
+  football: "Football culture day",
+  matchday: "Match day",
+  city: "City exploration",
+  daytrip: "Day trip",
+  departure: "Return to Bangkok",
+};
+
+function isoDateEn(ymd: string) {
+  if (!ymd) return "—";
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: "UTC", weekday: "short", day: "numeric", month: "short", year: "numeric",
+  }).format(new Date(`${ymd}T00:00:00Z`));
+}
+
+function VisaTripDocument({ itinerary, fixture, city, departDate, returnDate, travellers, perPerson, flight, hotel }: {
+  itinerary: ItineraryDay[];
+  fixture: { home: string; away: string; kickoffUtc: string; stadium: string } | null;
+  city: string;
+  departDate: string;
+  returnDate: string;
+  travellers: number;
+  perPerson: number;
+  flight: { airline: string; route: string } | null;
+  hotel: { name: string; area: string } | null;
+}) {
+  const [applicant, setApplicant] = useState("");
+  const [passport, setPassport] = useState("");
+  const [open, setOpen] = useState(false);
+
+  if (itinerary.length === 0) return null;
+
+  return (
+    <div className="visa-doc-block">
+      <header>
+        <div>
+          <span className="eyebrow">VISA SUPPORTING DOCUMENT</span>
+          <strong><FileText size={15} aria-hidden="true" /> เอกสารกำหนดการเดินทาง A4 (ไทย–อังกฤษ)</strong>
+          <small>
+            สำหรับแนบกับใบสมัครวีซ่าอังกฤษ · กรอกชื่อตามพาสปอร์ตแล้วกดพิมพ์
+            เลือก &ldquo;Save as PDF&rdquo; ในหน้าต่างพิมพ์ได้เลย
+          </small>
+        </div>
+        <button type="button" className="visa-doc-toggle" onClick={() => setOpen((value) => !value)}>
+          {open ? "ซ่อน" : "เตรียมเอกสาร"}
+        </button>
+      </header>
+
+      {open && (
+        <>
+          <div className="visa-doc-form">
+            <label>
+              <span>ชื่อ-นามสกุล ตามพาสปอร์ต (อังกฤษ)</span>
+              <input type="text" value={applicant} maxLength={120} placeholder="MR. THEERAT ..."
+                onChange={(event) => setApplicant(event.target.value)} />
+            </label>
+            <label>
+              <span>เลขพาสปอร์ต (ถ้ามี)</span>
+              <input type="text" value={passport} maxLength={20} placeholder="AA1234567"
+                onChange={(event) => setPassport(event.target.value.toUpperCase())} />
+            </label>
+          </div>
+          <p className="visa-doc-warn">
+            เอกสารนี้เป็น <b>กำหนดการเดินทางที่วางแผนไว้</b> ไม่ใช่หลักฐานการจอง
+            ราคาทุกรายการเป็นการประมาณการ ต้องแนบใบจองตั๋วเครื่องบินและที่พักตัวจริงแยกต่างหาก
+          </p>
+          <button type="button" className="visa-doc-print" onClick={() => window.print()}>
+            พิมพ์ / บันทึกเป็น PDF
+          </button>
+        </>
+      )}
+
+      {/* หน้ากระดาษจริง — ซ่อนบนจอ แสดงเฉพาะตอนพิมพ์ */}
+      <article className="visa-doc" lang="th">
+        <header className="visa-doc-head">
+          <div>
+            <h1>กำหนดการเดินทาง · TRAVEL ITINERARY</h1>
+            <p>สหราชอาณาจักร · United Kingdom</p>
+          </div>
+          <div className="visa-doc-meta">
+            <span>ออกเอกสาร / Issued</span>
+            <b>{isoDateEn(new Date().toISOString().slice(0, 10))}</b>
+          </div>
+        </header>
+
+        <p className="visa-doc-notice">
+          <b>PLANNED ITINERARY — NOT A BOOKING CONFIRMATION.</b> All costs shown are estimates.
+          Flight and accommodation entries describe the intended arrangements; confirmed reservations
+          are submitted separately.
+          <br />
+          <b>เอกสารนี้เป็นกำหนดการที่วางแผนไว้ ไม่ใช่หลักฐานการจอง</b> ราคาทั้งหมดเป็นการประมาณการ
+          ใบจองตัวจริงแนบแยกต่างหาก
+        </p>
+
+        <section className="visa-doc-grid">
+          <div><dt>ผู้เดินทาง / Applicant</dt><dd>{applicant || "—"}</dd></div>
+          <div><dt>เลขพาสปอร์ต / Passport no.</dt><dd>{passport || "—"}</dd></div>
+          <div><dt>จำนวนผู้เดินทาง / Travellers</dt><dd>{travellers}</dd></div>
+          <div><dt>วัตถุประสงค์ / Purpose of visit</dt><dd>ท่องเที่ยวและเข้าชมการแข่งขันฟุตบอล · Tourism and attending a football match</dd></div>
+          <div><dt>ออกเดินทาง / Departure</dt><dd>{isoDateEn(departDate)}</dd></div>
+          <div><dt>เดินทางกลับ / Return</dt><dd>{isoDateEn(returnDate)}</dd></div>
+          <div><dt>ระยะเวลา / Duration</dt><dd>{itinerary.length} วัน / days</dd></div>
+          <div><dt>เมืองหลัก / Main city</dt><dd>{city}, United Kingdom</dd></div>
+        </section>
+
+        <section className="visa-doc-section">
+          <h2>การเดินทางและที่พัก · Travel and accommodation</h2>
+          <table>
+            <tbody>
+              <tr>
+                <th>เที่ยวบิน / Flight</th>
+                <td>{flight ? `${flight.airline} · ${flight.route}` : "ยังไม่ระบุ / to be confirmed"}</td>
+              </tr>
+              <tr>
+                <th>ที่พัก / Accommodation</th>
+                <td>{hotel ? `${hotel.name} · ${hotel.area}, ${city}` : "ยังไม่ระบุ / to be confirmed"}</td>
+              </tr>
+              {fixture && (
+                <tr>
+                  <th>การแข่งขัน / Match</th>
+                  <td>
+                    {fixture.home} v {fixture.away} · {fixture.stadium}
+                    <br />{isoDateEn(fixture.kickoffUtc.slice(0, 10))}
+                  </td>
+                </tr>
+              )}
+              <tr>
+                <th>ค่าใช้จ่ายโดยประมาณ / Estimated cost</th>
+                <td>{perPerson.toLocaleString("th-TH")} THB ต่อคน / per person (estimate)</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section className="visa-doc-section">
+          <h2>กำหนดการรายวัน · Day-by-day itinerary</h2>
+          {itinerary.map((day) => (
+            <div key={day.date} className="visa-doc-day">
+              <h3>
+                <span>DAY {day.dayNumber}</span>
+                {isoDateEn(day.date)} — {day.title} / {DAY_THEME_EN[day.theme] ?? day.theme}
+              </h3>
+              <ul>
+                {day.items.map((item, index) => (
+                  <li key={`${item.time}-${index}`}>
+                    <b>{item.time}</b>
+                    <span>{item.title}{item.area ? ` · ${item.area}` : ""}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+
+        <footer className="visa-doc-foot">
+          จัดทำโดย GOG NEWSROOM · geniusontheground · เอกสารประกอบการยื่นวีซ่า ไม่ใช่หลักฐานการจอง
+          <br />
+          Prepared by GOG NEWSROOM as a supporting itinerary. Not a booking confirmation.
+        </footer>
+      </article>
     </div>
   );
 }
@@ -1688,6 +1866,19 @@ export function TripPlanner({ initialFixtureKey }: { initialFixtureKey?: string 
                 />
               ))}
             </div>
+            <VisaTripDocument
+              itinerary={visibleItinerary}
+              fixture={fixture}
+              city={city}
+              departDate={departDate}
+              returnDate={returnDate}
+              travellers={travellers}
+              perPerson={estimate.perPerson}
+              flight={selectedFlight
+                ? { airline: selectedFlight.airline, route: `BKK → ${selectedFlight.arrivalCode}${selectedFlight.via ? ` (via ${selectedFlight.via})` : " (direct)"}` }
+                : null}
+              hotel={selectedHotel ? { name: selectedHotel.name, area: selectedHotel.area } : null}
+            />
             <TripRequestPanel
               itinerary={visibleItinerary}
               partnersByKind={partnersByKind}
