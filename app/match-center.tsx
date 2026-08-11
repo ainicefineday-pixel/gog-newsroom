@@ -13,6 +13,7 @@ import { UNAVAILABLE_REASON_TH } from "@/services/football/capabilities";
 import { thaiFullDate, thaiShortDate } from "@/services/football/normalize";
 import { buildMatchTravelPlan } from "@/services/travel/matchToTrip";
 import { gogStadium } from "@/config/gog-stadiums";
+import { TRAVEL_TIER_LABEL, travelWorthiness } from "@/services/football/travelWorthy";
 import { formatThb } from "@/services/pricing";
 import { BUDGET_LABELS, type BudgetStyle } from "@/services/trip/types";
 import type {
@@ -64,13 +65,16 @@ function StateBadge({ fixture }: { fixture: GOGFixture }) {
   );
 }
 
-function MatchCard({ fixture, onOpen, saved, onToggleSave }: {
+function MatchCard({ fixture, onOpen, saved, onToggleSave, showWorth }: {
   fixture: GOGFixture;
   onOpen: () => void;
   saved: boolean;
   onToggleSave: () => void;
+  /** โชว์ป้ายความคุ้มค่าบินไปดู — เปิดเฉพาะตอนเรียงตามความน่าไป */
+  showWorth?: boolean;
 }) {
   const decided = fixture.homeScore !== null && fixture.awayScore !== null;
+  const worth = showWorth ? travelWorthiness(fixture) : null;
   return (
     <article className={`mc-card ${fixture.state === "live" ? "live" : ""} ${saved ? "saved" : ""}`}>
       <header>
@@ -111,6 +115,16 @@ function MatchCard({ fixture, onOpen, saved, onToggleSave }: {
 
       {fixture.venue && (
         <p className="mc-card-venue"><MapPin size={11} aria-hidden="true" /> {fixture.venue.name} · {fixture.venue.city}</p>
+      )}
+
+      {worth && (
+        <div className={`mc-worth ${worth.tier}`}>
+          <span className="mc-worth-head">
+            <b>{TRAVEL_TIER_LABEL[worth.tier]}</b>
+            <em>{worth.score}/100</em>
+          </span>
+          <ul>{worth.reasons.slice(0, 2).map((reason) => <li key={reason}>{reason}</li>)}</ul>
+        </div>
       )}
 
       <button type="button" className="mc-card-cta" onClick={onOpen}>ดู Match Center</button>
@@ -198,6 +212,15 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
   // เกมที่อยากไปดู (STEP 68) — เก็บในเครื่องผู้ใช้ ยังไม่มีระบบบัญชี
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [savedOnly, setSavedOnly] = useState(false);
+  const [sort, setSort] = useState<"date" | "worth">("date");
+  // เครื่องมือของทีมพัฒนา เปิดด้วย ?datalab=1 — ผู้ใช้ทั่วไปไม่เห็น (STEP 123)
+  const [dataLab, setDataLab] = useState(false);
+
+  useEffect(() => {
+    window.queueMicrotask(() => {
+      setDataLab(new URLSearchParams(window.location.search).get("datalab") === "1");
+    });
+  }, []);
 
   useEffect(() => {
     const tick = () => setNow(Date.now());
@@ -275,8 +298,14 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
         if (statusFilter === "finished" && !started) return false;
         return true;
       })
-      .sort((a, b) => a.kickoffUtc.localeCompare(b.kickoffUtc));
-  }, [fixtures, monthFilter, statusFilter, now, savedOnly, savedIds]);
+      .sort((a, b) => {
+        if (sort === "worth") {
+          const diff = travelWorthiness(b).score - travelWorthiness(a).score;
+          if (diff !== 0) return diff;
+        }
+        return a.kickoffUtc.localeCompare(b.kickoffUtc);
+      });
+  }, [fixtures, monthFilter, statusFilter, now, savedOnly, savedIds, sort]);
 
   const homeStats = bundle?.teamStats.find((row) => row.teamId === bundle.fixture.home.id);
   const awayStats = bundle?.teamStats.find((row) => row.teamId === bundle.fixture.away.id);
@@ -320,6 +349,12 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
           </header>
 
           <div className="fixture-sort">
+            <span>เรียงตาม</span>
+            <button type="button" className={sort === "date" ? "active" : ""} onClick={() => setSort("date")}>วันที่</button>
+            <button type="button" className={sort === "worth" ? "active" : ""} onClick={() => setSort("worth")}>คุ้มค่าบินไปดู</button>
+          </div>
+
+          <div className="fixture-sort">
             <span>เดือน</span>
             <button type="button" className={monthFilter === "all" ? "active" : ""} onClick={() => setMonthFilter("all")}>ทุกเดือน</button>
             {months.map((month) => (
@@ -346,6 +381,7 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
                   onOpen={() => openMatch(fixture.id)}
                   saved={savedIds.includes(fixture.id)}
                   onToggleSave={() => toggleSaved(fixture.id)}
+                  showWorth={sort === "worth"}
                 />
               ))}
             </div>
@@ -730,6 +766,32 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
                       ราคาจริงเปลี่ยนตามวันเดินทาง ที่ว่าง และเวลาที่จอง
                     </p>
                   </div>
+                </div>
+              )}
+
+              {/* ── STEP 123 · DATA LAB — เปิดด้วย ?datalab=1 เท่านั้น ─────
+                  มีไว้กันทีมออกแบบสร้างฟีเจอร์บนข้อมูลที่ยังไม่มีจริง
+                  แสดงแค่ว่ามีข้อมูลอะไรบ้าง ไม่เปิดเผยคีย์หรือ payload ดิบ */}
+              {dataLab && (
+                <div className="mc-datalab">
+                  <span className="eyebrow">DATA LAB · ตรวจความครอบคลุมข้อมูล</span>
+                  <ul>
+                    {(Object.keys(bundle.capabilities) as Array<keyof typeof bundle.capabilities>).map((key) => (
+                      <li key={key} className={bundle.capabilities[key] ? "on" : "off"}>
+                        <b>{bundle.capabilities[key] ? "✓" : "✕"}</b>
+                        <span>{key}</span>
+                        {!bundle.capabilities[key] && <em>{UNAVAILABLE_REASON_TH[key]}</em>}
+                      </li>
+                    ))}
+                  </ul>
+                  <dl>
+                    <div><dt>ผู้ให้บริการ</dt><dd>{bundle.fixture.quality.source}</dd></div>
+                    <div><dt>โหมดสาธิต</dt><dd>{bundle.demo ? "ใช่" : "ไม่"}</dd></div>
+                    <div><dt>ข้อมูลดีเลย์</dt><dd>{bundle.fixture.quality.isDelayed ? "ใช่" : "ไม่"}</dd></div>
+                    <div><dt>ซิงก์เหตุการณ์</dt><dd>{bundle.sync.events ?? "—"}</dd></div>
+                    <div><dt>ซิงก์สถิติ</dt><dd>{bundle.sync.stats ?? "—"}</dd></div>
+                    <div><dt>ซิงก์ไลน์อัพ</dt><dd>{bundle.sync.lineups ?? "—"}</dd></div>
+                  </dl>
                 </div>
               )}
 

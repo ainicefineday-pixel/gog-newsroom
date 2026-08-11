@@ -213,6 +213,30 @@
 .mc-save.on svg { fill: currentColor; }
 .mc-card.saved { border-color: rgba(240,165,0,.4); }
 
+/* ── ความคุ้มค่าบินไปดู (STEP 72) ────────────────────────────────────── */
+.mc-worth { padding: 11px 13px; border-radius: 10px; border: 1px solid var(--line); background: #0f1218; }
+.mc-worth.must { border-color: rgba(240,165,0,.45); background: rgba(240,165,0,.08); }
+.mc-worth.good { border-color: rgba(74,222,128,.32); background: rgba(74,222,128,.06); }
+.mc-worth-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.mc-worth-head b { font: 800 10.5px/1.5 "Kanit",sans-serif; color: #cfd3da; }
+.mc-worth.must .mc-worth-head b { color: #f0a500; }
+.mc-worth.good .mc-worth-head b { color: #4ade80; }
+.mc-worth-head em { color: var(--muted); font: 700 10px/1.5 "Kanit",sans-serif; font-style: normal; font-variant-numeric: tabular-nums; }
+.mc-worth ul { list-style: none; margin: 7px 0 0; padding: 0; display: grid; gap: 4px; }
+.mc-worth li { position: relative; padding-left: 12px; color: #8a9099; font: 400 9.5px/1.6 "Kanit",sans-serif; }
+.mc-worth li::before { content: "·"; position: absolute; left: 3px; font-weight: 800; }
+
+/* ── DATA LAB — เครื่องมือทีมพัฒนา (STEP 123) ────────────────────────── */
+.mc-datalab { margin-top: 16px; padding: 16px 18px; border: 1px dashed rgba(125,171,255,.4); border-radius: 12px; background: #0a0d13; }
+.mc-datalab ul { list-style: none; margin: 11px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill,minmax(230px,1fr)); gap: 6px; }
+.mc-datalab li { display: grid; grid-template-columns: 16px auto 1fr; gap: 8px; align-items: baseline; font: 600 10.5px/1.6 "Kanit",sans-serif; }
+.mc-datalab li.on { color: #4ade80; }
+.mc-datalab li.off { color: #6b7078; }
+.mc-datalab li em { color: #4e535b; font: 400 9px/1.5 "Kanit",sans-serif; font-style: normal; }
+.mc-datalab dl { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 11px; margin: 14px 0 0; padding-top: 12px; border-top: 1px solid #ffffff0d; }
+.mc-datalab dt { color: #4e535b; font: 700 8.5px/1.5 "Kanit",sans-serif; letter-spacing: .06em; }
+.mc-datalab dd { margin: 3px 0 0; color: #9aa0a8; font: 600 10px/1.5 "Kanit",sans-serif; word-break: break-all; }
+
 /* ── คู่มือสนามฉบับ GOG (STEP 58) ────────────────────────────────────── */
 .mc-guide { border: 1px solid rgba(74,222,128,.28); border-radius: 12px; background: linear-gradient(135deg, rgba(74,222,128,.06), #0c0e12 58%); padding: 18px 20px; }
 .mc-guide h4 { margin: 6px 0 14px; color: #fff; font: 800 16px/1.45 "Kanit",sans-serif; }
