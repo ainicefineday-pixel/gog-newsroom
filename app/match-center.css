@@ -1,0 +1,215 @@
+/* ═══ GOG FOOTBALL MATCH CENTER (STEP 86–90) ═════════════════════════════
+   แนวทาง: พรีเมียม อ่านง่าย ข้อมูลนำ ไทยมาก่อน
+   จงใจไม่ใช้โทนเว็บพนันและไม่เลียนหน้าตาแพลตฟอร์มบอลเจ้าอื่น
+   สีสโมสรใช้เป็นแค่จุดเน้นเล็ก ๆ ไม่ปล่อยให้สีสองทีมกลืนทั้งหน้า (STEP 89) */
+
+.mc-view { display: flex; flex-direction: column; gap: 20px; }
+
+/* ไอคอนแท็บ — วงกลมลูกบอลแบบเส้น */
+.tab-icon-match::before { content: ""; position: absolute; left: 4px; top: 4px; width: 14px; height: 14px; border: 2px solid currentColor; border-radius: 50%; }
+.tab-icon-match::after { content: ""; position: absolute; left: 9px; top: 9px; width: 4px; height: 4px; background: currentColor; border-radius: 50%; }
+
+.mc-hero {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap;
+  padding: 28px 30px; border: 1px solid var(--line);
+  background: radial-gradient(circle at 88% 12%, rgba(59,130,246,.14), transparent 18rem), linear-gradient(125deg,#11141a,#0c0e12);
+}
+.mc-hero h2 { margin: 7px 0 6px; font-size: clamp(23px,2.6vw,34px); font-weight: 800; }
+.mc-hero p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.75; max-width: 62ch; }
+.mc-demo-badge {
+  display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 99px;
+  border: 1px solid rgba(240,165,0,.45); background: rgba(240,165,0,.12); color: #f0a500;
+  font: 800 10px/1.5 "Kanit",sans-serif; letter-spacing: .04em;
+}
+
+/* ── สถานะไม่มีข้อมูล — ต้องบอกเหตุผลเสมอ ไม่ใช่กล่องเทาเปล่า (STEP 84) ── */
+.mc-unavailable {
+  display: flex; align-items: flex-start; gap: 10px; padding: 15px 17px;
+  border: 1px dashed var(--line); border-radius: 11px; background: #0c0e12;
+  color: #8a9099; font: 400 11.5px/1.7 "Kanit",sans-serif;
+}
+.mc-unavailable svg { color: #6b7078; flex-shrink: 0; margin-top: 2px; }
+
+/* ── โครงกระดูกตอนโหลด (STEP 85) ─────────────────────────────────────── */
+.mc-skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(260px,1fr)); gap: 11px; }
+.mc-skeleton { display: block; height: 168px; border-radius: 12px; background: linear-gradient(100deg,#0f1116 30%,#171a21 50%,#0f1116 70%); background-size: 220% 100%; animation: mcShimmer 1.4s linear infinite; }
+.mc-skeleton.tall { height: 220px; }
+@keyframes mcShimmer { from { background-position: 180% 0; } to { background-position: -60% 0; } }
+@media (prefers-reduced-motion: reduce) { .mc-skeleton { animation: none; } }
+
+/* ── การ์ดแมตช์ (STEP 31) ────────────────────────────────────────────── */
+.mc-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(268px,1fr)); gap: 12px; }
+.mc-card { display: flex; flex-direction: column; gap: 11px; padding: 16px 17px; border: 1px solid var(--line); border-radius: 13px; background: #0c0e12; }
+.mc-card.live { border-color: rgba(218,41,28,.5); box-shadow: inset 3px 0 0 var(--red); }
+.mc-card > header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mc-card-week { color: var(--muted); font: 700 9px/1.5 "Kanit",sans-serif; letter-spacing: .1em; }
+
+.mc-state { padding: 4px 9px; border-radius: 99px; font: 800 8.5px/1.5 "Kanit",sans-serif; letter-spacing: .05em; white-space: nowrap; }
+.mc-state-pre { background: #ffffff0d; color: #9aa0a8; }
+.mc-state-live { background: var(--red); color: #fff; }
+.mc-state-half_time { background: rgba(240,165,0,.2); color: #f0a500; }
+.mc-state-full_time { background: rgba(74,222,128,.16); color: #4ade80; }
+.mc-state-postponed, .mc-state-cancelled, .mc-state-abandoned, .mc-state-unknown { background: rgba(248,113,113,.16); color: #f87171; }
+
+.mc-card-teams { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; }
+.mc-card-team { min-width: 0; }
+.mc-card-team.away { text-align: right; }
+.mc-card-team b { display: block; color: #f2f3f5; font: 700 12.5px/1.4 "Kanit",sans-serif; }
+.mc-card-team small { display: block; margin-top: 2px; color: #6b7078; font-size: 9px; }
+.mc-card-score { color: #f0a500; font: 800 18px/1 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+
+.mc-card-meta { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; margin: 0; padding-top: 10px; border-top: 1px solid #ffffff0d; }
+.mc-card-meta dt { color: #6b7078; font: 600 8.5px/1.5 "Kanit",sans-serif; }
+.mc-card-meta dd { margin: 2px 0 0; color: #cfd3da; font: 700 11px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.mc-card-venue { display: flex; align-items: center; gap: 5px; margin: 0; color: var(--muted); font: 500 10px/1.5 "Kanit",sans-serif; }
+.mc-card-cta { margin-top: auto; padding: 11px; border: 1px solid var(--line); border-radius: 9px; background: transparent; color: #d5d8dd; font: 700 11px/1.45 "Kanit",sans-serif; cursor: pointer; }
+.mc-card-cta:hover { border-color: #7dabff; color: #7dabff; }
+
+/* ── หน้าแมตช์ ───────────────────────────────────────────────────────── */
+.mc-back { margin-bottom: 16px; padding: 9px 14px; border: 1px solid var(--line); border-radius: 9px; background: transparent; color: #9aa0a8; font: 700 11px/1.45 "Kanit",sans-serif; cursor: pointer; }
+.mc-back:hover { border-color: #6b7078; color: #e7e9ec; }
+
+.mc-match-hero { padding: 22px 24px; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(140deg, rgba(59,130,246,.08), #0c0e12 58%); }
+.mc-match-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font: 700 9.5px/1.5 "Kanit",sans-serif; letter-spacing: .1em; }
+.mc-match-teams { display: grid; grid-template-columns: 1fr auto 1fr; gap: 18px; align-items: center; margin: 20px 0; text-align: center; }
+.mc-match-team b { display: block; color: #fff; font: 800 clamp(15px,1.6vw,21px)/1.35 "Kanit",sans-serif; }
+.mc-match-team small { display: block; margin-top: 4px; color: #6b7078; font-size: 10px; }
+.mc-match-score { color: #f0a500; font: 800 clamp(28px,3.4vw,44px)/1 "Kanit",sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.mc-match-meta { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 1px; margin: 0; background: var(--line); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; }
+.mc-match-meta > div { padding: 12px 14px; background: #0c0e12; }
+.mc-match-meta dt { color: var(--muted); font: 700 9px/1.5 "Kanit",sans-serif; letter-spacing: .07em; }
+.mc-match-meta dd { margin: 4px 0 0; color: #e7e9ec; font: 700 12px/1.45 "Kanit",sans-serif; }
+.mc-schedule-note { display: flex; align-items: flex-start; gap: 8px; margin: 13px 0 0; padding: 11px 14px; border-radius: 10px; background: rgba(240,165,0,.08); color: #f0a500; font: 500 10.5px/1.7 "Kanit",sans-serif; }
+.mc-schedule-note svg { flex-shrink: 0; margin-top: 3px; }
+
+/* แท็บภายในแมตช์ — เดสก์ท็อปติดหนึบ มือถือเลื่อนแนวนอน (STEP 25, 86) */
+.mc-tabs { display: flex; gap: 7px; overflow-x: auto; margin: 18px 0 15px; padding-bottom: 4px; position: sticky; top: 76px; z-index: 5; background: #0f1115; }
+.mc-tabs button { flex-shrink: 0; padding: 10px 15px; border: 1px solid var(--line); border-radius: 99px; background: #0c0e12; color: #a9aeb6; font: 700 11px/1.45 "Kanit",sans-serif; cursor: pointer; }
+.mc-tabs button.active { background: var(--red); border-color: transparent; color: #fff; }
+
+.mc-panel { display: flex; flex-direction: column; gap: 15px; }
+
+/* ── GOG MATCH STORY ─────────────────────────────────────────────────── */
+.mc-story { padding: 18px 20px; border: 1px solid var(--line); border-left: 3px solid #f0a500; border-radius: 12px; background: #0c0e12; }
+.mc-story-short { margin: 8px 0 14px; color: #f2f3f5; font: 600 14px/1.75 "Kanit",sans-serif; }
+.mc-story ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.mc-story li { display: flex; align-items: flex-start; gap: 10px; color: #b7bbc2; font: 400 12px/1.75 "Kanit",sans-serif; }
+.mc-confidence { flex-shrink: 0; margin-top: 3px; padding: 2px 7px; border-radius: 99px; font: 800 7.5px/1.6 "Kanit",sans-serif; letter-spacing: .08em; }
+.mc-confidence.high { background: rgba(74,222,128,.16); color: #4ade80; }
+.mc-confidence.medium { background: rgba(240,165,0,.16); color: #f0a500; }
+.mc-confidence.low { background: #ffffff0d; color: #8a9099; }
+
+/* ── GOG CONTROL SCORE (STEP 39, 40) ─────────────────────────────────── */
+.mc-control { padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; }
+.mc-control > header b { display: block; color: #fff; font: 800 12px/1.5 "Kanit",sans-serif; letter-spacing: .08em; }
+.mc-control > header span { display: block; margin-top: 3px; color: var(--muted); font: 400 10.5px/1.6 "Kanit",sans-serif; }
+.mc-control-bar { display: flex; align-items: center; gap: 12px; margin: 14px 0 11px; }
+.mc-control-bar span { color: #f0a500; font: 800 17px/1 "Kanit",sans-serif; font-variant-numeric: tabular-nums; min-width: 34px; }
+.mc-control-bar span:last-child { text-align: right; color: #7dabff; }
+.mc-control-bar i { flex: 1; height: 8px; border-radius: 99px; background: rgba(125,171,255,.35); overflow: hidden; }
+.mc-control-bar em { display: block; height: 100%; background: linear-gradient(90deg,#f0a500,#da291c); }
+.mc-control-toggle { background: none; border: none; padding: 0; color: #7dabff; font: 700 10.5px/1.5 "Kanit",sans-serif; text-decoration: underline; cursor: pointer; }
+.mc-control-math { margin-top: 12px; padding-top: 12px; border-top: 1px solid #ffffff0d; }
+.mc-control-math ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.mc-control-math li { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: baseline; color: #b7bbc2; font: 500 11px/1.5 "Kanit",sans-serif; }
+.mc-control-math li b { color: #e7e9ec; font-variant-numeric: tabular-nums; }
+.mc-control-math li em { color: var(--muted); font-style: normal; font-size: 10px; }
+.mc-control-math p { margin: 10px 0 0; color: #6b7078; font: 400 10px/1.65 "Kanit",sans-serif; }
+.mc-version { color: #4e535b !important; }
+
+/* ── จังหวะสำคัญ ─────────────────────────────────────────────────────── */
+.mc-moments { padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; }
+.mc-moments ol { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 10px; }
+.mc-moments li { display: grid; grid-template-columns: 44px 1fr; gap: 12px; align-items: start; }
+.mc-moments li > b { color: #f0a500; font: 800 13px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.mc-moments strong { display: block; color: #e7e9ec; font: 700 12px/1.5 "Kanit",sans-serif; }
+.mc-moments small { display: block; margin-top: 2px; color: #7f858d; font: 400 10.5px/1.6 "Kanit",sans-serif; }
+
+/* ── ไลน์อัพ (STEP 32, 34) ───────────────────────────────────────────── */
+.mc-lineups { display: grid; grid-template-columns: repeat(auto-fit,minmax(300px,1fr)); gap: 13px; }
+.mc-pitch-block { border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 16px 17px; }
+.mc-pitch-block > header { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin-bottom: 13px; }
+.mc-pitch-block > header b { color: #fff; font: 800 13px/1.45 "Kanit",sans-serif; }
+.mc-formation { padding: 3px 9px; border-radius: 99px; background: #ffffff0d; color: #cfd3da; font: 800 10px/1.5 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.mc-lineup-status { padding: 3px 9px; border-radius: 99px; font: 700 8.5px/1.5 "Kanit",sans-serif; }
+.mc-lineup-status.confirmed { background: rgba(74,222,128,.16); color: #4ade80; }
+.mc-lineup-status.predicted { background: rgba(240,165,0,.16); color: #f0a500; }
+.mc-lineup-status.unavailable { background: #ffffff0d; color: #8a9099; }
+
+.mc-pitch { display: grid; gap: 14px; padding: 16px 10px; border-radius: 10px; background: linear-gradient(180deg,#0d1a12,#0a140e); border: 1px solid rgba(74,222,128,.14); }
+.mc-pitch-row { display: flex; justify-content: space-evenly; gap: 8px; }
+.mc-pitch-player { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+.mc-pitch-player b { display: grid; place-items: center; width: 27px; height: 27px; border-radius: 50%; background: var(--red); color: #fff; font: 800 10.5px/1 "Kanit",sans-serif; }
+.mc-pitch-player small { color: #b7bbc2; font: 600 9px/1.3 "Kanit",sans-serif; max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-bench { margin: 11px 0 0; color: #8a9099; font: 400 10px/1.7 "Kanit",sans-serif; }
+.mc-bench span { display: block; color: var(--muted); font: 700 9px/1.6 "Kanit",sans-serif; letter-spacing: .1em; }
+
+/* ── ไทม์ไลน์เหตุการณ์ (STEP 35) ─────────────────────────────────────── */
+.mc-timeline { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.mc-timeline li { display: grid; grid-template-columns: 46px 26px 1fr; gap: 11px; align-items: center; padding: 11px 13px; border-radius: 9px; background: #0c0e12; border-left: 3px solid transparent; }
+.mc-timeline li.home { border-left-color: var(--red); }
+.mc-timeline li.away { border-left-color: #7dabff; }
+.mc-timeline li > b { color: #e7e9ec; font: 800 12px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.mc-timeline-icon { display: grid; place-items: center; font-size: 13px; }
+.mc-timeline strong { display: block; color: #f2f3f5; font: 700 12px/1.45 "Kanit",sans-serif; }
+.mc-timeline small { display: block; margin-top: 2px; color: #7f858d; font-size: 10px; }
+
+/* ── สถิติแบบแถบเทียบ (STEP 38) ──────────────────────────────────────── */
+.mc-stats { border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 17px 19px; }
+.mc-stats > header { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; margin-bottom: 15px; }
+.mc-stats > header b { color: #fff; font: 800 12px/1.45 "Kanit",sans-serif; }
+.mc-stats > header b:last-child { text-align: right; }
+.mc-stats > header span { color: var(--muted); font: 700 9.5px/1.5 "Kanit",sans-serif; letter-spacing: .08em; }
+.mc-stat { display: grid; grid-template-columns: 44px 1fr 44px; gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid #ffffff0d; }
+.mc-stat:first-of-type { border-top: none; }
+.mc-stat-value { color: #f0a500; font: 800 13px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.mc-stat-value.away { text-align: right; color: #7dabff; }
+.mc-stat-body b { display: block; text-align: center; color: #9aa0a8; font: 600 10.5px/1.5 "Kanit",sans-serif; margin-bottom: 5px; }
+.mc-stat-track { display: flex; gap: 3px; height: 7px; }
+.mc-stat-track i { display: block; height: 100%; border-radius: 99px; }
+.mc-stat-track .home { background: linear-gradient(90deg,rgba(240,165,0,.45),#f0a500); }
+.mc-stat-track .away { background: linear-gradient(90deg,#7dabff,rgba(125,171,255,.45)); }
+
+/* ── H2H · ตารางคะแนน · สนาม ─────────────────────────────────────────── */
+.mc-h2h-summary { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 11px; overflow: hidden; margin-bottom: 13px; }
+.mc-h2h-summary span { padding: 14px; background: #0c0e12; text-align: center; color: var(--muted); font: 600 10.5px/1.5 "Kanit",sans-serif; }
+.mc-h2h-summary b { display: block; color: #f0a500; font: 800 22px/1.2 "Kanit",sans-serif; }
+.mc-h2h-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.mc-h2h-list li { display: grid; grid-template-columns: 110px 1fr auto; gap: 12px; align-items: center; padding: 11px 13px; border-radius: 9px; background: #0c0e12; }
+.mc-h2h-list span { color: var(--muted); font: 600 10.5px/1.45 "Kanit",sans-serif; }
+.mc-h2h-list b { color: #e7e9ec; font: 700 12px/1.45 "Kanit",sans-serif; }
+.mc-h2h-list small { color: #6b7078; font-size: 9.5px; }
+
+.mc-table { width: 100%; border-collapse: collapse; font: 500 11.5px/1.6 "Kanit",sans-serif; }
+.mc-table th { padding: 10px 9px; text-align: left; color: var(--muted); font: 700 9px/1.5 "Kanit",sans-serif; letter-spacing: .08em; border-bottom: 1px solid var(--line); }
+.mc-table td { padding: 10px 9px; color: #b7bbc2; border-bottom: 1px solid #ffffff0d; font-variant-numeric: tabular-nums; }
+.mc-table tr.involved td { background: rgba(240,165,0,.07); color: #e7e9ec; }
+.mc-table td b { color: #f0a500; }
+
+.mc-venue { border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 18px 20px; }
+.mc-venue h4 { margin: 0 0 13px; color: #fff; font: 800 16px/1.45 "Kanit",sans-serif; }
+.mc-venue dl { display: grid; grid-template-columns: repeat(auto-fit,minmax(140px,1fr)); gap: 12px; margin: 0; }
+.mc-venue dt { color: var(--muted); font: 700 9px/1.5 "Kanit",sans-serif; letter-spacing: .07em; }
+.mc-venue dd { margin: 4px 0 0; color: #e7e9ec; font: 600 11.5px/1.5 "Kanit",sans-serif; }
+.mc-venue a { display: inline-block; margin-top: 15px; color: #7dabff; font: 700 11px/1.5 "Kanit",sans-serif; text-decoration: underline; }
+
+/* ── PLAN THIS MATCH (STEP 60) ───────────────────────────────────────── */
+.mc-travel { border: 1px solid rgba(240,165,0,.32); border-radius: 12px; background: linear-gradient(135deg, rgba(240,165,0,.09), #0c0e12 58%); padding: 20px 22px; }
+.mc-travel h4 { margin: 6px 0 8px; color: #fff; font: 800 19px/1.4 "Kanit",sans-serif; }
+.mc-travel > p { margin: 0 0 15px; color: #b7bbc2; font: 400 12px/1.75 "Kanit",sans-serif; max-width: 68ch; }
+.mc-travel dl { display: grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap: 12px; margin: 0 0 17px; }
+.mc-travel dt { color: var(--muted); font: 700 9px/1.5 "Kanit",sans-serif; letter-spacing: .07em; }
+.mc-travel dd { margin: 4px 0 0; color: #e7e9ec; font: 700 11.5px/1.5 "Kanit",sans-serif; }
+.mc-travel-cta { display: inline-flex; align-items: center; gap: 9px; padding: 14px 22px; border: none; border-radius: 10px; background: var(--red); color: #fff; font: 800 13px/1.45 "Kanit",sans-serif; cursor: pointer; }
+.mc-travel-cta:hover { background: #ef3a2c; }
+.mc-note { margin: 13px 0 0; color: #6b7078; font: 400 10px/1.7 "Kanit",sans-serif; }
+
+.mc-sync { display: flex; align-items: center; gap: 7px; margin: 16px 0 0; color: #5d626b; font: 500 9.5px/1.6 "Kanit",sans-serif; }
+
+@media (max-width: 720px) {
+  .mc-tabs { top: 0; }
+  .mc-match-teams { gap: 10px; }
+  .mc-h2h-list li { grid-template-columns: 1fr; gap: 4px; }
+  .mc-control-math li { grid-template-columns: 1fr auto; }
+}

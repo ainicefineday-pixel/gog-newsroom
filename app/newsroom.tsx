@@ -5,6 +5,7 @@ import { Check, ChevronDown, Copy, FileText, Languages, RefreshCw } from "lucide
 import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 import { AnthemPlayer } from "@/app/anthem-player";
+import { MatchCenter } from "@/app/match-center";
 
 /** ค้างพาดหัวไว้กี่มิลลิวินาทีก่อนสลับ — ความยาวการเฟดคุมด้วย CSS ฝั่ง .hero-rotator-slide */
 const HERO_HOLD_MS = 6_500;
@@ -38,7 +39,7 @@ const DEFAULT_CAPABILITIES: SourceCapabilities = {
   translation: false,
 };
 
-type WorkspaceView = "news" | "fixtures" | "trip" | "partners" | "map" | "tactics" | "team";
+type WorkspaceView = "news" | "fixtures" | "matchcenter" | "trip" | "partners" | "map" | "tactics" | "team";
 
 const CATEGORY_META: Record<Category, { icon: string; label: string; className: string }> = {
   Transfer: { icon: "↔", label: "ตลาดนักเตะ", className: "transfer" },
@@ -511,6 +512,7 @@ export function Newsroom() {
         <nav aria-label="เมนูหลัก">
           <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}>ข่าวล่าสุด</button>
           <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}>โปรแกรมพรีเมียร์ลีก</button>
+          <button type="button" className={activeView === "matchcenter" ? "active" : ""} onClick={() => switchView("matchcenter")}>Match Center</button>
           <button type="button" className={activeView === "trip" ? "active" : ""} onClick={() => switchView("trip")}>วางแผนทริป</button>
           <button type="button" className={activeView === "partners" ? "active" : ""} onClick={() => switchView("partners")}>เครือข่าย GOG</button>
           <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}>แผนที่สนาม</button>
@@ -632,6 +634,7 @@ export function Newsroom() {
         <nav className="workspace-tabs" aria-label="ส่วนหลักของเว็บไซต์">
           <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}><span className="tab-icon tab-icon-news" aria-hidden="true" /><b>ข่าวล่าสุด</b><small>NEWS INTELLIGENCE</small></button>
           <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}><span className="tab-icon tab-icon-calendar" aria-hidden="true" /><b>โปรแกรมพรีเมียร์ลีก</b><small>2026/27 · THAI TIME</small></button>
+          <button type="button" className={activeView === "matchcenter" ? "active" : ""} onClick={() => switchView("matchcenter")}><span className="tab-icon tab-icon-match" aria-hidden="true" /><b>Match Center</b><small>UNDERSTAND THE MATCH</small></button>
           <button type="button" className={activeView === "trip" ? "active" : ""} onClick={() => switchView("trip")}><span className="tab-icon tab-icon-trip" aria-hidden="true" /><b>วางแผนทริป</b><small>BKK → MATCHDAY</small></button>
           <button type="button" className={activeView === "partners" ? "active" : ""} onClick={() => switchView("partners")}><span className="tab-icon tab-icon-partners" aria-hidden="true" /><b>เครือข่าย GOG</b><small>THAI PARTNERS · UK</small></button>
           <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}><span className="tab-icon tab-icon-map" aria-hidden="true" /><b>แผนที่สนาม</b><small>20 GROUNDS · ENGLAND</small></button>
@@ -852,7 +855,7 @@ export function Newsroom() {
             </section>
           </aside>
         </div>
-        </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "trip" ? <TripPlanner /> : activeView === "partners" ? <PartnerNetwork /> : activeView === "map" ? <StadiumMapPanel /> : activeView === "tactics" ? <TacticBoardPanel /> : <GogTeamPanel />}
+        </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "matchcenter" ? <MatchCenter onPlanTrip={() => switchView("trip")} /> : activeView === "trip" ? <TripPlanner /> : activeView === "partners" ? <PartnerNetwork /> : activeView === "map" ? <StadiumMapPanel /> : activeView === "tactics" ? <TacticBoardPanel /> : <GogTeamPanel />}
       </main>
 
       <footer>
