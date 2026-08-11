@@ -205,6 +205,29 @@
 .mc-travel-cta:hover { background: #ef3a2c; }
 .mc-note { margin: 13px 0 0; color: #6b7078; font: 400 10px/1.7 "Kanit",sans-serif; }
 
+/* ── เส้นทางวันแข่ง (STEP 65) ────────────────────────────────────────── */
+.mc-route { border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 18px 20px; }
+.mc-route-line { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(130px,1fr)); gap: 10px; }
+.mc-route-line li { position: relative; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #0f1218; }
+.mc-route-line li:not(:last-child)::after {
+  content: "→"; position: absolute; right: -11px; top: 50%; transform: translateY(-50%);
+  color: #4e535b; font-size: 12px; z-index: 1;
+}
+.mc-route-line b { display: block; color: #e7e9ec; font: 700 11.5px/1.45 "Kanit",sans-serif; }
+.mc-route-line small { display: block; margin-top: 3px; color: #6b7078; font: 500 9.5px/1.5 "Kanit",sans-serif; }
+
+/* ── ตารางราคาโดยประมาณ (STEP 63, 64) ────────────────────────────────── */
+.mc-estimates { border: 1px solid var(--line); border-radius: 12px; background: #0c0e12; padding: 18px 20px; }
+.mc-estimates > header b { display: block; margin-top: 5px; color: #fff; font: 800 14px/1.5 "Kanit",sans-serif; }
+.mc-estimates > header small { display: block; margin-top: 3px; color: var(--muted); font: 400 10.5px/1.6 "Kanit",sans-serif; }
+.mc-estimate-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: 11px; margin-top: 15px; }
+.mc-estimate-col { border: 1px solid var(--line); border-radius: 11px; background: #0f1218; padding: 14px 16px; }
+.mc-estimate-length { display: block; margin-bottom: 11px; color: #f0a500; font: 800 13px/1.45 "Kanit",sans-serif; }
+.mc-estimate-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid #ffffff0d; }
+.mc-estimate-row:first-of-type { border-top: none; }
+.mc-estimate-row em { color: #9aa0a8; font: 600 10.5px/1.5 "Kanit",sans-serif; font-style: normal; }
+.mc-estimate-row b { color: #e7e9ec; font: 800 11.5px/1.45 "Kanit",sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 .mc-sync { display: flex; align-items: center; gap: 7px; margin: 16px 0 0; color: #5d626b; font: 500 9.5px/1.6 "Kanit",sans-serif; }
 
 @media (max-width: 720px) {

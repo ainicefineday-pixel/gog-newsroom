@@ -11,6 +11,9 @@ import { CalendarDays, Clock, Info, MapPin, Plane, TriangleAlert } from "lucide-
 import { FIXTURE_STATE_TH, STAT_LABELS } from "@/services/football/thai";
 import { UNAVAILABLE_REASON_TH } from "@/services/football/capabilities";
 import { thaiFullDate, thaiShortDate } from "@/services/football/normalize";
+import { buildMatchTravelPlan } from "@/services/travel/matchToTrip";
+import { formatThb } from "@/services/pricing";
+import { BUDGET_LABELS, type BudgetStyle } from "@/services/trip/types";
 import type {
   GOGEvent, GOGFixture, GOGLineup, GOGMatchBundle, GOGStanding, GOGTeamStats,
 } from "@/services/football/types";
@@ -156,7 +159,7 @@ function LineupPitch({ lineup, teamName }: { lineup: GOGLineup; teamName: string
   );
 }
 
-export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (fixture: GOGFixture) => void }) {
+export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: string) => void }) {
   const [fixtures, setFixtures] = useState<GOGFixture[] | null>(null);
   const [demo, setDemo] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -234,6 +237,8 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (fixture: GOGFixture)
 
   const homeStats = bundle?.teamStats.find((row) => row.teamId === bundle.fixture.home.id);
   const awayStats = bundle?.teamStats.find((row) => row.teamId === bundle.fixture.away.id);
+  // เส้นทางเดินทางและราคาโดยประมาณของแมตช์นี้ — คิดจาก service ตัวเดียวกับหน้าวางแผนทริป
+  const travel = useMemo(() => (bundle ? buildMatchTravelPlan(bundle.fixture) : null), [bundle]);
 
   return (
     <section className="mc-view" aria-labelledby="mc-heading">
@@ -569,7 +574,7 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (fixture: GOGFixture)
                 </div>
               )}
 
-              {tab === "travel" && (
+              {tab === "travel" && travel && (
                 <div className="mc-panel">
                   <div className="mc-travel">
                     <span className="eyebrow">PLAN THIS MATCH</span>
@@ -584,10 +589,53 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (fixture: GOGFixture)
                       <div><dt>เวลาไทย</dt><dd>{bundle.fixture.kickoffBangkok} น.</dd></div>
                       {bundle.fixture.venue && <div><dt>สนาม</dt><dd>{bundle.fixture.venue.name} · {bundle.fixture.venue.city}</dd></div>}
                     </dl>
-                    <button type="button" className="mc-travel-cta" onClick={() => onPlanTrip?.(bundle.fixture)}>
+                    <button type="button" className="mc-travel-cta" onClick={() => onPlanTrip?.(travel.tripFixtureKey)}>
                       <Plane size={14} aria-hidden="true" /> วางแผนไปดูเกมนี้
                     </button>
                     <p className="mc-note">ราคาทั้งหมดในเครื่องมือวางแผนเป็นการประมาณการ ยังไม่ได้เชื่อมระบบจองจริง</p>
+                  </div>
+
+                  {/* ── STEP 65 · เส้นทางวันแข่ง ─────────────────────────── */}
+                  <div className="mc-route">
+                    <span className="eyebrow">MATCHDAY ROUTE</span>
+                    <ol className="mc-route-line">
+                      <li><b>{travel.originCity}</b><small>{travel.originAirport}</small></li>
+                      <li><b>{travel.recommendedAirports.join(" / ")}</b><small>สนามบินปลายทาง</small></li>
+                      <li><b>{travel.baseCityTh}</b><small>เมืองฐาน · ที่พัก</small></li>
+                      <li>
+                        <b>{bundle.fixture.venue?.name ?? "สนามแข่ง"}</b>
+                        <small>{travel.railDay && travel.railMinutes ? `นั่งรถไฟต่อ ${travel.railMinutes} นาที` : "อยู่ในเมืองฐาน"}</small>
+                      </li>
+                    </ol>
+                    {travel.railDay && travel.railRoute && (
+                      <p className="mc-note">สนามอยู่ที่{travel.venueCity} — วันแข่งเดินทาง {travel.railRoute} ไป-กลับ คิดค่ารถไฟให้ในแผนแล้ว</p>
+                    )}
+                  </div>
+
+                  {/* ── STEP 63, 64 · ตารางราคาโดยประมาณ ─────────────────── */}
+                  <div className="mc-estimates">
+                    <header>
+                      <span className="eyebrow">TRAVEL PREVIEW</span>
+                      <b>ไปดูเกมนี้ด้วยตัวเอง ประมาณเท่าไหร่</b>
+                      <small>ต่อคน คิดแบบพัก 2 คนต่อห้อง · รวมตั๋วเข้าสนามแล้ว</small>
+                    </header>
+                    <div className="mc-estimate-grid">
+                      {travel.estimates.map((row) => (
+                        <div className="mc-estimate-col" key={row.length}>
+                          <span className="mc-estimate-length">{row.length} วัน</span>
+                          {row.prices.map((price) => (
+                            <span className="mc-estimate-row" key={price.budget}>
+                              <em>{BUDGET_LABELS[price.budget as BudgetStyle].name}</em>
+                              <b>ประมาณ {formatThb(price.perPerson)}</b>
+                            </span>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                    <p className="mc-note">
+                      ราคาโดยประมาณเพื่อวางแผนเท่านั้น ยังไม่ได้เชื่อมระบบจองจริง —
+                      ราคาจริงเปลี่ยนตามวันเดินทาง ที่ว่าง และเวลาที่จอง
+                    </p>
                   </div>
                 </div>
               )}

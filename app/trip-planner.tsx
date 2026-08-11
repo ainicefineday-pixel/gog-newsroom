@@ -417,9 +417,16 @@ function ItineraryDayCard({ day, money, onRemove, partnersByKind, travellers, tr
   );
 }
 
-export function TripPlanner() {
+/**
+ * initialFixtureKey มาจากปุ่ม "วางแผนไปดูเกมนี้" ใน Match Center
+ * ส่งเป็นคีย์เดียวกับ fixtureKey() ของ services/football/fixtures จึงเลือกแมตช์ได้ตรง
+ */
+export function TripPlanner({ initialFixtureKey }: { initialFixtureKey?: string } = {}) {
   const fixtures = useMemo(() => listPlannableFixtures(), []);
-  const [fixtureKey, setFixtureKey] = useState<string>(() => fixtures[0]?.key ?? "");
+  const [fixtureKey, setFixtureKey] = useState<string>(() => {
+    if (initialFixtureKey && fixtures.some((item) => item.key === initialFixtureKey)) return initialFixtureKey;
+    return fixtures[0]?.key ?? "";
+  });
   const [length, setLength] = useState<TripLength>(5);
   const [budget, setBudget] = useState<BudgetStyle>("comfort");
   const [travellers, setTravellers] = useState(2);

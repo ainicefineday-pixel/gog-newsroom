@@ -287,6 +287,8 @@ function EmptyState({ syncing, onSync }: { syncing: boolean; onSync: () => void 
 export function Newsroom() {
   const [stories, setStories] = useState<Story[]>([]);
   const [activeView, setActiveView] = useState<WorkspaceView>("news");
+  // แมตช์ที่ส่งมาจาก Match Center ผ่านปุ่ม "วางแผนไปดูเกมนี้"
+  const [planFixtureKey, setPlanFixtureKey] = useState("");
   const [lastSync, setLastSync] = useState<LastSync>(null);
   const [capabilities, setCapabilities] = useState<SourceCapabilities>(DEFAULT_CAPABILITIES);
   const [now, setNow] = useState<Date | null>(null);
@@ -855,7 +857,12 @@ export function Newsroom() {
             </section>
           </aside>
         </div>
-        </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "matchcenter" ? <MatchCenter onPlanTrip={() => switchView("trip")} /> : activeView === "trip" ? <TripPlanner /> : activeView === "partners" ? <PartnerNetwork /> : activeView === "map" ? <StadiumMapPanel /> : activeView === "tactics" ? <TacticBoardPanel /> : <GogTeamPanel />}
+        </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "matchcenter" ? (
+          <MatchCenter onPlanTrip={(fixtureKey) => { setPlanFixtureKey(fixtureKey); switchView("trip"); }} />
+        ) : activeView === "trip" ? (
+          // key บังคับให้สร้างใหม่เมื่อส่งแมตช์ใหม่เข้ามา ไม่งั้น state เดิมค้างและไม่เลือกแมตช์ให้
+          <TripPlanner key={planFixtureKey || "default"} initialFixtureKey={planFixtureKey || undefined} />
+        ) : activeView === "partners" ? <PartnerNetwork /> : activeView === "map" ? <StadiumMapPanel /> : activeView === "tactics" ? <TacticBoardPanel /> : <GogTeamPanel />}
       </main>
 
       <footer>
