@@ -24,6 +24,9 @@ import { leagueImpact } from "@/services/intelligence/leagueImpact";
 import { buildMatchStory } from "@/services/intelligence/matchStory";
 import { buildKeyMoments } from "@/services/intelligence/keyMoments";
 import { controlScore } from "@/services/intelligence/controlScore";
+import { linkStories, storiesForFixture } from "@/services/intelligence/newsMatch";
+import type { GOGFixture } from "@/services/football/types";
+import type { Story } from "@/lib/types";
 
 import { DEFAULT_COMPETITION_ID, DEFAULT_SEASON } from "@/services/football/competitions";
 import { generateDailyDigest, runIngest, translateStories } from "@/lib/server/pipeline";
@@ -86,6 +89,36 @@ function csvCell(value: unknown) {
   return `"${normalized.replace(/"/g, '""')}"`;
 }
 
+/**
+ * เชื่อมข่าวกับโปรแกรมแข่ง (STEP 71)
+ * โปรแกรมมาจากแคชชุดเดียวกับ Match Center จึงไม่กินโควตาผู้ให้บริการเพิ่ม
+ * ถ้าดึงโปรแกรมไม่ได้ (ยังไม่มีคีย์ ผู้ให้บริการล่ม) ให้ฟีดข่าวทำงานต่อโดยไม่มีลิงก์
+ */
+async function newsMatchLinks(env: RuntimeEnv, stories: Story[]) {
+  try {
+    if (env.DB) await ensureFootballTables(env.DB);
+    const { fixtures } = await getFixtures(env, DEFAULT_COMPETITION_ID, DEFAULT_SEASON);
+    return linkStories(stories, fixtures);
+  } catch {
+    return [];
+  }
+}
+
+/** ข่าวที่เกี่ยวกับนัดนี้ — ย้อนหลัง 45 วันเพื่อให้ครอบคลุมช่วงก่อนเกมทั้งหมด */
+async function newsForFixture(env: RuntimeEnv, fixture: GOGFixture) {
+  if (!env.DB) return [];
+  try {
+    const stories = await listStories(env.DB, { days: 45, minCredibility: 0 });
+    const links = storiesForFixture(linkStories(stories, [fixture]), fixture.id);
+    return links.map((link) => {
+      const story = stories.find((item) => item.id === link.storyId);
+      return story ? { link, story } : null;
+    }).filter((entry): entry is { link: typeof links[number]; story: Story } => entry !== null);
+  } catch {
+    return [];
+  }
+}
+
 function sourceCapabilities(env: RuntimeEnv) {
   const xProvider = getXProviderStatus(env);
   return {
@@ -114,7 +147,9 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
       source,
     });
     const lastSync = await getLatestSync(env.DB);
-    return json({ stories, lastSync, capabilities: sourceCapabilities(env) });
+    // เชื่อมข่าวกับโปรแกรมแข่ง (STEP 71) — ผูกไม่ได้ก็ส่งลิสต์ว่าง ไม่ทำให้ฟีดข่าวพัง
+    const matchLinks = await newsMatchLinks(env, stories);
+    return json({ stories, lastSync, matchLinks, capabilities: sourceCapabilities(env) });
   }
 
   if (url.pathname === "/api/status" && request.method === "GET") {
@@ -299,6 +334,7 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
       ),
       impact: leagueImpact(bundle.fixture, bundle.standings),
       changes,
+      news: await newsForFixture(env, bundle.fixture),
     });
   }
 

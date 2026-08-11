@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Copy, FileText, Languages, RefreshCw } from "lucide-react";
+import { CalendarDays, Check, ChevronDown, Copy, FileText, Languages, RefreshCw } from "lucide-react";
 import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 import { AnthemPlayer } from "@/app/anthem-player";
@@ -163,9 +163,39 @@ function translateLabel(progress: TranslateProgress) {
   return `กำลังแปล… ${Math.round(progress.percent)}% · ${progress.seconds.toFixed(1)} วิ`;
 }
 
+/** ข่าวชิ้นนี้พูดถึงนัดไหน — เซิร์ฟเวอร์จับคู่ให้แล้ว (STEP 71) */
+type StoryMatchLink = {
+  storyId: string;
+  fixtureId: string;
+  confidence: "high" | "medium";
+  daysBeforeKickoff: number;
+  fixture: { homeTh: string; awayTh: string; kickoffUtc: string; kickoffTimeAnnounced: boolean };
+};
+
+function MatchLinkBadge({ link, onOpen }: { link: StoryMatchLink; onOpen: () => void }) {
+  const date = new Intl.DateTimeFormat("th-TH", {
+    timeZone: "Asia/Bangkok", day: "numeric", month: "short",
+  }).format(new Date(link.fixture.kickoffUtc));
+  const timing = link.daysBeforeKickoff > 0
+    ? `อีก ${link.daysBeforeKickoff} วัน`
+    : link.daysBeforeKickoff === 0 ? "วันนี้" : `ผ่านมาแล้ว ${Math.abs(link.daysBeforeKickoff)} วัน`;
+
+  return (
+    <button type="button" className={`story-match-link ${link.confidence}`} onClick={onOpen}>
+      <CalendarDays size={12} aria-hidden="true" />
+      <b>{link.fixture.homeTh} พบ {link.fixture.awayTh}</b>
+      <span>{date} · {timing}</span>
+      {link.confidence === "medium" && <em>น่าจะเกี่ยวกับนัดนี้</em>}
+    </button>
+  );
+}
+
 function StoryCard({
-  story, now, onTranslate, translating, progress,
-}: { story: Story; now: Date; onTranslate: (story: Story) => void; translating: boolean; progress: TranslateProgress | null }) {
+  story, now, onTranslate, translating, progress, matchLink, onOpenMatch,
+}: {
+  story: Story; now: Date; onTranslate: (story: Story) => void; translating: boolean;
+  progress: TranslateProgress | null; matchLink?: StoryMatchLink; onOpenMatch: (fixtureId: string) => void;
+}) {
   const meta = CATEGORY_META[story.category];
   const [copied, setCopied] = useState(false);
   const copy = async () => {
@@ -197,6 +227,7 @@ function StoryCard({
         </div>
 
         <h2>{story.titleTh}</h2>
+        {matchLink && <MatchLinkBadge link={matchLink} onOpen={() => onOpenMatch(matchLink.fixtureId)} />}
         <p className="summary-th">{story.summaryTh}</p>
 
         {/* เนื้อข่าวไทยฉบับเต็มที่เรียบเรียงจากหน้าข่าวต้นฉบับ (ไม่ใช่แค่คำโปรย RSS) */}
@@ -299,6 +330,9 @@ export function Newsroom() {
   const [minCredibility, setMinCredibility] = useState(40);
   const [source, setSource] = useState("All");
   const [selectedTopId, setSelectedTopId] = useState("");
+  // ข่าวชิ้นไหนพูดถึงนัดไหน — เซิร์ฟเวอร์จับคู่ด้วยพจนานุกรมชื่อทีม (STEP 71)
+  const [matchLinks, setMatchLinks] = useState<StoryMatchLink[]>([]);
+  const [matchCenterFixtureId, setMatchCenterFixtureId] = useState<string | null>(null);
   const [digest, setDigest] = useState<Digest | null>(null);
   const [digestLoading, setDigestLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -313,10 +347,13 @@ export function Newsroom() {
   const loadStories = useCallback(async () => {
     const response = await fetch("/api/stories?days=14", { cache: "no-store" });
     if (!response.ok) throw new Error("ไม่สามารถโหลดคลังข่าวได้");
-    const payload = await response.json() as { stories: Story[]; lastSync: LastSync; capabilities?: SourceCapabilities };
+    const payload = await response.json() as {
+      stories: Story[]; lastSync: LastSync; capabilities?: SourceCapabilities; matchLinks?: StoryMatchLink[];
+    };
     setStories(payload.stories);
     setLastSync(payload.lastSync);
     setCapabilities(payload.capabilities ?? DEFAULT_CAPABILITIES);
+    setMatchLinks(payload.matchLinks ?? []);
     return payload.stories;
   }, []);
 
@@ -760,6 +797,8 @@ export function Newsroom() {
                       onTranslate={(target) => translate([target.id])}
                       translating={translatingIds.includes(story.id) || translatingIds.includes("*")}
                       progress={translateProgress}
+                      matchLink={matchLinks.find((link) => link.storyId === story.id)}
+                      onOpenMatch={(fixtureId) => { setMatchCenterFixtureId(fixtureId); switchView("matchcenter"); }}
                     />
                   ))}
                 </div>
@@ -858,7 +897,10 @@ export function Newsroom() {
           </aside>
         </div>
         </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "matchcenter" ? (
-          <MatchCenter onPlanTrip={(fixtureKey) => { setPlanFixtureKey(fixtureKey); switchView("trip"); }} />
+          <MatchCenter
+            onPlanTrip={(fixtureKey) => { setPlanFixtureKey(fixtureKey); switchView("trip"); }}
+            openFixtureId={matchCenterFixtureId}
+          />
         ) : activeView === "trip" ? (
           // key บังคับให้สร้างใหม่เมื่อส่งแมตช์ใหม่เข้ามา ไม่งั้น state เดิมค้างและไม่เลือกแมตช์ให้
           <TripPlanner key={planFixtureKey || "default"} initialFixtureKey={planFixtureKey || undefined} />

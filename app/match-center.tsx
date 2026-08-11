@@ -36,6 +36,12 @@ type FixtureChange = {
   detectedAt: string;
 };
 
+/** ข่าวที่ผูกกับนัดนี้ (STEP 71) — เซิร์ฟเวอร์จับคู่ด้วยพจนานุกรมชื่อทีม ไม่ใช่ AI */
+type MatchNews = {
+  link: { confidence: "high" | "medium"; daysBeforeKickoff: number };
+  story: { id: string; titleTh: string; titleEn: string; summaryTh: string; url: string; publishedAt: string; sources: Array<{ name: string }> };
+};
+
 const CHANGE_LABEL: Record<FixtureChange["field"], string> = {
   kickoff: "เปลี่ยนวัน/เวลาแข่ง",
   venue: "เปลี่ยนสนาม",
@@ -80,6 +86,13 @@ function Unavailable({ reason }: { reason: string }) {
       <span>{reason}</span>
     </div>
   );
+}
+
+/** ข่าวชิ้นนี้อยู่ตรงไหนของไทม์ไลน์แมตช์ */
+function linkTimingTh(days: number) {
+  if (days > 0) return `ก่อนแข่ง ${days} วัน`;
+  if (days === 0) return "วันแข่ง";
+  return `หลังแข่ง ${Math.abs(days)} วัน`;
 }
 
 const OUTCOME_TH: Record<ImpactOutcome, string> = { win: "ชนะ", draw: "เสมอ", loss: "แพ้" };
@@ -280,13 +293,18 @@ function LineupPitch({ lineup, teamName }: { lineup: GOGLineup; teamName: string
   );
 }
 
-export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: string) => void }) {
+export function MatchCenter({ onPlanTrip, openFixtureId }: {
+  onPlanTrip?: (tripFixtureKey: string) => void;
+  /** เปิดนัดนี้ทันทีเมื่อเข้ามาจากที่อื่น เช่น กดจากป้ายบนการ์ดข่าว (STEP 71) */
+  openFixtureId?: string | null;
+}) {
   const [fixtures, setFixtures] = useState<GOGFixture[] | null>(null);
   const [demo, setDemo] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [bundle, setBundle] = useState<GOGMatchBundle | null>(null);
   const [changes, setChanges] = useState<FixtureChange[]>([]);
   const [impact, setImpact] = useState<LeagueImpact | null>(null);
+  const [news, setNews] = useState<MatchNews[]>([]);
   const [story, setStory] = useState<MatchStory | null>(null);
   const [moments, setMoments] = useState<KeyMoment[]>([]);
   const [control, setControl] = useState<ControlScoreResult | null>(null);
@@ -362,18 +380,24 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
       .then((payload: {
         bundle?: GOGMatchBundle; story?: MatchStory | null;
         keyMoments?: KeyMoment[]; control?: ControlScoreResult | null;
-        impact?: LeagueImpact | null; changes?: FixtureChange[];
+        impact?: LeagueImpact | null; changes?: FixtureChange[]; news?: MatchNews[];
       } | null) => {
         setBundle(payload?.bundle ?? null);
         setStory(payload?.story ?? null);
         setMoments(payload?.keyMoments ?? []);
         setControl(payload?.control ?? null);
         setImpact(payload?.impact ?? null);
+        setNews(payload?.news ?? []);
         if (payload?.changes) setChanges((current) => [...payload.changes!, ...current.filter((item) => item.fixtureId !== fixtureId)]);
       })
       .catch(() => setBundle(null))
       .finally(() => setLoadingMatch(false));
   }, []);
+
+  // มาจากป้ายบนการ์ดข่าว — เปิดนัดนั้นให้เลย ไม่ต้องให้ผู้อ่านหาเองในปฏิทิน 380 นัด
+  useEffect(() => {
+    if (openFixtureId) window.queueMicrotask(() => openMatch(openFixtureId));
+  }, [openFixtureId, openMatch]);
 
   // ค้นหารวม — พิมพ์ไทยหรืออังกฤษก็เจอเหมือนกัน (STEP 70)
   const searchHits = useMemo(() => searchFootball(query, fixtures ?? []), [query, fixtures]);
@@ -680,6 +704,34 @@ export function MatchCenter({ onPlanTrip }: { onPlanTrip?: (tripFixtureKey: stri
                           </li>
                         ))}
                       </ol>
+                    </div>
+                  )}
+
+                  {/* ── ข่าวที่เกี่ยวกับนัดนี้ (STEP 71) ─────────────────── */}
+                  {news.length > 0 && (
+                    <div className="mc-news">
+                      <span className="eyebrow">ข่าวที่เกี่ยวกับนัดนี้</span>
+                      <ul>
+                        {news.map(({ link, story: item }) => (
+                          <li key={item.id}>
+                            <a href={item.url} target="_blank" rel="noreferrer">
+                              <b>{item.titleTh || item.titleEn}</b>
+                              {item.summaryTh && <small>{item.summaryTh}</small>}
+                            </a>
+                            <span className="mc-news-meta">
+                              <em className={link.confidence === "high" ? "sure" : ""}>
+                                {link.confidence === "high" ? "ตรงนัดนี้" : "น่าจะนัดนี้"}
+                              </em>
+                              {linkTimingTh(link.daysBeforeKickoff)}
+                              {item.sources[0] && ` · ${item.sources[0].name}`}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mc-news-note">
+                        จับคู่จากชื่อทีมในพาดหัวและเนื้อข่าวเทียบกับโปรแกรมแข่งจริง
+                        ข่าวที่ไม่ได้ระบุคู่แข่งจะไม่ถูกผูกกับนัดใด
+                      </p>
                     </div>
                   )}
                 </div>

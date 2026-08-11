@@ -308,6 +308,22 @@
 .mc-changed li em { color: #f0a500; font: 700 11px/1.6 "Kanit",sans-serif; font-style: normal; margin-right: 6px; }
 .mc-changed small { display: block; margin-top: 8px; color: #9aa0a8; font: 400 10px/1.6 "Kanit",sans-serif; }
 
+/* ── ข่าวที่เกี่ยวกับนัดนี้ (STEP 71) ────────────────────────────────── */
+.mc-news { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--line); }
+.mc-news ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 9px; }
+.mc-news li { border: 1px solid var(--line); border-radius: 11px; background: #0f1218; padding: 13px 16px; }
+.mc-news li a { display: block; text-decoration: none; }
+.mc-news li a:hover b { color: #f0a500; }
+.mc-news li b { display: block; color: #e7e9ec; font: 700 12.5px/1.55 "Kanit",sans-serif; transition: color .15s ease; }
+.mc-news li small { display: block; margin-top: 4px; color: #8a9099; font: 400 10.5px/1.65 "Kanit",sans-serif; }
+.mc-news-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 8px; color: #6b7078; font: 500 9.5px/1.55 "Kanit",sans-serif; }
+.mc-news-meta em {
+  padding: 2px 7px; border-radius: 999px; background: #ffffff0d; border: 1px solid var(--line);
+  color: #9aa0a8; font: 700 9px/1.5 "Kanit",sans-serif; font-style: normal;
+}
+.mc-news-meta em.sure { background: #2ecc7118; border-color: #2ecc7150; color: #2ecc71; }
+.mc-news-note { margin: 10px 0 0; color: #5d626b; font: 400 9.5px/1.65 "Kanit",sans-serif; }
+
 /* ── ผลนี้แปลว่าอะไร (STEP 55, 56) ───────────────────────────────────── */
 .mc-impact { margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
 .mc-impact > h4 { margin: 0; color: #fff; font: 800 14px/1.5 "Kanit",sans-serif; }
