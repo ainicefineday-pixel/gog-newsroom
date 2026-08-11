@@ -26,6 +26,7 @@ import { buildKeyMoments } from "@/services/intelligence/keyMoments";
 import { controlScore } from "@/services/intelligence/controlScore";
 import { linkStories, storiesForFixture } from "@/services/intelligence/newsMatch";
 import { rankMatches, type MatchFitResult } from "@/services/intelligence/matchFit";
+import { publishFinishedMatchReports } from "@/lib/server/match-reports";
 import type { BudgetStyle } from "@/services/trip/types";
 import type { GOGFixture } from "@/services/football/types";
 import type { Story } from "@/lib/types";
@@ -396,6 +397,15 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
       unlockByLeave: report.unlockByLeave,
       unlockByBudget: report.unlockByBudget,
     });
+  }
+
+  // สั่งปล่อยรายงานผลบอลด้วยมือ (STEP 45) — ปกติ cron ทำให้ทุก 10 นาที
+  // ต้องมี CRON_SECRET เพราะเขียนข่าวลงคลังจริง
+  if (url.pathname === "/api/football/match-reports" && request.method === "POST") {
+    const denied = adminAuthorizationError(request, env);
+    if (denied) return denied;
+    if (env.DB) await ensureFootballTables(env.DB);
+    return json({ ok: true, ...(await publishFinishedMatchReports(env)) });
   }
 
   // สุขภาพผู้ให้บริการ — ต้องมี CRON_SECRET เพราะเผยรายละเอียดภายใน (STEP 93, 118)

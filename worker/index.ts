@@ -3,6 +3,7 @@ import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } fr
 import handler from "vinext/server/app-router-entry";
 import { handleApi } from "../lib/server/api";
 import { maybeGenerateMorningDigest, runIngest } from "../lib/server/pipeline";
+import { publishFinishedMatchReports } from "../lib/server/match-reports";
 import type { RuntimeEnv } from "../lib/server/database";
 
 interface Env extends RuntimeEnv {
@@ -106,7 +107,12 @@ const worker = {
   },
   async scheduled(_controller: unknown, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(
-      runIngest(env).then(() => maybeGenerateMorningDigest(env)).then(() => undefined),
+      runIngest(env)
+        .then(() => maybeGenerateMorningDigest(env))
+        // รายงานผลบอลอัตโนมัติ (STEP 45) — ต่อท้ายรอบเดิม ไม่ต้องตั้ง cron แยก
+        // catch ไว้เพราะผู้ให้บริการฟุตบอลล่มไม่ควรทำให้การดึงข่าวรอบนี้ถือว่าล้มเหลว
+        .then(() => publishFinishedMatchReports(env).catch(() => undefined))
+        .then(() => undefined),
     );
   },
 };

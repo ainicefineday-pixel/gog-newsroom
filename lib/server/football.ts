@@ -71,6 +71,16 @@ export async function ensureFootballTables(db: D1Database) {
     )`),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_football_cache_expires ON football_cache(expires_at)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_football_log_created ON football_provider_log(created_at)"),
+    // นัดที่ปล่อยรายงานผลอัตโนมัติไปแล้ว (STEP 45)
+    // ต้องกันซ้ำ เพราะ cron วิ่งทุก 10 นาที ถ้าไม่จำไว้จะปล่อยข่าวเดิมทุกรอบ
+    db.prepare(`CREATE TABLE IF NOT EXISTS football_match_reports (
+      fixture_id TEXT PRIMARY KEY,
+      story_id TEXT NOT NULL,
+      version TEXT NOT NULL,
+      published_at TEXT NOT NULL
+    )`),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_football_cache_expires ON football_cache(expires_at)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_football_log_created ON football_provider_log(created_at)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_fixture_changes_fixture ON football_fixture_changes(fixture_id, detected_at)"),
   ]);
 }
