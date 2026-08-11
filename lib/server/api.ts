@@ -29,6 +29,7 @@ import { controlScore } from "@/services/intelligence/controlScore";
 import { linkStories, storiesForFixture } from "@/services/intelligence/newsMatch";
 import { rankMatches, type MatchFitResult } from "@/services/intelligence/matchFit";
 import { publishFinishedMatchReports } from "@/lib/server/match-reports";
+import { getIngestProgress, getNewsFlow } from "@/lib/server/news-flow";
 import type { BudgetStyle } from "@/services/trip/types";
 import type { GOGFixture } from "@/services/football/types";
 import type { Story } from "@/lib/types";
@@ -172,6 +173,16 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
     // เชื่อมข่าวกับโปรแกรมแข่ง (STEP 71) — ผูกไม่ได้ก็ส่งลิสต์ว่าง ไม่ทำให้ฟีดข่าวพัง
     const matchLinks = await newsMatchLinks(env, stories);
     return json({ stories, lastSync, matchLinks, capabilities: sourceCapabilities(env) });
+  }
+
+  // ผังสายข่าว — ตัวเลขทุกตัวมาจากตารางจริง ไม่มีค่าประดับ
+  if (url.pathname === "/api/news-flow" && request.method === "GET") {
+    return json({ ok: true, flow: await getNewsFlow(env) });
+  }
+
+  // ความคืบหน้าระหว่างซิงก์ — หน้าเว็บถามซ้ำทุกวินาทีตอนกดปุ่มซิงก์
+  if (url.pathname === "/api/ingest/progress" && request.method === "GET") {
+    return json({ ok: true, progress: await getIngestProgress(env) });
   }
 
   if (url.pathname === "/api/status" && request.method === "GET") {

@@ -718,7 +718,17 @@ export function Newsroom() {
           )}
         </section>
 
-        <NewsFlow storyCount={stories.length} verifiedCount={verifiedCount} lastSync={lastSync} />
+        <NewsFlow
+          storyCount={stories.length}
+          verifiedCount={verifiedCount}
+          lastSync={lastSync}
+          syncing={syncing}
+          activeSource={source}
+          onFilterSource={(label) => {
+            setSource(label ?? "All");
+            document.getElementById("news")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }}
+        />
 
         <section className="filter-bar" aria-label="ตัวกรองข่าว">
           <div className="category-filters">

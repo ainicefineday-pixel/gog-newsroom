@@ -103,6 +103,32 @@ export async function ensureDatabase(db: D1Database) {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     )`),
+    // ผลรายแหล่งของแต่ละรอบซิงก์ — ทำให้ผังสายข่าวบอกได้ว่าแหล่งไหนส่งมาเท่าไหร่
+    // แหล่งไหนล่ม และแหล่งไหนส่งเยอะแต่ผ่านเกณฑ์น้อย (เสียงดังแต่ไม่ค่อยมีสาระ)
+    db.prepare(`CREATE TABLE IF NOT EXISTS source_runs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      run_started_at TEXT NOT NULL,
+      source_id TEXT NOT NULL,
+      source_name TEXT NOT NULL,
+      ok INTEGER NOT NULL DEFAULT 1,
+      fetched INTEGER NOT NULL DEFAULT 0,
+      matched INTEGER NOT NULL DEFAULT 0,
+      error TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    )`),
+    // ความคืบหน้าระหว่างรอบซิงก์ที่กำลังวิ่งอยู่ — หนึ่งแถวต่อหนึ่งรอบ
+    // หน้าเว็บถามซ้ำทุกวินาทีเพื่อให้ผังเดินตามจริง ไม่ใช่วนแอนิเมชันหลอก
+    db.prepare(`CREATE TABLE IF NOT EXISTS ingest_progress (
+      run_started_at TEXT PRIMARY KEY,
+      stage TEXT NOT NULL,
+      detail TEXT NOT NULL DEFAULT '',
+      fetched INTEGER NOT NULL DEFAULT 0,
+      matched INTEGER NOT NULL DEFAULT 0,
+      stored INTEGER NOT NULL DEFAULT 0,
+      done INTEGER NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL
+    )`),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_source_runs_started ON source_runs(run_started_at)"),
     db.prepare(`CREATE TABLE IF NOT EXISTS x_posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       platform_post_id TEXT,

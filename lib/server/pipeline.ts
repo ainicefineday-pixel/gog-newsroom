@@ -159,11 +159,32 @@ async function fetchText(url: string, init: RequestInit = {}) {
   return response.text();
 }
 
-async function fetchRssItems() {
+/** ผลของแหล่งข่าวหนึ่งแหล่งในรอบซิงก์หนึ่งรอบ */
+export type SourceOutcome = {
+  sourceId: string;
+  sourceName: string;
+  ok: boolean;
+  items: RawItem[];
+  error: string;
+};
+
+/**
+ * ดึงฟีดทุกแหล่งพร้อมกัน แล้วรายงานผลรายแหล่ง ไม่ใช่ยุบรวมเป็นก้อนเดียว
+ * รุ่นเดิมใช้ flatMap ทิ้งผลที่ล้มเหลวไปเงียบ ๆ ทำให้ไม่มีทางรู้เลยว่า
+ * ฟีดไหนตายไปแล้ว — ข่าวก็ยังไหลมาจากแหล่งอื่นจนดูเหมือนระบบปกติดี
+ */
+async function fetchRssBySource(): Promise<SourceOutcome[]> {
   const settled = await Promise.allSettled(
     RSS_NEWS_SOURCES.map(async (source) => parseRss(await fetchText(source.feedUrl), source.name)),
   );
-  return settled.flatMap((result) => (result.status === "fulfilled" ? result.value : []));
+  return settled.map((result, index) => {
+    const source = RSS_NEWS_SOURCES[index];
+    if (result.status === "fulfilled") {
+      return { sourceId: source.id, sourceName: source.name, ok: true, items: result.value, error: "" };
+    }
+    const reason = result.reason instanceof Error ? result.reason.message : String(result.reason);
+    return { sourceId: source.id, sourceName: source.name, ok: false, items: [], error: reason.slice(0, 200) };
+  });
 }
 
 async function fetchNewsApi(key: string): Promise<RawItem[]> {
@@ -443,14 +464,43 @@ export async function runIngest(env: RuntimeEnv) {
   let stored = 0;
   let note = "";
 
+  // ผังสายข่าวหน้าเว็บอ่านตารางนี้ทุกวินาทีระหว่างซิงก์ เพื่อให้เส้นเดินตามจริง
+  const progress = async (stage: string, detail: string, done = false) => {
+    try {
+      await db.prepare(`INSERT INTO ingest_progress
+        (run_started_at, stage, detail, fetched, matched, stored, done, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(run_started_at) DO UPDATE SET
+          stage = excluded.stage, detail = excluded.detail, fetched = excluded.fetched,
+          matched = excluded.matched, stored = excluded.stored, done = excluded.done,
+          updated_at = excluded.updated_at`)
+        .bind(startedAt, stage, detail, fetched, matched, stored, done ? 1 : 0, new Date().toISOString())
+        .run();
+    } catch { /* รายงานความคืบหน้าไม่สำเร็จ ห้ามทำให้การซิงก์ล้ม */ }
+  };
+
+  const sourceOutcomes: SourceOutcome[] = [];
+
   try {
-    const rssItems = await fetchRssItems();
+    await progress("rss", "กำลังอ่านฟีดจากแหล่งข่าว");
+    const rssBySource = await fetchRssBySource();
+    sourceOutcomes.push(...rssBySource);
+    const rssItems = rssBySource.flatMap((outcome) => outcome.items);
     const extras: RawItem[] = [];
     if (env.NEWSAPI_KEY && rssItems.filter(matchesManchesterUnited).length < 5) {
       try { extras.push(...await fetchNewsApi(env.NEWSAPI_KEY)); } catch { note += "NewsAPI unavailable. "; }
     }
+    await progress("x", "กำลังเก็บโพสต์จากนักข่าวใน X");
     try {
       const xCollection = await collectXWatchlist(env);
+      // X ทั้ง watchlist นับเป็นหนึ่งโหนดในผัง เพราะหน้าเว็บจัดกลุ่มไว้แบบนั้น
+      sourceOutcomes.push({
+        sourceId: "x",
+        sourceName: "X Watchlist",
+        ok: xCollection.configured && xCollection.errors.length === 0,
+        items: [],
+        error: xCollection.configured ? xCollection.errors.slice(0, 2).join(" · ").slice(0, 200) : "ยังไม่ได้ตั้งค่าผู้ให้บริการ",
+      });
       extras.push(...xCollection.posts.map((post) => ({
         title: post.text.replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim().slice(0, 240),
         description: post.text,
@@ -460,15 +510,36 @@ export async function runIngest(env: RuntimeEnv) {
         author: post.displayName ?? undefined,
         handle: post.username,
       })));
+      // โพสต์ X ที่ดึงมาได้ นับเข้าโหนด X ในผัง
+      const xOutcome = sourceOutcomes.find((entry) => entry.sourceId === "x");
+      if (xOutcome) xOutcome.items = extras.filter((item) => item.handle);
       if (!xCollection.configured) note += "X collector waiting for a configured provider. ";
       else if (xCollection.errors.length) note += `X collector completed with ${xCollection.errors.length} account error(s). `;
     } catch {
       note += "X collector unavailable. ";
+      const xOutcome = sourceOutcomes.find((entry) => entry.sourceId === "x");
+      if (xOutcome) { xOutcome.ok = false; xOutcome.error = "ตัวเก็บโพสต์ X ใช้งานไม่ได้"; }
     }
     const rawItems = [...rssItems, ...extras];
     fetched = rawItems.length;
     const relevant = rawItems.filter(matchesManchesterUnited);
     matched = relevant.length;
+    await progress("filter", `คัดจาก ${fetched} ชิ้น เหลือที่เกี่ยวกับแมนยู ${matched} ชิ้น`);
+
+    // บันทึกผลรายแหล่ง — ตัวเลข matched ต่อแหล่งคำนวณจากเกณฑ์เดียวกับภาพรวม
+    // จึงบวกกันได้ตรงกับยอดรวมเสมอ ไม่ใช่ตัวเลขคนละชุด
+    const runRows = sourceOutcomes.map((outcome) => db.prepare(`INSERT INTO source_runs
+      (run_started_at, source_id, source_name, ok, fetched, matched, error, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(
+        startedAt, outcome.sourceId, outcome.sourceName, outcome.ok ? 1 : 0,
+        outcome.items.length, outcome.items.filter(matchesManchesterUnited).length,
+        outcome.error, new Date().toISOString(),
+      ));
+    if (runRows.length > 0) {
+      try { await db.batch(runRows); } catch { /* สถิติรายแหล่งพลาด ไม่ควรทำให้ซิงก์ล้ม */ }
+    }
+
     const clusters = clusterItems(relevant).slice(0, 40);
     const categories = clusters.map((cluster) => categorizeStory(cluster.title, cluster.description));
     const existingStories = await listStories(db, { days: 21 });
@@ -519,8 +590,11 @@ export async function runIngest(env: RuntimeEnv) {
       };
       await upsertStory(db, story);
       stored += 1;
+      // รายงานทุก 5 ข่าว — ถี่กว่านี้คือเขียน D1 บ่อยเกินจำเป็นสำหรับแถบความคืบหน้า
+      if (stored % 5 === 0) await progress("store", `บันทึกแล้ว ${stored} จาก ${clusters.length} ข่าว`);
     }
 
+    await progress("done", `เสร็จแล้ว — เก็บ ${stored} ข่าว`, true);
     const finishedAt = new Date().toISOString();
     await db.prepare(`INSERT INTO ingest_runs
       (started_at, finished_at, fetched, matched, stored, status, note)
@@ -531,6 +605,7 @@ export async function runIngest(env: RuntimeEnv) {
   } catch (error) {
     const finishedAt = new Date().toISOString();
     const message = error instanceof Error ? error.message : "Unknown ingestion error";
+    await progress("failed", message.slice(0, 160), true);
     await db.prepare(`INSERT INTO ingest_runs
       (started_at, finished_at, fetched, matched, stored, status, note)
       VALUES (?, ?, ?, ?, ?, 'failed', ?)`)

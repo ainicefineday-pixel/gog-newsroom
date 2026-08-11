@@ -849,7 +849,7 @@ h1, h2, h3, p, li, td, th, b, strong, small { overflow-wrap: break-word; }
   background: #0f1218; border: 1px solid var(--line);
 }
 .news-flow-node b { display: block; color: #e7e9ec; font: 700 11.5px/1.45 "Kanit",sans-serif; }
-.news-flow-node span { display: block; margin-top: 2px; color: #6b7078; font: 500 9px/1.5 "Kanit",sans-serif; }
+.news-flow-node > span { display: block; margin-top: 2px; color: #6b7078; font: 500 9px/1.5 "Kanit",sans-serif; }
 .news-flow-node.out { border-color: #d9aa4938; background: linear-gradient(135deg,#171308,#0f1218); }
 .news-flow-node.out b { color: var(--gold-soft); }
 
@@ -1115,3 +1115,98 @@ h1, h2, h3, p, li, td, th, b, strong, small { overflow-wrap: break-word; }
   .bg-gradient-spin { animation: none; transform: rotate(300deg); }
   .glowing-effect { transition: none; }
 }
+
+/* ── ผังสายข่าว รุ่นที่อ่านสถานะจริง ─────────────────────────────────── */
+.flow-alert {
+  display: flex; align-items: center; gap: 9px; margin-top: 14px;
+  padding: 11px 15px; border-radius: 11px;
+  background: #e05c5c14; border: 1px solid #e05c5c40; color: #ff9a9a;
+  font: 600 11px/1.6 "Kanit",sans-serif;
+}
+
+/* โหนดแหล่งข่าวเป็นปุ่มกรองฟีด */
+.news-flow-node { padding: 0; overflow: hidden; }
+.news-flow-node > button {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  padding: 10px 14px; background: none; border: 0; font-family: inherit;
+}
+.news-flow-node > button:disabled { cursor: default; }
+.news-flow-node:not(.no-filter):hover { border-color: #f0a50060; }
+.news-flow-node.active { border-color: #f0a500; background: #f0a5000f; }
+.news-flow-node.active b { color: #ffc94d; }
+.flow-node-stats {
+  display: block; margin-top: 3px; color: #8a9099;
+  font: 600 9.5px/1.5 "Kanit",sans-serif; font-variant-numeric: tabular-nums;
+}
+.flow-node-health {
+  display: inline-block; margin-top: 5px; padding: 2px 7px; border-radius: 999px;
+  background: #ffffff0d; color: #6b7078; font: 700 8.5px/1.5 "Kanit",sans-serif;
+}
+.flow-node-health.ok { background: #3fc48d1a; color: #3fc48d; }
+.flow-node-health.quiet { background: #e8a83e1a; color: #e8a83e; }
+.flow-node-health.down { background: #e05c5c22; color: #ff8a8a; }
+/* แหล่งที่ล่มต้องเห็นชัดจากทั้งผัง ไม่ใช่ต้องไปอ่านป้ายเล็ก ๆ */
+.news-flow-node.health-down { border-color: #e05c5c55; background: #1a0f0f; }
+.news-flow-node.health-quiet { opacity: .72; }
+.news-flow-node.skeleton { padding: 12px 14px; color: #5d626b; font: 500 10px/1.5 "Kanit",sans-serif; }
+
+/* เส้นย้อมตามสุขภาพแหล่ง และหรี่เส้นอื่นเมื่อชี้เส้นใดเส้นหนึ่ง */
+.news-flow-track.down { stroke: #e05c5c55; }
+.news-flow-track.quiet { stroke: rgba(255,255,255,.07); }
+.news-flow-beams g { transition: opacity .18s ease; }
+.news-flow-beams g.dim { opacity: .18; }
+
+/* ด่านคัดสามขั้นในกล่องกลาง */
+.flow-stages { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 7px; text-align: left; }
+.flow-stages li { padding: 8px 11px; border-radius: 9px; background: #0b0d11; border-left: 2px solid #3a3f47; }
+.flow-stages li:nth-child(1) { border-left-color: #7dabff; }
+.flow-stages li:nth-child(2) { border-left-color: #e8a83e; }
+.flow-stages li:nth-child(3) { border-left-color: #3fc48d; }
+.flow-stages em { display: block; color: #6b7078; font: 700 8px/1.5 "Kanit",sans-serif; font-style: normal; letter-spacing: .04em; }
+.flow-stages strong { color: #fff; font: 800 16px/1.2 "Kanit",sans-serif; font-variant-numeric: tabular-nums; }
+.flow-stages small { display: block; color: #6b7078; font: 500 8.5px/1.45 "Kanit",sans-serif; }
+
+/* ทางแยกข่าวที่ยืนยันไม่ได้ */
+.flow-unverified { margin-top: 14px; }
+.flow-unverified > button {
+  display: flex; align-items: center; gap: 8px; width: 100%; cursor: pointer;
+  padding: 11px 15px; border-radius: 11px; text-align: left;
+  background: #0f1218; border: 1px dashed #e8a83e55;
+  color: #c9ccd1; font: 500 10.5px/1.6 "Kanit",sans-serif;
+}
+.flow-unverified > button:hover { border-color: #e8a83e; }
+.flow-unverified > button b { color: #e8a83e; font: 800 14px/1 "Kanit",sans-serif; }
+.flow-unverified > button em { margin-left: auto; color: #8a9099; font: 700 9.5px/1.5 "Kanit",sans-serif; font-style: normal; white-space: nowrap; }
+.flow-unverified ul { list-style: none; margin: 7px 0 0; padding: 0; display: grid; gap: 5px; }
+.flow-unverified li { padding: 9px 13px; border-radius: 9px; background: #0f1218; border: 1px solid var(--line); }
+.flow-unverified li span { display: block; color: #c9ccd1; font: 600 10.5px/1.55 "Kanit",sans-serif; }
+.flow-unverified li small { display: block; margin-top: 2px; color: #6b7078; font: 500 9px/1.5 "Kanit",sans-serif; }
+
+/* ไทม์ไลน์ 24 ชม. */
+.flow-timeline { margin-top: 14px; padding: 14px 16px; border-radius: 12px; background: #0f1218; border: 1px solid var(--line); }
+.flow-timeline > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.flow-timeline > header b { color: #e7e9ec; font: 700 11px/1.5 "Kanit",sans-serif; }
+.flow-timeline > header span { color: #6b7078; font: 500 9.5px/1.5 "Kanit",sans-serif; }
+.flow-timeline > header button {
+  padding: 4px 10px; border-radius: 999px; cursor: pointer;
+  background: #f0a50018; border: 1px solid #f0a50055; color: #f0a500; font: 700 9px/1.4 "Kanit",sans-serif;
+}
+.flow-timeline-bars { display: flex; align-items: flex-end; gap: 3px; height: 54px; margin-top: 11px; }
+.flow-timeline-bar { flex: 1; height: 100%; display: flex; align-items: flex-end; background: none; border: 0; padding: 0; cursor: pointer; }
+.flow-timeline-bar i {
+  display: block; width: 100%; height: var(--h, 0%); min-height: 2px; border-radius: 3px;
+  background: linear-gradient(to top, #da291c, #f0a500);
+  transition: filter .15s ease, background .15s ease;
+}
+.flow-timeline-bar.empty i { background: #23262d; }
+.flow-timeline-bar:hover i { filter: brightness(1.35); }
+.flow-timeline-bar.picked i { background: linear-gradient(to top, #f0cc78, #fff3d4); }
+.flow-timeline > footer { display: flex; justify-content: space-between; margin-top: 6px; color: #5d626b; font: 500 8.5px/1.4 "Kanit",sans-serif; }
+
+/* พาดหัวล่าสุดของแหล่งที่ชี้อยู่ */
+.flow-peek {
+  margin: 12px 0 0; padding: 10px 14px; border-radius: 10px;
+  background: #0f1218; border-left: 2px solid #f0a500;
+  color: #c9ccd1; font: 500 10.5px/1.65 "Kanit",sans-serif;
+}
+.flow-peek em { color: #f0a500; font: 800 9px/1.5 "Kanit",sans-serif; font-style: normal; margin-right: 7px; letter-spacing: .04em; }
