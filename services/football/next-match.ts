@@ -95,3 +95,14 @@ export function currentNavMatch(now = Date.now()): NavMatch | null {
   if (live) return live;
   return matches.find((match) => new Date(match.kickoffUtc).getTime() > now) ?? null;
 }
+
+/**
+ * นาทีที่ครึ่งหลังควรจบ นับจากเขี่ยบอล — 45 + 15 พักครึ่ง + 45
+ * และหน้าต่างหลังเกมที่ถือว่ายังเป็น "ช่วงหลังเกม" ของนัดนั้น
+ *
+ * อยู่ที่นี่เพราะทั้งแถบบน nav และตัวหาไลฟ์หลังเกมฝั่งเซิร์ฟเวอร์ใช้ค่าเดียวกัน
+ * ถ้าต่างคนต่างเขียนไว้เอง วันหนึ่งมันจะเลื่อนออกจากกันแล้วปุ่มไลฟ์บนหน้าเว็บ
+ * กับการไปหาไลฟ์จริงจะทำงานคนละช่วงเวลา
+ */
+export const FULL_TIME_MINUTES = 105;
+export const POST_MATCH_WINDOW_MINUTES = 30;

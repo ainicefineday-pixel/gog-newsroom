@@ -9,9 +9,9 @@
 
 import { listStories, type RuntimeEnv } from "@/lib/server/database";
 import {
-  fetchVideoMetadata, refreshYouTubeLiveStatus, type VideoPlatform,
+  fetchVideoMetadata, findChannelLive, FOOTBALL_GENIUS_CHANNEL_ID, refreshYouTubeLiveStatus, type VideoPlatform,
 } from "@/services/video";
-import { currentNavMatch } from "@/services/football/next-match";
+import { currentNavMatch, FULL_TIME_MINUTES, POST_MATCH_WINDOW_MINUTES } from "@/services/football/next-match";
 
 export type StoredVideo = {
   id: string;
@@ -170,4 +170,36 @@ export async function refreshVideoLiveStatus(env: RuntimeEnv) {
   await env.DB!.batch(updates);
 
   return { checked: rows.length, live, note: "" };
+}
+
+/**
+ * หาไลฟ์หลังเกมของช่องแล้วเอาขึ้นแถบคลิปให้เอง
+ *
+ * ยิงเฉพาะช่วงครึ่งชั่วโมงหลังเกมจบ ซึ่งเป็นเวลาที่ช่องไลฟ์จริง
+ * เพราะ search.list กินโควตาครั้งละ 100 หน่วยจากวันละ 10,000
+ * ครอนวิ่งทุก 10 นาที ในหน้าต่างนี้จึงยิงแค่ 3 ครั้งต่อนัด = 300 หน่วย
+ * ถ้ายิงทั้งวันจะเป็น 14,400 หน่วย ซึ่งเกินโควตาไปเกือบครึ่ง
+ */
+export async function syncPostMatchLive(env: RuntimeEnv) {
+  if (!env.YOUTUBE_API_KEY) return { searched: false, added: null as string | null, note: "ยังไม่ได้ตั้งค่า YOUTUBE_API_KEY" };
+
+  const match = currentNavMatch();
+  if (!match) return { searched: false, added: null, note: "ไม่มีนัดในระบบ" };
+
+  const elapsedMinutes = (Date.now() - new Date(match.kickoffUtc).getTime()) / 60_000;
+  if (elapsedMinutes < FULL_TIME_MINUTES || elapsedMinutes > FULL_TIME_MINUTES + POST_MATCH_WINDOW_MINUTES) {
+    return { searched: false, added: null, note: "ยังไม่ถึงช่วงหลังเกม" };
+  }
+
+  const live = await findChannelLive(FOOTBALL_GENIUS_CHANNEL_ID, env.YOUTUBE_API_KEY);
+  if (!live) return { searched: true, added: null, note: "ช่องยังไม่ได้เปิดไลฟ์" };
+
+  const url = `https://www.youtube.com/watch?v=${live.videoId}`;
+  try {
+    // คำค้นตั้งจากชื่อทีมทั้งสองฝั่ง ไลฟ์หลังเกมจะได้ผูกกับข่าวของนัดนั้นเอง
+    await addVideo(env, { url, keywords: `${match.home}, ${match.away}` });
+    return { searched: true, added: url, note: "" };
+  } catch (error) {
+    return { searched: true, added: null, note: error instanceof Error ? error.message.slice(0, 160) : "เพิ่มคลิปไลฟ์ไม่สำเร็จ" };
+  }
 }

@@ -5,6 +5,7 @@ import { handleApi } from "../lib/server/api";
 import { maybeGenerateMorningDigest, runIngest } from "../lib/server/pipeline";
 import { publishFinishedMatchReports } from "../lib/server/match-reports";
 import { applyStoryMerges, decideStoryMerges } from "../lib/server/story-merge";
+import { refreshVideoLiveStatus, syncPostMatchLive } from "@/lib/server/videos";
 import { syncManchesterUnitedPlayers } from "../lib/server/player-intelligence";
 import type { RuntimeEnv } from "../lib/server/database";
 
@@ -121,6 +122,11 @@ const worker = {
         // catch ไว้เพราะผู้ให้บริการฟุตบอลล่มไม่ควรทำให้การดึงข่าวรอบนี้ถือว่าล้มเหลว
         .then(() => publishFinishedMatchReports(env).catch(() => undefined))
         .then(() => syncManchesterUnitedPlayers(env).catch(() => undefined))
+        // ป้าย LIVE ของคลิป — 1 หน่วยโควตาต่อรอบไม่ว่าจะมีกี่คลิป (144 หน่วย/วัน)
+        .then(() => refreshVideoLiveStatus(env).catch(() => undefined))
+        // หาไลฟ์หลังเกมของช่องมาขึ้นแถบเอง — ตัวนี้กิน 100 หน่วยต่อครั้ง
+        // จึงยิงเฉพาะครึ่งชั่วโมงหลังเกมจบ ตกนัดละ 3 ครั้ง ไม่ใช่ทั้งวัน
+        .then(() => syncPostMatchLive(env).catch(() => undefined))
         .then(() => undefined),
     );
   },

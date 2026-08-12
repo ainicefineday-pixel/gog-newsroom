@@ -25,6 +25,9 @@ test("กันข่าวรวมและบล็อกสดออกจ�
     "Leeds vs Man Utd betting tips, bet builder and predictions: Far from friendly",
     "How to watch Manchester United vs Leeds FOR FREE: TV channel and live stream",
     "Man Utd vs Leeds odds and free bets",
+    // ตัวจริงที่คาดว่าจะลง — สามสำนักเดาตรงกันไม่ใช่การยืนยันข้อเท็จจริง
+    "Manchester United XI vs Leeds: Predicted lineup, confirmed team news",
+    "Man United predicted line-up vs Hull City",
   ]) {
     assert.equal(isRoundupHeadline(title), true, title);
   }
@@ -33,8 +36,8 @@ test("กันข่าวรวมและบล็อกสดออกจ�
     "Manchester United agree deal to sign midfielder",
     "Livewire winger completes Old Trafford medical",
     "Ruben Amorim confirms defender will miss Arsenal match",
-    // ยังไม่ถือว่าเป็นชิ้นบริการ — ดูคอมเมนต์ใน story-merge-rules.ts
-    "Manchester United XI vs Leeds: Predicted lineup, confirmed team news",
+    // ไลน์อัพจริงที่ประกาศแล้วยังใช้ยืนยันได้ ต่างจากการเดา
+    "Manchester United confirm starting eleven for Hull City opener",
   ]) {
     assert.equal(isRoundupHeadline(title), false, title);
   }

@@ -17,15 +17,12 @@ import { Marquee } from "@/app/terminal";
 import { MU_FIRST_TEAM_SQUAD, type SquadPosition } from "@/config/mu-squad";
 import { TEAM_NAMES } from "@/services/football/thai";
 import {
-  FIRST_HALF_END, MATCH_WINDOW_MINUTES, SECOND_HALF_START, type NavMatch,
+  FIRST_HALF_END, FULL_TIME_MINUTES, MATCH_WINDOW_MINUTES, POST_MATCH_WINDOW_MINUTES, SECOND_HALF_START, type NavMatch,
 } from "@/services/football/next-match";
 import type { VenueConditions } from "@/services/weather";
 
 /** ไลฟ์หลังเกมของช่อง — ขึ้นปุ่มให้ตั้งแต่จบเกมจนถึงครึ่งชั่วโมงหลังจากนั้น */
 const FOOTBALL_GENIUS_STREAMS = "https://www.youtube.com/@FootballGeniusAG/streams";
-const POST_MATCH_WINDOW_MINUTES = 30;
-/** นาทีที่ครึ่งหลังควรจบ นับจากเขี่ยบอล — 45 + 15 พักครึ่ง + 45 */
-const FULL_TIME_MINUTES = 105;
 /** เตือนล่วงหน้ากี่นาทีก่อนเขี่ยบอล */
 const PREMATCH_ALERT_MINUTES = 5;
 

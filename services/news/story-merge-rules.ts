@@ -16,12 +16,15 @@ const ROUNDUP_PATTERN = /\blive\b|\bround-?up\b|rumour mill|gossip|as it happene
 /**
  * ชิ้นที่ผูกกับนัดแต่ไม่ได้รายงานเหตุการณ์ — ยืนยันอะไรให้ใครไม่ได้
  *
- * ยังไม่รวมชิ้น "ตัวจริงที่คาดว่าจะลง" ไว้ที่นี่ ทั้งที่ก็เป็นการเดาเหมือนกัน
- * เพราะเป็นคนละคำถาม: สามสำนักเดาตัวจริงตรงกันควรนับเป็นการยืนยันไหม
- * ถ้าตัดสินว่าไม่ควร ให้เติม predicted line-?up กับ team news เข้ามา
- * แล้วจำนวนข่าวที่ยืนยันผ่านจะลดลงหนึ่งกลุ่มทันที
+ * รวมชิ้น "ตัวจริงที่คาดว่าจะลง" ไว้ด้วย เพราะสามสำนักเดาตัวจริงตรงกัน
+ * ไม่ได้แปลว่ามีใครยืนยันอะไร ทุกสำนักกำลังเดาจากข้อมูลชุดเดียวกัน
+ * การติดป้าย "ยืนยันแล้ว" ให้ข่าวประเภทนี้คือการบอกคนอ่านว่ามีสองสำนัก
+ * ยืนยันข้อเท็จจริงตรงกัน ทั้งที่ยังไม่มีข้อเท็จจริงให้ยืนยันเลยด้วยซ้ำ
+ *
+ * ราคาที่จ่าย: จำนวนข่าวที่ยืนยันผ่านลดลงหนึ่งกลุ่มทันที (5 เหลือ 4)
+ * ยอมจ่าย เพราะตัวเลขที่สวยกว่าโดยนับของที่ไม่ใช่การยืนยันคือการโกหกคนอ่าน
  */
-const MATCH_SERVICE_PATTERN = /betting tips|bet builder|\bodds\b|predictions|how to watch|tv channel|live stream/i;
+const MATCH_SERVICE_PATTERN = /betting tips|bet builder|\bodds\b|predictions|how to watch|tv channel|live stream|predicted (?:line-?up|xi|team)|\bteam news\b|probable line-?up/i;
 
 export function isRoundupHeadline(title: string) {
   return ROUNDUP_PATTERN.test(title) || MATCH_SERVICE_PATTERN.test(title);
