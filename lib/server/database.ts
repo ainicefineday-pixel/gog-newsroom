@@ -148,6 +148,25 @@ export async function ensureDatabase(db: D1Database) {
       note TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL
     )`),
+    // คลิปที่บรรณาธิการเลือกขึ้นหน้าข่าว — YouTube และ TikTok
+    // เก็บ metadata ที่ดึงมาแล้วไว้เลย จะได้ไม่ต้องยิงถาม YouTube ทุกครั้งที่มีคนเปิดเว็บ
+    // (search.list กินโควตาครั้งละ 100 หน่วยจากวันละ 10,000 หน่วย)
+    db.prepare(`CREATE TABLE IF NOT EXISTS videos (
+      id TEXT PRIMARY KEY,
+      platform TEXT NOT NULL,
+      video_id TEXT NOT NULL,
+      url TEXT NOT NULL,
+      title TEXT NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
+      keywords TEXT NOT NULL DEFAULT '',
+      thumbnail TEXT NOT NULL DEFAULT '',
+      channel TEXT NOT NULL DEFAULT '',
+      on_air_at TEXT,
+      is_live INTEGER NOT NULL DEFAULT 0,
+      live_checked_at TEXT,
+      created_at TEXT NOT NULL
+    )`),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_videos_created ON videos(created_at DESC)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_story_merges_primary ON story_merges(primary_id)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_source_runs_started ON source_runs(run_started_at)"),
     db.prepare(`CREATE TABLE IF NOT EXISTS x_posts (

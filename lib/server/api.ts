@@ -19,6 +19,7 @@ import {
 } from "@/lib/server/partners";
 import { fetchMatchWeather, fetchVenueConditions } from "@/services/weather";
 import { allNavMatches, currentNavMatch } from "@/services/football/next-match";
+import { addVideo, listVideos, refreshVideoLiveStatus, removeVideo, type AddVideoInput } from "@/lib/server/videos";
 import { gbpToThb } from "@/lib/server/fx";
 import {
   ensureFootballTables, getFixtures, getMatchBundle, getProviderHealth, getStandings, listFixtureChanges,
@@ -339,6 +340,36 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
   }
 
   // ── อากาศวันแข่ง (Open-Meteo · ฟรี ไม่ต้องใช้คีย์) ────────────────────
+  // ── คลิปบนหน้าข่าว ────────────────────────────────────────────────────
+  // อ่านได้สาธารณะ แต่เพิ่ม/ลบต้องมี CRON_SECRET เหมือน endpoint แอดมินตัวอื่น
+  // เว็บเปิดสาธารณะ ถ้าไม่กันไว้ใครก็เอาคลิปอะไรก็ได้ขึ้นหน้าแรกเรา
+  if (url.pathname === "/api/videos" && request.method === "GET") {
+    return json({ ok: true, videos: await listVideos(env) });
+  }
+  if (url.pathname === "/api/videos" && request.method === "POST") {
+    const denied = adminAuthorizationError(request, env);
+    if (denied) return denied;
+    const body = await request.json().catch(() => null) as AddVideoInput | null;
+    if (!body?.url) return json({ ok: false, error: "ต้องส่งลิงก์คลิปมาด้วย" }, 400);
+    try {
+      return json({ ok: true, video: await addVideo(env, body) });
+    } catch (error) {
+      return json({ ok: false, error: error instanceof Error ? error.message : "เพิ่มคลิปไม่สำเร็จ" }, 400);
+    }
+  }
+  if (url.pathname.startsWith("/api/videos/") && request.method === "DELETE") {
+    const denied = adminAuthorizationError(request, env);
+    if (denied) return denied;
+    const id = decodeURIComponent(url.pathname.slice("/api/videos/".length));
+    return json({ ok: true, ...(await removeVideo(env, id)) });
+  }
+  // รีเฟรชป้าย LIVE — 1 หน่วยโควตาต่อการเรียกหนึ่งครั้งไม่ว่าจะมีกี่คลิป
+  if (url.pathname === "/api/videos/refresh" && request.method === "POST") {
+    const denied = adminAuthorizationError(request, env);
+    if (denied) return denied;
+    return json({ ok: true, ...(await refreshVideoLiveStatus(env)) });
+  }
+
   // ── แถบนัดถัดไปบน nav (นัดที่ควรโชว์ + อากาศสดที่สนามนั้น) ─────────────
   // เบราว์เซอร์คิดเวลานับถอยหลังกับความคืบหน้าเกมเองจาก kickoffUtc ที่ส่งไป
   // จึงไม่ต้องยิงถามทุกวินาที ที่ขอจากที่นี่คือค่าที่เบราว์เซอร์คิดเองไม่ได้เท่านั้น

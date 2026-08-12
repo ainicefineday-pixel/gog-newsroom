@@ -9,6 +9,7 @@ import { MatchCenter } from "@/app/match-center";
 import { AuroraText } from "@/app/aurora-text";
 import { NewsFlow } from "@/app/news-flow";
 import { MatchStrip } from "@/app/match-strip";
+import { VideoShelf } from "@/app/video-shelf";
 import { AnimatedCircularProgressBar } from "@/app/circular-progress";
 import { GogHubBento } from "@/app/bento";
 
@@ -761,6 +762,8 @@ export function Newsroom({ initialView = "news", initialMatchId = null }: { init
             document.getElementById("news")?.scrollIntoView({ behavior: "smooth", block: "start" });
           }}
         />
+
+        <VideoShelf />
 
         <section className="filter-bar" aria-label="ตัวกรองข่าว">
           <div className="category-filters">
