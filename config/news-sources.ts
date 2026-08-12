@@ -84,6 +84,26 @@ export const RSS_NEWS_SOURCES = [
     feedUrl: "https://www.manchestereveningnews.co.uk/all-about/manchester-united-fc/?service=rss",
     tier: 2,
   },
+  {
+    // เพิ่มเพื่อแก้คอขวดการยืนยันข้ามสำนักโดยตรง ไม่ใช่เพราะอยากได้ข่าวเยอะขึ้น
+    // ตรวจคลัง 12 ส.ค. 2569: ข่าวที่มีหลายโดเมน 11 ชิ้น ผ่านเกณฑ์แค่ 3
+    // อีก 8 ชิ้นตกด้วยรูปแบบเดียวกันหมดคือแหล่ง tier<=2 หนึ่งเจ้าคู่กับแท็บลอยด์
+    // เพราะทั้งระบบมีแหล่ง tier<=2 แค่ 5 โดเมน แต่ Mirror กับ talkSPORT
+    // ผลิตข่าวรวมกัน 58 จาก 135 ชิ้น ตัวยืนยันจึงมักเป็นแท็บลอยด์
+    //
+    // ทดสอบฟีดจริง 12 ส.ค. 2569: 20 รายการ พาดหัวที่เอ่ยแมนยู 6 ชิ้น
+    // ในนั้นเป็นข่าวเดี่ยวที่ใช้ยืนยันได้จริง 4 ชิ้น (อีก 2 เป็นบล็อกสดกับ how-to-watch)
+    // หนึ่งในนั้นคือเรื่อง Lewis-Skelly ซึ่งเป็นเรื่องที่ระบบพยายามยืนยันอยู่พอดี
+    //
+    // tier 2 โปรไฟล์เดียวกับ M.E.N. — มีโต๊ะข่าวจริงแต่ลงข่าวลือเยอะ
+    // ไม่ได้ทดสอบฟีดเฉพาะแมนยูของเขาเพราะดึงมาแล้วได้ 0 รายการ จึงใช้ฟีดฟุตบอลรวม
+    id: "standard",
+    name: "Evening Standard",
+    homepage: "https://www.standard.co.uk/sport/football",
+    domain: "standard.co.uk",
+    feedUrl: "https://www.standard.co.uk/sport/football/rss",
+    tier: 2,
+  },
 ] as const;
 
 const X_TIER_1 = new Set<XSourceHandle>(["david_ornstein", "fabrizioromano", "theathleticfc"]);
