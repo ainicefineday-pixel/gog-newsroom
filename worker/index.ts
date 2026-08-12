@@ -5,6 +5,7 @@ import { handleApi } from "../lib/server/api";
 import { maybeGenerateMorningDigest, runIngest } from "../lib/server/pipeline";
 import { publishFinishedMatchReports } from "../lib/server/match-reports";
 import { applyStoryMerges, decideStoryMerges } from "../lib/server/story-merge";
+import { syncManchesterUnitedPlayers } from "../lib/server/player-intelligence";
 import type { RuntimeEnv } from "../lib/server/database";
 
 interface Env extends RuntimeEnv {
@@ -119,6 +120,7 @@ const worker = {
         // รายงานผลบอลอัตโนมัติ (STEP 45) — ต่อท้ายรอบเดิม ไม่ต้องตั้ง cron แยก
         // catch ไว้เพราะผู้ให้บริการฟุตบอลล่มไม่ควรทำให้การดึงข่าวรอบนี้ถือว่าล้มเหลว
         .then(() => publishFinishedMatchReports(env).catch(() => undefined))
+        .then(() => syncManchesterUnitedPlayers(env).catch(() => undefined))
         .then(() => undefined),
     );
   },

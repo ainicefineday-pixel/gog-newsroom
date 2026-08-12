@@ -34,6 +34,7 @@ import { applyStoryMerges, decideStoryMerges } from "@/lib/server/story-merge";
 import type { BudgetStyle } from "@/services/trip/types";
 import type { GOGFixture } from "@/services/football/types";
 import type { Story } from "@/lib/types";
+import { getPlayerIntelligence, syncManchesterUnitedPlayers } from "@/lib/server/player-intelligence";
 
 import { DEFAULT_COMPETITION_ID, DEFAULT_SEASON } from "@/services/football/competitions";
 import { generateDailyDigest, runIngest, translateStories } from "@/lib/server/pipeline";
@@ -159,6 +160,9 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
   if (!url.pathname.startsWith("/api/")) return null;
   if (!env.DB) return noDatabase();
   await ensureDatabase(env.DB);
+
+  if(url.pathname==="/api/intelligence/players"&&request.method==="GET")return json(await getPlayerIntelligence(env));
+  if(url.pathname==="/api/intelligence/sync"&&request.method==="POST"){const denied=adminAuthorizationError(request,env);if(denied)return denied;return json(await syncManchesterUnitedPlayers(env));}
 
   if (url.pathname === "/api/stories" && request.method === "GET") {
     const category = url.searchParams.get("category") ?? undefined;
