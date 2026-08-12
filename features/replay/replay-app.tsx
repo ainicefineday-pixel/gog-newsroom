@@ -11,6 +11,7 @@ import {
   ChevronRight,
   CircleDot,
   Crosshair,
+  Gauge,
   Expand,
   Goal,
   ListTree,
@@ -275,6 +276,13 @@ function Pitch({
       }
       const frame = positionsAt(match, timeRef.current),
         state = stateAt(match, timeRef.current);
+      const activeEvent = state.currentEvent;
+      if (activeEvent.start && activeEvent.end && frame.progress < 1) {
+        const sx=x(activeEvent.start.x),sy=y(activeEvent.start.y),ex=x(activeEvent.end.x),ey=y(activeEvent.end.y),angle=Math.atan2(ey-sy,ex-sx);
+        const actionColor=activeEvent.type==="shot"||activeEvent.type==="goal"?"#ffd337":activeEvent.teamId==="mufc"?"#ff554c":"#58c9ff";
+        context.save();context.strokeStyle=actionColor;context.lineWidth=2.3;context.setLineDash([7,6]);context.lineDashOffset=-(timeRef.current*28)%26;context.shadowColor=actionColor;context.shadowBlur=10;context.beginPath();context.moveTo(sx,sy);context.lineTo(ex,ey);context.stroke();context.setLineDash([]);context.fillStyle=actionColor;context.translate(ex,ey);context.rotate(angle);context.beginPath();context.moveTo(0,0);context.lineTo(-11,-5);context.lineTo(-9,5);context.closePath();context.fill();context.restore();
+        const pulse=7+Math.sin(timeRef.current*12)*2;context.strokeStyle=actionColor+"99";context.lineWidth=1.5;context.beginPath();context.arc(x(frame.ball.x),y(frame.ball.y),pulse,0,Math.PI*2);context.stroke();
+      }
       for (const [teamIndex, team] of [
         match.definition.home,
         match.definition.away,
@@ -325,10 +333,11 @@ function Pitch({
         }
       }
       context.fillStyle = "#fff";
-      context.shadowColor = "#000";
-      context.shadowBlur = 5;
+      context.shadowColor = "rgba(0,0,0,.8)";
+      context.shadowBlur = 8;
       context.beginPath();
-      context.arc(x(frame.ball.x), y(frame.ball.y), 4.5, 0, Math.PI * 2);
+      context.ellipse(x(frame.ball.x)+2,y(frame.ball.y)+3,6,3,0,0,Math.PI*2);context.fillStyle="rgba(0,0,0,.28)";context.fill();
+      context.beginPath();context.arc(x(frame.ball.x), y(frame.ball.y), 4.8, 0, Math.PI * 2);context.fillStyle="#fff";
       context.fill();
       context.shadowBlur = 0;
       raf = requestAnimationFrame(draw);
@@ -532,6 +541,9 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
     .filter((event) => timeOf(event) <= time)
     .slice(-6)
     .reverse();
+  const nextEvent = match.events[currentIndex + 1];
+  const progress = (time / match.duration) * 100;
+  const phaseLabel = time < 45*60 ? (lang==="th"?"ครึ่งแรก":"FIRST HALF") : time < match.duration ? (lang==="th"?"ครึ่งหลัง":"SECOND HALF") : (lang==="th"?"จบการแข่งขัน":"FULL TIME");
   const jump = (dir: number) => {
     const target =
       match.events[
@@ -565,11 +577,16 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
           <LanguageToggle lang={lang} onChange={setLang} />
         </div>
       </header>
+      <nav className="gog-broadcast-nav" aria-label="GOG sections">
+        <a href="/">NEWSROOM</a><a href="/replay" className="active">MATCH BROADCAST</a><a href="/data-lab">DATA LAB</a><span>GOG SPORTS NETWORK · RECONSTRUCTED</span>
+      </nav>
       <DataNotice lang={lang} />
       <section className="replay-stage">
         <Lineup team={match.definition.home} match={match} time={time} lang={lang} />
         <div className="pitch-column">
           <div className="pitch-wrap">
+            <div className="broadcast-bug"><b>GOG</b><span>REPLAY</span><i>{phaseLabel}</i></div>
+            <div className="broadcast-score"><span>{match.definition.home.shortName}</span><b>{state.score[0]}</b><time>{formatClock(time)}</time><b>{state.score[1]}</b><span>{match.definition.away.shortName}</span></div>
             <Pitch
               match={match}
               time={time}
@@ -594,7 +611,13 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
                 <EventCopyRich event={current} match={match} lang={lang} />
               </span>
             </div>
+            <div className="ball-telemetry"><Gauge/><span>{current.type.toUpperCase()}</span><b>{current.start&&current.end?`${Math.round(Math.hypot(current.end.x-current.start.x,current.end.y-current.start.y)*2.4)} km/h`:"LIVE"}</b></div>
           </div>
+          <section className="broadcast-progress">
+            <header><span><i className={playing?"live-dot":""}/>{playing?(lang==="th"?"กำลังเล่น":"PLAYING"):(lang==="th"?"หยุดชั่วคราว":"PAUSED")}</span><b>{phaseLabel} · {formatClock(time)}</b><small>{nextEvent?`${lang==="th"?"ถัดไป":"NEXT"} ${eventClock(nextEvent)}`:"FULL TIME"}</small></header>
+            <div className="broadcast-track"><input aria-label="Broadcast timeline" type="range" min="0" max={match.duration} step="1" value={time} onChange={e=>seek(Number(e.target.value))}/><i style={{width:`${progress}%`}}/>{match.events.filter(e=>e.dataStatus==="confirmed").map(e=><button key={e.id} style={{left:`${(timeOf(e)/match.duration)*100}%`}} onClick={()=>seek(timeOf(e))} aria-label={`${eventClock(e)} ${e.type}`}/>)}</div>
+            <footer><span>00:00</span><span>HT 45:00</span><span>FT 90:00</span></footer>
+          </section>
           <aside className="replay-news-feed" aria-live="polite">
             <header>
               <div>
