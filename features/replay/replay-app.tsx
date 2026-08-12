@@ -12,6 +12,7 @@ import {
   CircleDot,
   Crosshair,
   Gauge,
+  Camera,
   Expand,
   Goal,
   ListTree,
@@ -23,6 +24,8 @@ import {
   Shirt,
   SkipBack,
   SkipForward,
+  Volume2,
+  VolumeX,
   UserRound,
   UsersRound,
 } from "lucide-react";
@@ -212,6 +215,8 @@ function Pitch({
   trails,
   zones,
   lang,
+  cameraFollow,
+  onPlayerFocus,
 }: {
   match: GeneratedMatch;
   time: number;
@@ -219,6 +224,8 @@ function Pitch({
   trails: boolean;
   zones: boolean;
   lang: ReplayLanguage;
+  cameraFollow: boolean;
+  onPlayerFocus: (id: string) => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const timeRef = useRef(time);
@@ -247,6 +254,8 @@ function Pitch({
         ph = h - pad * 2,
         x = (px: number) => pad + (px / 105) * pw,
         y = (py: number) => pad + (py / 68) * ph;
+      const previewFrame=positionsAt(match,timeRef.current);
+      if(cameraFollow){const zoom=1.12,cx=x(previewFrame.ball.x),cy=y(previewFrame.ball.y);context.translate(w/2-cx*zoom,h/2-cy*zoom);context.scale(zoom,zoom)}
       context.fillStyle = "#0b5a36";
       context.fillRect(0, 0, w, h);
       context.fillStyle = "#126b40";
@@ -344,13 +353,9 @@ function Pitch({
     };
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [match, labels, trails, zones, lang]);
+  }, [match, labels, trails, zones, lang, cameraFollow, onPlayerFocus]);
   return (
-    <canvas
-      ref={canvasRef}
-      className="replay-canvas"
-      aria-label="Top-down reconstructed football pitch"
-    />
+    <canvas ref={canvasRef} className="replay-canvas" aria-label="Top-down reconstructed football pitch" onClick={(event)=>{const rect=event.currentTarget.getBoundingClientRect(),frame=positionsAt(match,timeRef.current);let nearest="",distance=36;for(const [id,pos] of Object.entries(frame.players)){const px=(pos.x/105)*rect.width,py=(pos.y/68)*rect.height,d=Math.hypot(event.clientX-rect.left-px,event.clientY-rect.top-py);if(d<distance){nearest=id;distance=d}}if(nearest)onPlayerFocus(nearest)}} />
   );
 }
 
@@ -460,6 +465,9 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
     [labels, setLabels] = useState(true),
     [trails, setTrails] = useState(false),
     [zones, setZones] = useState(false),
+    [cameraFollow,setCameraFollow]=useState(false),
+    [sound,setSound]=useState(false),
+    [focusedPlayer,setFocusedPlayer]=useState<string|null>(null),
     [filter, setFilter] = useState("all"),
     [tab, setTab] = useState("timeline"),
     [lang, setLang] = useState<ReplayLanguage>("th");
@@ -467,6 +475,7 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
     last = useRef(0),
     timeRef = useRef(0);
   timeRef.current = time;
+  const audioRef=useRef<AudioContext|null>(null),lastSoundEvent=useRef("");
   useEffect(() => {
     if (!playing || !match) return;
     let raf = 0;
@@ -492,6 +501,7 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
       last.current = 0;
     };
   }, [playing, speed, match]);
+  useEffect(()=>{if(!sound||!match)return;const event=stateAt(match,time).currentEvent;if(event.id===lastSoundEvent.current)return;lastSoundEvent.current=event.id;const AudioCtx=window.AudioContext||(window as typeof window & {webkitAudioContext:typeof AudioContext}).webkitAudioContext;const ctx=audioRef.current??new AudioCtx();audioRef.current=ctx;const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type=event.type==="goal"?"sawtooth":"sine";osc.frequency.setValueAtTime(event.type==="goal"?240:92,ctx.currentTime);osc.frequency.exponentialRampToValueAtTime(event.type==="goal"?520:48,ctx.currentTime+.18);gain.gain.setValueAtTime(event.type==="goal"?.08:.045,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+(event.type==="goal"?.65:.2));osc.connect(gain).connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+(event.type==="goal"?.7:.22))},[time,sound,match]);
   const seek = useCallback(
     (value: number) => {
       if (!match) return;
@@ -544,6 +554,8 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
   const nextEvent = match.events[currentIndex + 1];
   const progress = (time / match.duration) * 100;
   const phaseLabel = time < 45*60 ? (lang==="th"?"ครึ่งแรก":"FIRST HALF") : time < match.duration ? (lang==="th"?"ครึ่งหลัง":"SECOND HALF") : (lang==="th"?"จบการแข่งขัน":"FULL TIME");
+  const focused = focusedPlayer ? [...match.definition.home.starters,...match.definition.home.substitutes,...match.definition.away.starters,...match.definition.away.substitutes].find(p=>p.id===focusedPlayer) : null;
+  const momentum=match.events.filter(e=>timeOf(e)<=time&&timeOf(e)>time-600).reduce((score,e)=>score+(e.teamId===match.definition.home.id?1:e.teamId===match.definition.away.id?-1:0)*(e.type==="goal"?4:e.type==="shot"?2:1),0);
   const jump = (dir: number) => {
     const target =
       match.events[
@@ -594,6 +606,8 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
               trails={trails}
               zones={zones}
               lang={lang}
+              cameraFollow={cameraFollow}
+              onPlayerFocus={setFocusedPlayer}
             />
             <button
               className="fullscreen-button"
@@ -612,12 +626,14 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
               </span>
             </div>
             <div className="ball-telemetry"><Gauge/><span>{current.type.toUpperCase()}</span><b>{current.start&&current.end?`${Math.round(Math.hypot(current.end.x-current.start.x,current.end.y-current.start.y)*2.4)} km/h`:"LIVE"}</b></div>
+            {focused&&<aside className="player-focus-card"><button onClick={()=>setFocusedPlayer(null)}>×</button><span>PLAYER FOCUS · {focused.position}</span><strong>{playerName(focused,lang)}</strong><small>{focused.name}</small><div><b>#{focused.number??"—"}</b><i>{state.active[match.definition.home.id].includes(focused.id)||state.active[match.definition.away.id].includes(focused.id)?(lang==="th"?"อยู่ในสนาม":"ON PITCH"):(lang==="th"?"ตัวสำรอง":"BENCH")}</i></div></aside>}
           </div>
           <section className="broadcast-progress">
             <header><span><i className={playing?"live-dot":""}/>{playing?(lang==="th"?"กำลังเล่น":"PLAYING"):(lang==="th"?"หยุดชั่วคราว":"PAUSED")}</span><b>{phaseLabel} · {formatClock(time)}</b><small>{nextEvent?`${lang==="th"?"ถัดไป":"NEXT"} ${eventClock(nextEvent)}`:"FULL TIME"}</small></header>
             <div className="broadcast-track"><input aria-label="Broadcast timeline" type="range" min="0" max={match.duration} step="1" value={time} onChange={e=>seek(Number(e.target.value))}/><i style={{width:`${progress}%`}}/>{match.events.filter(e=>e.dataStatus==="confirmed").map(e=><button key={e.id} style={{left:`${(timeOf(e)/match.duration)*100}%`}} onClick={()=>seek(timeOf(e))} aria-label={`${eventClock(e)} ${e.type}`}/>)}</div>
             <footer><span>00:00</span><span>HT 45:00</span><span>FT 90:00</span></footer>
           </section>
+          <section className="momentum-bar"><span>{match.definition.home.shortName}</span><i><b style={{width:`${50+Math.max(-42,Math.min(42,momentum*4))}%`}}/></i><span>{match.definition.away.shortName}</span><small>{lang==="th"?"แรงกดดัน 10 นาทีล่าสุด":"LAST 10 MIN MOMENTUM"}</small></section>
           <aside className="replay-news-feed" aria-live="polite">
             <header>
               <div>
@@ -707,6 +723,8 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
             </select>
           </div>
           <div className="overlay-controls">
+            <button className={cameraFollow?"on":""} onClick={()=>setCameraFollow(v=>!v)}><Camera size={14}/> {lang==="th"?"กล้องตามบอล":"Follow cam"}</button>
+            <button className={sound?"on":""} onClick={()=>setSound(v=>!v)}>{sound?<Volume2 size={14}/>:<VolumeX size={14}/>} {lang==="th"?"เสียงสนาม":"Sound"}</button>
             <button
               className={labels ? "on" : ""}
               onClick={() => setLabels((v) => !v)}
