@@ -6401,6 +6401,10 @@ small {
 .flow-stages li:nth-child(3) {
   border-left-color: #3fc48d;
 }
+/* ขั้นยืนยันข้ามสำนัก — สีทองของแบรนด์ เพราะเป็นขั้นที่ตัดสินว่าข่าวเชื่อได้ไหม */
+.flow-stages li:nth-child(4) {
+  border-left-color: #d9aa49;
+}
 .flow-stages em {
   display: block;
   color: #6b7078;

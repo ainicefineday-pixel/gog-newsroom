@@ -6,6 +6,7 @@
 //   ingest_runs        → ด่านคัด ดึงมา → ตรงกับแมนยู → เก็บเข้าคลัง
 //   story_source_events → จังหวะข่าวเข้าราย ชม. ย้อนหลัง 24 ชม.
 //   stories            → พาดหัวล่าสุดของแต่ละแหล่ง และข่าวที่ยังไม่ยืนยัน
+//   story_merges + merge_runs → ขั้นยืนยันข้ามสำนัก รวมเรื่องเดียวกันได้กี่ชิ้น
 
 import { listStories, type RuntimeEnv } from "@/lib/server/database";
 import { API_NEWS_SOURCES, NEWS_SOURCE_DIRECTORY, RSS_NEWS_SOURCES } from "@/config/news-sources";
@@ -57,6 +58,18 @@ export type NewsFlowData = {
    */
   timeline: Array<{ hour: string; count: number; bySource: Record<string, number> }>;
   outputs: { storiesTotal: number; verified: number; translated: number };
+  /**
+   * ขั้นยืนยันข้ามสำนัก — เดินคนละจังหวะกับรอบซิงก์ จึงแยกออกมาจาก stages
+   *   ตัดสิน   วันละ 3 ครั้ง (07:00 · 13:00 · 19:00 น.) ถามโมเดลว่าพาดหัวไหนเรื่องเดียวกัน
+   *   บังคับใช้ ทุกรอบซิงก์ พับข่าวเข้าตัวหลัก เป็นตรรกะล้วน
+   * absorbed/primaries อ่านจาก story_merges จึงเป็นผลสะสมที่ยังมีผลอยู่จริง
+   * ไม่ใช่ตัวเลขของรอบล่าสุดรอบเดียว
+   */
+  merge: {
+    absorbed: number;
+    primaries: number;
+    lastRun: { slot: string; examined: number; grouped: number; note: string; createdAt: string } | null;
+  };
 };
 
 function hoursBetween(fromIso: string, toMs: number) {
@@ -166,6 +179,14 @@ export async function getNewsFlow(env: RuntimeEnv, nowMs = Date.now()): Promise<
 
   const unverifiedStories = stories.filter((story) => !story.verified);
 
+  // ── ขั้นยืนยันข้ามสำนัก ────────────────────────────────────────────────
+  const mergeTotals = await db.prepare(`SELECT COUNT(*) AS absorbed, COUNT(DISTINCT primary_id) AS primaries
+    FROM story_merges`)
+    .first<{ absorbed: number; primaries: number }>();
+  const lastMergeRun = await db.prepare(`SELECT slot, examined, grouped, note, created_at
+    FROM merge_runs ORDER BY created_at DESC LIMIT 1`)
+    .first<{ slot: string; examined: number; grouped: number; note: string; created_at: string }>();
+
   return {
     stages: run
       ? {
@@ -187,6 +208,19 @@ export async function getNewsFlow(env: RuntimeEnv, nowMs = Date.now()): Promise<
       storiesTotal: stories.length,
       verified: stories.filter((story) => story.verified).length,
       translated: stories.filter((story) => story.translated).length,
+    },
+    merge: {
+      absorbed: mergeTotals?.absorbed ?? 0,
+      primaries: mergeTotals?.primaries ?? 0,
+      lastRun: lastMergeRun
+        ? {
+            slot: lastMergeRun.slot,
+            examined: lastMergeRun.examined,
+            grouped: lastMergeRun.grouped,
+            note: lastMergeRun.note,
+            createdAt: lastMergeRun.created_at,
+          }
+        : null,
     },
   };
 }

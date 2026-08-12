@@ -7,7 +7,8 @@
 //   ตัวเลขบนเส้นคือ ดึงมากี่ชิ้น → ผ่านเกณฑ์กี่ชิ้น ของแหล่งนั้น
 //   แหล่งที่ดึงไม่ได้ขึ้นแดงพร้อมบอกว่าเงียบมากี่ชั่วโมง
 //   กดโหนดแล้วกรองฟีดข่าวข้างล่างทันที
-//   ด่านกลางกางเป็นสามขั้นพร้อมเลขที่คัดทิ้งแต่ละขั้น
+//   ด่านกลางกางเป็นสี่ขั้นพร้อมเลขที่คัดทิ้งแต่ละขั้น
+//   ขั้นที่ 4 เดินคนละจังหวะกับรอบซิงก์ (วันละ 3 ครั้ง) จึงบอกไว้บนการ์ดตรง ๆ
 //   มีทางแยกของข่าวที่ยืนยันไม่ได้ ไม่ซ่อน
 //   มีไทม์ไลน์ 24 ชม. ให้เห็นจังหวะข่าวของวัน
 //   ตอนกดซิงก์ ผังเดินตามสถานะจริงจากเซิร์ฟเวอร์ ไม่ใช่แอนิเมชันวนลูป
@@ -53,6 +54,13 @@ export type NewsFlowData = {
   unverified: { count: number; samples: Array<{ id: string; title: string; source: string }> };
   timeline: Array<{ hour: string; count: number; bySource: Record<string, number> }>;
   outputs: { storiesTotal: number; verified: number; translated: number };
+  merge: {
+    /** ข่าวที่ถูกพับเข้าตัวหลักไปแล้ว (ผลสะสมที่ยังมีผลอยู่) */
+    absorbed: number;
+    /** ข่าวหลักที่ได้แหล่งเพิ่มจากการพับ */
+    primaries: number;
+    lastRun: { slot: string; examined: number; grouped: number; note: string; createdAt: string } | null;
+  };
 };
 
 export type IngestProgress = {
@@ -153,6 +161,27 @@ function SyncTerminal({ log, sources, progress }: { log: SyncLog; sources: numbe
       )}
     </Terminal>
   );
+}
+
+/**
+ * บรรทัดใต้ขั้นที่ 4
+ *
+ * ขั้นนี้ไม่ได้เดินทุกรอบซิงก์เหมือนสามขั้นแรก แต่ตัดสินวันละ 3 ครั้ง
+ * การ์ดจึงต้องบอกความจริงทั้งสามสถานะ ไม่ใช่เขียนลอย ๆ ว่า "ยืนยันข้ามสำนักแล้ว"
+ * ทั้งที่ยังไม่เคยมีรอบจัดกลุ่มเกิดขึ้นเลยสักครั้ง
+ */
+function mergeCaption(merge: NewsFlowData["merge"] | undefined) {
+  if (!merge) return "—";
+  if (merge.absorbed > 0) {
+    return `รวมเรื่องเดียวกันจากคนละสำนักแล้ว ${merge.absorbed} ชิ้น เข้า ${merge.primaries} เรื่อง`;
+  }
+  if (merge.lastRun) {
+    const at = new Intl.DateTimeFormat("th-TH", {
+      timeZone: "Asia/Bangkok", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+    }).format(new Date(merge.lastRun.createdAt));
+    return `รอบ ${at} น. อ่าน ${merge.lastRun.examined} พาดหัว ยังไม่เจอเรื่องเดียวกันข้ามสำนัก`;
+  }
+  return "จับกลุ่มพาดหัวข้ามสำนักวันละ 3 ครั้ง · 07:00 · 13:00 · 19:00 น.";
 }
 
 /** จังหวะข่าวเข้าราย ชม. ย้อนหลัง 24 ชม. */
@@ -348,7 +377,7 @@ export function NewsFlow({
         <p>
           {hourSlice
             ? <>กำลังดูช่วง <b>{new Intl.DateTimeFormat("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit" }).format(new Date(`${hourSlice.hour}:00:00Z`))} น.</b> — เข้ามา {hourSlice.count} ชิ้น เส้นที่สว่างคือทางที่มีข่าวไหลจริงในชั่วโมงนั้น</>
-            : <>ทุกตัวเลขบนผังนี้มาจากรอบซิงก์จริง — กดที่แหล่งข่าวเพื่อกรองฟีดข้างล่าง</>}
+            : <>ทุกตัวเลขบนผังนี้อ่านจากฐานข้อมูลจริง ไม่ใช่ภาพประกอบ — กดที่แหล่งข่าวเพื่อกรองฟีดข้างล่าง</>}
           {activeSource !== "All" && <> · กรองอยู่ที่ <b>{NEWS_SOURCE_DIRECTORY.find((entry) => entry.id === activeSource)?.label ?? activeSource}</b></>}
         </p>
       </div>
@@ -431,7 +460,7 @@ export function NewsFlow({
           ))}
         </div>
 
-        {/* ── ด่านคัดสามขั้น ไม่ใช่กล่องดำ ─────────────────────────────── */}
+        {/* ── ด่านคัดสี่ขั้น ไม่ใช่กล่องดำ ──────────────────────────────── */}
         <div className="news-flow-hub" ref={hubRef}>
           <span className="news-flow-hub-mark">GOG</span>
           <b>DM ENGINE</b>
@@ -449,15 +478,22 @@ export function NewsFlow({
               </small>
             </li>
             <li>
-              <em>3 · จับกลุ่ม + ให้คะแนน</em>
+              <em>3 · รวมพาดหัวซ้ำ + ให้คะแนน</em>
               <strong>{stages?.stored ?? "—"}</strong>
               <small>
                 {stages
                   ? (stages.matched > stages.stored
-                      ? `ข่าวเรื่องเดียวกันจากหลายแหล่ง รวมได้ ${stages.matched - stages.stored} ชิ้น`
-                      : "ไม่มีข่าวซ้ำให้รวมในรอบนี้")
+                      ? `พาดหัวเกือบเหมือนกัน รวมได้ ${stages.matched - stages.stored} ชิ้น`
+                      : "ไม่มีพาดหัวซ้ำให้รวมในรอบนี้")
                   : "—"}
               </small>
+            </li>
+            {/* ขั้นนี้เดินคนละจังหวะกับสามขั้นบน จึงต้องบอกจังหวะของมันไว้ด้วย
+                ไม่งั้นคนอ่านจะนึกว่ามันทำงานพร้อมรอบซิงก์ทุก 10 นาที */}
+            <li>
+              <em>4 · ยืนยันข้ามสำนัก · วันละ 3 ครั้ง</em>
+              <strong>{verifiedCount || "—"}</strong>
+              <small>{mergeCaption(flow?.merge)}</small>
             </li>
           </ol>
           <div className="news-flow-hub-stats">
@@ -518,7 +554,7 @@ export function NewsFlow({
       {flow && flow.unverified.count > 0 && (
         <div className="flow-unverified">
           <button type="button" onClick={() => setShowUnverified((open) => !open)} aria-expanded={showUnverified}>
-            <b>{flow.unverified.count}</b> ข่าวที่ยังยืนยันข้ามแหล่งไม่ได้ — ไม่ตัดทิ้ง ไม่ดันขึ้นหน้าแรก
+            <b>{flow.unverified.count}</b> ข่าวที่ยังยืนยันข้ามแหล่งไม่ได้ — ไม่ตัดทิ้ง ไม่ดันขึ้นหน้าแรก รอรอบยืนยันข้ามสำนักรอบถัดไป
             <em>{showUnverified ? "ซ่อน" : "ดูว่าคืออะไร"}</em>
           </button>
           {showUnverified && (
