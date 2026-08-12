@@ -2,6 +2,14 @@
 
 Production newsroom for Thai Manchester United supporters. It ingests the configured RSS feeds, optionally falls back to NewsAPI and an authorized public-data X collector, filters for club relevance, clusters similar headlines, scores source credibility, generates grounded Thai editorial copy, and stores the result in D1/SQLite.
 
+## Tactical Replay Lab
+
+`/replay` contains two local, deterministic tactical replays. Each match definition stores stable player IDs, lineups, confirmed event anchors, published aggregate statistics, attribution links and a fixed reconstruction seed. The engine in `features/replay/engine.ts` fills the intervals between anchors, reconciles shots, shots on target, corners, fouls, cards and supplied xG totals, then validates the result before rendering.
+
+The Canvas renderer interpolates player and ball positions at runtime instead of storing 60 frames per second. Seeking rebuilds score, active lineups and cards from the ordered event stream, so backward and forward jumps reproduce the same state. Timeline reports and analytics derive from that same stream. Confirmed facts use green labels; reconstructed movement and actions use amber; unverified incoming substitutes use blue.
+
+To add a match, create a normalized `MatchDefinition` in `features/replay/data.ts`, provide confirmed anchors with `dataStatus: "confirmed"`, aggregate constraints and a stable seed. Genuine tracking data can later replace `positionsAt` while keeping the replay controls and event model. Current heatmaps, pass networks, movement, spatial coordinates and ordinary actions are illustrative reconstructions, not official tracking data.
+
 ## Local setup
 
 1. Copy `.env.example` to `.env.local` and add only the keys you have.
