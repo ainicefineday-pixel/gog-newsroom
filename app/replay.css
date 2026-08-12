@@ -335,6 +335,14 @@
   font-size: 25px;
   font-variant-numeric: tabular-nums;
 }
+.clock-readout small {
+  display: block;
+  margin-top: -3px;
+  color: var(--r-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
 .replay-match > .data-notice {
   max-width: 1050px;
   margin: 12px auto;
@@ -478,6 +486,87 @@
   background: #061019bb;
   color: #fff;
   border-radius: 8px;
+}
+.replay-news-feed {
+  margin-top: 8px;
+  overflow: hidden;
+  border: 1px solid var(--r-line);
+  border-radius: 12px;
+  background: var(--r-panel);
+}
+.replay-news-feed > header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 13px;
+  border-bottom: 1px solid var(--r-line);
+}
+.replay-news-feed > header div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+}
+.replay-news-feed > header small {
+  color: var(--r-muted);
+  font-size: 8px;
+}
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff3848;
+  box-shadow: 0 0 0 4px rgba(255, 56, 72, 0.12);
+  animation: replay-live-pulse 1.5s ease-out infinite;
+}
+.replay-feed-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+.replay-feed-list > button {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding: 10px 13px;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+  color: #dce5eb;
+  background: transparent;
+  text-align: left;
+}
+.replay-feed-list > button.active {
+  background: linear-gradient(90deg, rgba(218, 41, 28, 0.17), transparent);
+  box-shadow: inset 2px 0 var(--r-red);
+}
+.replay-feed-list time {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.replay-feed-list strong,
+.replay-feed-list small {
+  display: block;
+}
+.replay-feed-list strong {
+  font-size: 10px;
+  line-height: 1.5;
+}
+.replay-feed-list small {
+  margin-top: 3px;
+  color: var(--r-muted);
+  font-size: 8px;
+}
+.replay-feed-list .replay-status {
+  margin-top: 1px;
+}
+@keyframes replay-live-pulse {
+  70% { box-shadow: 0 0 0 8px rgba(255, 56, 72, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 56, 72, 0); }
 }
 .replay-controls {
   display: grid;

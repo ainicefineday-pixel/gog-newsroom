@@ -35,6 +35,8 @@ const STATUS: Record<DataStatus, string> = {
 const timeOf = (event: MatchEvent) => event.minute * 60 + event.second;
 const formatClock = (seconds: number) =>
   `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+const eventClock = (event: MatchEvent) =>
+  `${String(event.minute).padStart(2, "0")}:${String(event.second).padStart(2, "0")}`;
 const allPlayers = (team: Team) => [...team.starters, ...team.substitutes];
 
 function StatusChip({
@@ -499,6 +501,10 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
     ),
     currentIndex = match.events.findLastIndex((event) => timeOf(event) <= time),
     current = state.currentEvent;
+  const liveFeed = match.events
+    .filter((event) => timeOf(event) <= time)
+    .slice(-6)
+    .reverse();
   const jump = (dir: number) => {
     const target =
       match.events[
@@ -524,7 +530,10 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
           <small>{match.definition.venue}</small>
         </div>
         <div className="match-clock" aria-live="polite">
-          <strong>{formatClock(time)}</strong>
+          <div className="clock-readout">
+            <strong>{formatClock(time)}</strong>
+            <small>{lang === "th" ? "นาที : วินาที" : "MIN : SEC"}</small>
+          </div>
           <StatusChip status={current.dataStatus} lang={lang} />
           <LanguageToggle lang={lang} onChange={setLang} />
         </div>
@@ -553,11 +562,54 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
             <div className="current-event">
               <StatusChip status={current.dataStatus} lang={lang} />
               <span>
-                <b>{current.displayMinute}</b>
+                <b>{eventClock(current)}</b>
                 {eventCopy(current, lang)}
               </span>
             </div>
           </div>
+          <aside className="replay-news-feed" aria-live="polite">
+            <header>
+              <div>
+                <span className="live-dot" />
+                <b>{lang === "th" ? "ฟีดข่าวประกบเกม" : "MATCH NEWS FEED"}</b>
+              </div>
+              <small>
+                {lang === "th"
+                  ? "เรียงตามนาฬิการีเพลย์"
+                  : "Synced to the replay clock"}
+              </small>
+            </header>
+            <div className="replay-feed-list">
+              {liveFeed.map((event, index) => {
+                const source =
+                  event.dataStatus === "confirmed"
+                    ? match.definition.sources[
+                        Math.abs(event.minute) % match.definition.sources.length
+                      ]
+                    : null;
+                return (
+                  <button
+                    key={event.id}
+                    className={index === 0 ? "active" : ""}
+                    onClick={() => seek(timeOf(event))}
+                  >
+                    <time>{eventClock(event)}</time>
+                    <span>
+                      <strong>{eventCopy(event, lang)}</strong>
+                      <small>
+                        {source
+                          ? `${lang === "th" ? "อ้างอิง" : "Source"}: ${source.label}`
+                          : lang === "th"
+                            ? "GOG Replay · เหตุการณ์จำลอง"
+                            : "GOG Replay · reconstructed event"}
+                      </small>
+                    </span>
+                    <StatusChip status={event.dataStatus} lang={lang} />
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
           <div className="replay-controls">
             <button onClick={() => seek(0)} aria-label="Restart">
               <RotateCcw />
