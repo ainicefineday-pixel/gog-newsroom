@@ -568,6 +568,7 @@ export function Newsroom() {
           <button type="button" className={activeView === "matchcenter" ? "active" : ""} onClick={() => switchView("matchcenter")}>Match Center</button>
           <button type="button" className={activeView === "trip" ? "active" : ""} onClick={() => switchView("trip")}>วางแผนทริป</button>
           <a href="/replay">Replay Lab</a>
+          <a href="/data-lab">Data Lab</a>
           <button type="button" className={activeView === "partners" ? "active" : ""} onClick={() => switchView("partners")}>เครือข่าย GOG</button>
           <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}>แผนที่สนาม</button>
           <button type="button" className={activeView === "tactics" ? "active" : ""} onClick={() => switchView("tactics")}>แผนการเล่น</button>
