@@ -481,9 +481,17 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
     let raf = 0;
     const loop = (stamp: number) => {
       if (!last.current) last.current = stamp;
+      const liveEvent = stateAt(match, timeRef.current).currentEvent;
+      const goalSlowMotion =
+        liveEvent.type === "goal" &&
+        timeRef.current >= timeOf(liveEvent) &&
+        timeRef.current < timeOf(liveEvent) + 4
+          ? 0.25
+          : 1;
       const next = Math.min(
         match.duration,
-        timeRef.current + ((stamp - last.current) / 1000) * speed,
+        timeRef.current +
+          ((stamp - last.current) / 1000) * speed * goalSlowMotion,
       );
       last.current = stamp;
       timeRef.current = next;
@@ -556,6 +564,7 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
   const phaseLabel = time < 45*60 ? (lang==="th"?"ครึ่งแรก":"FIRST HALF") : time < match.duration ? (lang==="th"?"ครึ่งหลัง":"SECOND HALF") : (lang==="th"?"จบการแข่งขัน":"FULL TIME");
   const focused = focusedPlayer ? [...match.definition.home.starters,...match.definition.home.substitutes,...match.definition.away.starters,...match.definition.away.substitutes].find(p=>p.id===focusedPlayer) : null;
   const momentum=match.events.filter(e=>timeOf(e)<=time&&timeOf(e)>time-600).reduce((score,e)=>score+(e.teamId===match.definition.home.id?1:e.teamId===match.definition.away.id?-1:0)*(e.type==="goal"?4:e.type==="shot"?2:1),0);
+  const goalSlowMotion=current.type==="goal"&&time>=timeOf(current)&&time<timeOf(current)+4;
   const jump = (dir: number) => {
     const target =
       match.events[
@@ -599,6 +608,7 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
           <div className="pitch-wrap">
             <div className="broadcast-bug"><b>GOG</b><span>REPLAY</span><i>{phaseLabel}</i></div>
             <div className="broadcast-score"><span>{match.definition.home.shortName}</span><b>{state.score[0]}</b><time>{formatClock(time)}</time><b>{state.score[1]}</b><span>{match.definition.away.shortName}</span></div>
+            {goalSlowMotion&&<div className="slow-motion-bug">SLOW MOTION <b>0.25×</b></div>}
             <Pitch
               match={match}
               time={time}
