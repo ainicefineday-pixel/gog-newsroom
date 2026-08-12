@@ -1,0 +1,26 @@
+.newsroom-shell .dl-shell{--ink:#f4f4f2;--paper:#08090b;--cream:#111318;--red:#da291c;--gold:#d9aa49;--green:#3fc48d;--lime:#d9aa49;--blue:#da291c;min-height:auto;background:#08090b;color:#f4f4f2}
+.newsroom-shell .dl-embedded{border-top:1px solid #ffffff12}
+.newsroom-shell .dl-hero{min-height:510px;background:radial-gradient(circle at 78% 30%,#da291c38,transparent 26rem),linear-gradient(115deg,#08090b 0 52%,#15181d 78%,#8d1610);border-bottom:1px solid #ffffff12}
+.newsroom-shell .dl-kicker,.newsroom-shell .dl-section>header span,.newsroom-shell .projection small{color:#f13b2e}
+.newsroom-shell .dl-hero h1 em{color:#f13b2e}
+.newsroom-shell .dl-hero-score{background:#0e1013dd;border-color:#ffffff18;border-radius:10px}
+.newsroom-shell .dl-section{background:#08090b}
+.newsroom-shell .dl-section>header{border-color:#ffffff16}
+.newsroom-shell .dl-section>header p,.newsroom-shell .player-grid small,.newsroom-shell .scenario-grid p{color:#8d939d}
+.newsroom-shell .player-grid button,.newsroom-shell .grade-board,.newsroom-shell .scenario-grid>div{background:#111318;color:#f4f4f2;border-color:#ffffff13;border-radius:10px}
+.newsroom-shell .player-grid button:hover,.newsroom-shell .player-grid button.active{border-color:#da291c;box-shadow:0 12px 30px #0008,inset 0 -2px #da291c}
+.newsroom-shell .player-grid button>span{background:#da291c}
+.newsroom-shell .player-focus{background:linear-gradient(145deg,#15181d,#8d1610)}
+.newsroom-shell .grade-list>div{border-color:#ffffff10}
+.newsroom-shell .grade-list i{background:#24272d}
+.newsroom-shell .grade-list i b{background:linear-gradient(90deg,#8d1610,#f13b2e)}
+.newsroom-shell .dl-section.dark{background:#0e1013}
+.newsroom-shell .scatter>button{border-color:#d9aa49;background:#da291c}
+.newsroom-shell .scatter>button.selected{background:#f13b2e}
+.newsroom-shell .age-table{border-color:#da291c}
+.newsroom-shell .age-table>div:not(.age-head):nth-child(odd){background:#111318}
+.newsroom-shell .age-table>div.united{background:#1b0d0d!important;box-shadow:inset 4px 0 #da291c}
+.newsroom-shell .scenario{background:#0e1013}
+.newsroom-shell .projection>strong svg{color:#f13b2e}
+.newsroom-shell .dl-footer{background:#08090b;border-top:1px solid #ffffff12}
+.newsroom-shell .dl-footer svg{color:#d9aa49}

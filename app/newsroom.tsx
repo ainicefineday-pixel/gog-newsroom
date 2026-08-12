@@ -18,6 +18,7 @@ import { StadiumMapPanel } from "@/app/stadium-map";
 import { TacticBoardPanel } from "@/app/tactic-board";
 import { TripPlanner } from "@/app/trip-planner";
 import { PartnerNetwork } from "@/app/partner-network";
+import { DataLab } from "@/app/data-lab/data-lab";
 
 type LastSync = {
   finished_at: string;
@@ -43,7 +44,7 @@ const DEFAULT_CAPABILITIES: SourceCapabilities = {
   translation: false,
 };
 
-type WorkspaceView = "news" | "fixtures" | "matchcenter" | "trip" | "partners" | "map" | "tactics" | "team";
+type WorkspaceView = "news" | "fixtures" | "matchcenter" | "data" | "trip" | "partners" | "map" | "tactics" | "team";
 
 const CATEGORY_META: Record<Category, { icon: string; label: string; className: string }> = {
   Transfer: { icon: "↔", label: "ตลาดนักเตะ", className: "transfer" },
@@ -329,9 +330,9 @@ function EmptyState({ syncing, onSync }: { syncing: boolean; onSync: () => void 
   );
 }
 
-export function Newsroom() {
+export function Newsroom({ initialView = "news" }: { initialView?: WorkspaceView }) {
   const [stories, setStories] = useState<Story[]>([]);
-  const [activeView, setActiveView] = useState<WorkspaceView>("news");
+  const [activeView, setActiveView] = useState<WorkspaceView>(initialView);
   // แมตช์ที่ส่งมาจาก Match Center ผ่านปุ่ม "วางแผนไปดูเกมนี้"
   const [planFixtureKey, setPlanFixtureKey] = useState("");
   const [lastSync, setLastSync] = useState<LastSync>(null);
@@ -568,7 +569,7 @@ export function Newsroom() {
           <button type="button" className={activeView === "matchcenter" ? "active" : ""} onClick={() => switchView("matchcenter")}>Match Center</button>
           <button type="button" className={activeView === "trip" ? "active" : ""} onClick={() => switchView("trip")}>วางแผนทริป</button>
           <a href="/replay">Replay Lab</a>
-          <a href="/data-lab">Data Lab</a>
+          <button type="button" className={activeView === "data" ? "active" : ""} onClick={() => switchView("data")}>ข้อมูลเชิงลึก</button>
           <button type="button" className={activeView === "partners" ? "active" : ""} onClick={() => switchView("partners")}>เครือข่าย GOG</button>
           <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}>แผนที่สนาม</button>
           <button type="button" className={activeView === "tactics" ? "active" : ""} onClick={() => switchView("tactics")}>แผนการเล่น</button>
@@ -698,6 +699,7 @@ export function Newsroom() {
           <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}><span className="tab-icon tab-icon-news" aria-hidden="true" /><b>ข่าวล่าสุด</b><small>NEWS INTELLIGENCE</small></button>
           <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}><span className="tab-icon tab-icon-calendar" aria-hidden="true" /><b>โปรแกรมพรีเมียร์ลีก</b><small>2026/27 · THAI TIME</small></button>
           <button type="button" className={activeView === "matchcenter" ? "active" : ""} onClick={() => switchView("matchcenter")}><span className="tab-icon tab-icon-match" aria-hidden="true" /><b>Match Center</b><small>UNDERSTAND THE MATCH</small></button>
+          <button type="button" className={activeView === "data" ? "active" : ""} onClick={() => switchView("data")}><span className="tab-icon tab-icon-data" aria-hidden="true" /><b>ข้อมูลเชิงลึก</b><small>PLAYER · SQUAD · MODEL</small></button>
           <button type="button" className={activeView === "trip" ? "active" : ""} onClick={() => switchView("trip")}><span className="tab-icon tab-icon-trip" aria-hidden="true" /><b>วางแผนทริป</b><small>BKK → MATCHDAY</small></button>
           <button type="button" className={activeView === "partners" ? "active" : ""} onClick={() => switchView("partners")}><span className="tab-icon tab-icon-partners" aria-hidden="true" /><b>เครือข่าย GOG</b><small>THAI PARTNERS · UK</small></button>
           <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}><span className="tab-icon tab-icon-map" aria-hidden="true" /><b>แผนที่สนาม</b><small>20 GROUNDS · ENGLAND</small></button>
@@ -939,7 +941,7 @@ export function Newsroom() {
         </div>
 
         <GogHubBento stories={stories} verifiedCount={verifiedCount} onNavigate={switchView} />
-        </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "matchcenter" ? (
+        </> : activeView === "fixtures" ? <FixturesPanel /> : activeView === "data" ? <DataLab embedded /> : activeView === "matchcenter" ? (
           <MatchCenter
             onPlanTrip={(fixtureKey) => { setPlanFixtureKey(fixtureKey); switchView("trip"); }}
             openFixtureId={matchCenterFixtureId}

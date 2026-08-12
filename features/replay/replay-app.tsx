@@ -599,7 +599,7 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
         </div>
       </header>
       <nav className="gog-broadcast-nav" aria-label="GOG sections">
-        <a href="/">NEWSROOM</a><a href="/replay" className="active">MATCH BROADCAST</a><a href="/data-lab">DATA LAB</a><span>GOG SPORTS NETWORK · RECONSTRUCTED</span>
+        <a href="/">NEWSROOM</a><a href="/replay" className="active">MATCH BROADCAST</a><a href="/data-lab">INSIGHTS</a><span>GOG SPORTS NETWORK · RECONSTRUCTED</span>
       </nav>
       <DataNotice lang={lang} />
       <section className="replay-stage">

@@ -21,11 +21,12 @@ const league = [
 const scatter = Array.from({length:52},(_,i)=>({x:49+((i*37)%43),y:46+((i*29)%45),r:4+(i%3)}));
 const metrics = [{key:"form",label:"ดัชนีรวม"},{key:"creation",label:"การสร้างสรรค์"},{key:"threat",label:"การคุกคาม"},{key:"defence",label:"เกมรับ"}] as const;
 
-export function DataLab(){
+export function DataLab({ embedded = false }: { embedded?: boolean }){
   const [selected,setSelected]=useState(0); const [scenario,setScenario]=useState(0); const player=players[selected];
   const projected=useMemo(()=>({age:(26.4+scenario*.12).toFixed(1),youth:Math.max(18,34-scenario*3),prime:Math.min(60,38+scenario*4),exp:Math.max(12,28-scenario)}),[scenario]);
-  return <main className="dl-shell">
-    <header className="dl-nav"><Link href="/"><ArrowLeft/> GOG NEWSROOM</Link><b>GOG <span>DATA LAB</span></b><div><Database/> FPL-DERIVED · MODEL PREVIEW</div></header>
+  const Shell = embedded ? "section" : "main";
+  return <Shell className={`dl-shell${embedded ? " dl-embedded" : ""}`}>
+    {!embedded&&<header className="dl-nav"><Link href="/"><ArrowLeft/> GOG NEWSROOM</Link><b>GOG <span>DATA</span></b><div><Database/> FPL-DERIVED · MODEL PREVIEW</div></header>}
     <section className="dl-hero">
       <div><span className="dl-kicker"><Sparkles/> FOOTBALL INTELLIGENCE, EXPLAINED</span><h1>มองให้ลึกกว่า<br/><em>สกอร์บนสนาม</em></h1><p>ห้องทดลองข้อมูลฟุตบอลที่เปลี่ยนตัวเลขให้เป็นภาพ เปรียบเทียบผู้เล่น สำรวจโครงสร้างทีม และทดลองตลาดซื้อขาย — พร้อมบอกที่มาและสูตรทุกครั้ง</p></div>
       <div className="dl-hero-score"><small>GOG DATA SIGNAL</small><strong>04</strong><span>โมดูลวิเคราะห์</span><i>ข้อมูลจริง + ดัชนีโปร่งใส</i></div>
@@ -50,5 +51,5 @@ export function DataLab(){
       <div className="scenario-grid"><div><SlidersHorizontal/><h3>เพิ่มผู้เล่นวัย Prime</h3><p>ลองปรับจำนวนนักเตะใหม่ แล้วดูผลต่ออายุถ่วงน้ำหนักและสัดส่วนนาทีของทีม</p><input type="range" min="0" max="4" value={scenario} onChange={e=>setScenario(+e.target.value)}/><div className="stepper"><b>0</b><b>1</b><b>2</b><b>3</b><b>4 คน</b></div></div><div className="projection"><small>WEIGHTED SQUAD AGE</small><strong>26.4 <ArrowUpRight/> {projected.age}</strong><div><span>YOUTH <b>{projected.youth}%</b></span><span>PEAK <b>{projected.prime}%</b></span><span>EXPERIENCED <b>{projected.exp}%</b></span></div><i><em style={{width:`${projected.youth}%`}}/><em style={{width:`${projected.prime}%`}}/><em style={{width:`${projected.exp}%`}}/></i></div></div>
     </section>
     <footer className="dl-footer"><div><Activity/><b>หลักการของ GOG</b><p>ไม่สร้างความแม่นยำปลอม ทุกดัชนีต้องเผยสูตร กลุ่มเปรียบเทียบ Sample size และเวลาที่อัปเดต</p></div><div><BarChart3/><b>สถานะข้อมูล</b><p>หน้านี้เป็น Product Preview ด้วยชุดข้อมูลตัวอย่าง ก่อนเชื่อม FPL Snapshot และ Metadata ที่ตรวจสอบแล้ว</p></div><Link href="/replay"><Users/> เปิด Replay Lab <ArrowUpRight/></Link></footer>
-  </main>
+  </Shell>
 }
