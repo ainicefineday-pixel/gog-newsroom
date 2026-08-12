@@ -4,6 +4,12 @@ import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import "./trip.css";
 import "./match-center.css";
+import "@fontsource/kanit/300.css";
+import "@fontsource/kanit/400.css";
+import "@fontsource/kanit/500.css";
+import "@fontsource/kanit/600.css";
+import "@fontsource/kanit/700.css";
+import "@fontsource/kanit/800.css";
 
 const title = "GOG NEWSROOM | Genius on the Ground · ภารกิจบุกถิ่นผี";
 const description = "ศูนย์ข่าว โปรแกรมแข่ง และข้อมูลคอนเทนต์แมนเชสเตอร์ ยูไนเต็ด โดยโยโย่ ธีรัตน์ และอั้ม ภัทรเศรษฐ์";
