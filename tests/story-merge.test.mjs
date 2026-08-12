@@ -19,10 +19,22 @@ test("กันข่าวรวมและบล็อกสดออกจ�
     assert.equal(isRoundupHeadline(title), true, title);
   }
 
+  // ชิ้นบริการรอบนัด — ผูกกับนัดจริงแต่ไม่ได้รายงานเหตุการณ์อะไร
+  // ของจริงจากคลัง 12 ส.ค. 2569 ที่เคยถูกจับคู่กับข่าวพรีวิวของ BBC
+  for (const title of [
+    "Leeds vs Man Utd betting tips, bet builder and predictions: Far from friendly",
+    "How to watch Manchester United vs Leeds FOR FREE: TV channel and live stream",
+    "Man Utd vs Leeds odds and free bets",
+  ]) {
+    assert.equal(isRoundupHeadline(title), true, title);
+  }
+
   for (const title of [
     "Manchester United agree deal to sign midfielder",
     "Livewire winger completes Old Trafford medical",
     "Ruben Amorim confirms defender will miss Arsenal match",
+    // ยังไม่ถือว่าเป็นชิ้นบริการ — ดูคอมเมนต์ใน story-merge-rules.ts
+    "Manchester United XI vs Leeds: Predicted lineup, confirmed team news",
   ]) {
     assert.equal(isRoundupHeadline(title), false, title);
   }
