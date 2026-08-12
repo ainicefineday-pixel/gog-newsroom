@@ -7409,3 +7409,20 @@ body { background:var(--ink); color:var(--text); font-family:"Kanit",Arial,sans-
   color: #f0cc78;
   border-bottom-color: #f0cc78;
 }
+
+/* ลากได้ทั้งแถบ — บอกด้วยเคอร์เซอร์ว่าจับตรงไหนก็ได้
+   ปุ่มกับลิงก์ข้างในต้องเป็นเคอร์เซอร์ปกติ ไม่งั้นดูเหมือนกดไม่ได้ */
+.match-strip {
+  cursor: grab;
+}
+.match-strip:active {
+  cursor: grabbing;
+}
+.match-strip button,
+.match-strip a {
+  cursor: pointer;
+}
+/* ลอยอยู่แล้วดักนิ้วได้ทั้งแถบ ตอนอยู่ใน header ปล่อยให้ปัดเลื่อนหน้าจอได้ตามปกติ */
+.match-strip.floating {
+  touch-action: none;
+}

@@ -201,12 +201,26 @@ export function MatchStrip({ now }: { now: Date | null }) {
     if (elapsedMinutes >= FULL_TIME_MINUTES && elapsedMinutes < FULL_TIME_MINUTES + 1) fire("full", [1040, 880, 660]);
   }, [clock, match, chime]);
 
+  /**
+   * ลากได้จากทุกจุดบนแถบ ไม่ต้องเล็งที่มือจับ
+   *
+   * ยกเว้นสองกรณี
+   *   โดนปุ่ม/ลิงก์/ช่องกรอก  ปล่อยให้มันทำงานของมัน ไม่งั้นกดปุ่มเสียงหรือกดลิงก์
+   *                            แผนที่ไม่ได้เลย เพราะการกดทุกครั้งกลายเป็นการลาก
+   *   นิ้วบนจอสัมผัส          ต้องเริ่มจากมือจับเท่านั้นตอนแถบยังอยู่ใน header
+   *                            เพราะถ้าดักไว้ทั้งแถบ การปัดเลื่อนหน้าจอจะเสีย
+   *                            พอลากออกมาลอยแล้วดักได้ทั้งแถบ ไม่ทับกับการเลื่อนหน้า
+   */
   const onPointerDown = (event: React.PointerEvent) => {
-    const host = (event.currentTarget as HTMLElement).closest(".match-strip") as HTMLElement | null;
-    if (!host) return;
+    const target = event.target as HTMLElement;
+    const fromGrip = Boolean(target.closest(".strip-grip"));
+    if (!fromGrip && target.closest("button, a, input, select, textarea")) return;
+    if (event.pointerType === "touch" && !fromGrip && !floating) return;
+
+    const host = event.currentTarget as HTMLElement;
     const box = host.getBoundingClientRect();
     dragRef.current = { dx: event.clientX - box.left, dy: event.clientY - box.top };
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    host.setPointerCapture(event.pointerId);
   };
   const onPointerMove = (event: React.PointerEvent) => {
     const drag = dragRef.current;
@@ -233,16 +247,17 @@ export function MatchStrip({ now }: { now: Date | null }) {
       className={`match-strip${live ? " is-live" : ""}${collapsed ? " collapsed" : ""}${floating ? " floating" : ""}`}
       style={floating ? { left: floating.x, top: floating.y } : undefined}
       aria-label="นัดถัดไปและสภาพอากาศที่สนาม"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
       <div className="match-strip-controls">
         <button
           type="button"
           className="strip-grip"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
           onDoubleClick={() => setFloating(null)}
-          title="ลากเพื่อย้ายแถบ · ดับเบิลคลิกเพื่อกลับที่เดิม"
+          title="ลากตรงไหนของแถบก็ได้ · ดับเบิลคลิกที่นี่เพื่อกลับที่เดิม"
           aria-label="ย้ายตำแหน่งแถบ"
         >
           <GripVertical size={13} aria-hidden="true" />
