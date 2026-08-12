@@ -15,6 +15,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CloudSun, Radio, Wind } from "lucide-react";
+import { Marquee } from "@/app/terminal";
+import { MU_FIRST_TEAM_SQUAD, type SquadPosition } from "@/config/mu-squad";
 import { TEAM_NAMES } from "@/services/football/thai";
 import {
   FIRST_HALF_END, MATCH_WINDOW_MINUTES, SECOND_HALF_START, type NavMatch,
@@ -24,6 +26,13 @@ import type { VenueConditions } from "@/services/weather";
 type StripData = { match: NavMatch | null; conditions: VenueConditions | null };
 
 const thaiName = (club: string) => TEAM_NAMES[club]?.short ?? club;
+
+const POSITION_TH: Record<SquadPosition, string> = {
+  Goalkeeper: "ผู้รักษาประตู",
+  Defender: "กองหลัง",
+  Midfielder: "กองกลาง",
+  Forward: "กองหน้า",
+};
 
 /** ขั้นของเกม คำนวณจากเวลาที่ผ่านไปหลังเขี่ยบอลเท่านั้น */
 function phaseOf(elapsedMinutes: number) {
@@ -124,7 +133,7 @@ export function MatchStrip({ now }: { now: Date | null }) {
               ? <b className="live-label">{clock.phase.label}</b>
               : clock.phase.key === "done"
                 ? <b>จบเกมแล้ว</b>
-                : <b>เตะอีก {countdown(clock.untilKickoff)}</b>}
+                : <b className="count-label">จะเตะอีก <em aria-hidden="true">−</em>{countdown(clock.untilKickoff)}</b>}
           <small>
             {kickoffLabel(match.kickoffUtc, "Asia/Bangkok")} น. ไทย · {kickoffLabel(match.kickoffUtc, "Europe/London")} น. อังกฤษ
           </small>
@@ -152,6 +161,9 @@ export function MatchStrip({ now }: { now: Date | null }) {
 
       {conditions && (
         <div className="match-strip-weather" title={`วัดเมื่อ ${conditions.observedAt} ตามเวลาสนาม`}>
+          {/* เขียนชื่อสนามกำกับไว้ เพราะตัวเลขลอย ๆ ทำให้เข้าใจผิดว่าเป็นอากาศกรุงเทพ
+              ค่าทุกตัวมาจากพิกัดของสนามที่จะเตะนัดนี้ ไม่ใช่เมืองของคนอ่าน */}
+          <span className="weather-venue">ที่ {match.stadium}</span>
           <span className="weather-main">
             <CloudSun size={13} aria-hidden="true" />
             <b>{conditions.temperatureC}°</b>
@@ -168,6 +180,42 @@ export function MatchStrip({ now }: { now: Date | null }) {
           )}
         </div>
       )}
+
+      {/* ── รายชื่อนักเตะวิ่ง ────────────────────────────────────────────────
+          ฝั่งแมนยูมาจากรายชื่อชุดใหญ่ทางการใน config/mu-squad.ts จึงอัปเดตเอง
+          ทุกครั้งที่รายชื่อนั้นถูกแก้ ไม่ต้องมาพิมพ์ซ้ำที่นี่
+
+          ฝั่งคู่แข่งยังไม่มีข้อมูล และจะไม่เดาให้ครบช่อง — ระบบไม่มีรายชื่อนักเตะ
+          ของสโมสรอื่นเลยสักทีม และไลน์อัพจริงของแต่ละนัดก็ไม่มีในแพ็กฟรีของ
+          ผู้ให้บริการ (docs/FOOTBALL-DATA.md ข้อ 1) จึงบอกตรง ๆ ว่ายังไม่มี
+          พร้อมบอกว่าต้องได้อะไรมาถึงจะมี ตามกติกาเดียวกับ capabilities.ts
+
+          แผนการเล่นก็เรื่องเดียวกัน ตัวจริง 11 คนกับรูปแบบการเล่นของนัดหนึ่ง ๆ
+          ต้องมาจากไลน์อัพจริง ไม่ใช่คิดเอาจากรายชื่อทั้งทีม */}
+      <div className="match-strip-squads">
+        <div className="squad-run">
+          <span className="squad-side"><i className="team-chip home">MU</i>{thaiName("Manchester United")}</span>
+          <Marquee duration={64}>
+            {MU_FIRST_TEAM_SQUAD.map((player) => (
+              <span className="squad-player" key={player.id}>
+                <b>{player.number}</b>
+                {player.name}
+                <small>{POSITION_TH[player.position]}</small>
+              </span>
+            ))}
+          </Marquee>
+        </div>
+        <div className="squad-run empty">
+          <span className="squad-side">
+            <i className="team-chip away">{match.home === "Manchester United" ? match.awayCode : match.homeCode}</i>
+            {thaiName(match.home === "Manchester United" ? match.away : match.home)}
+          </span>
+          <p>
+            ยังไม่มีรายชื่อนักเตะของคู่แข่งในระบบ — ต้องใช้ข้อมูลไลน์อัพจากผู้ให้บริการแบบเสียเงิน
+            พอต่อได้เมื่อไหร่ แถบนี้จะขึ้นเองทั้งสองฝั่งพร้อมตัวจริงของนัดนั้นจริง ๆ
+          </p>
+        </div>
+      </div>
     </section>
   );
 }

@@ -7073,3 +7073,133 @@ body { background:var(--ink); color:var(--text); font-family:"Kanit",Arial,sans-
     transition: none;
   }
 }
+
+/* ── ไฟแดงวิ่งรอบแถบนัด ─────────────────────────────────────────────────
+   เทคนิคเดียวกับปุ่มแปลเป็นไทย — หน้ากากรูปกรอบเจาะกลางออก แล้วหมุนมุมของ
+   conic-gradient ผ่าน @property แทนการหมุนทั้งอิลิเมนต์
+   แถบนี้เตี้ยและกว้างมาก ถ้าหมุนทั้งอิลิเมนต์มุมจะโผล่ออกนอกกรอบทันที */
+@property --strip-beam {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.match-strip {
+  position: relative;
+  isolation: isolate;
+}
+.match-strip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  z-index: 1;
+  background: conic-gradient(
+    from var(--strip-beam),
+    transparent 0deg,
+    transparent 214deg,
+    #da291c 264deg,
+    #ff6a5e 306deg,
+    #ffd9d4 330deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000, #000) content-box,
+    linear-gradient(#000, #000);
+  mask:
+    linear-gradient(#000, #000) content-box,
+    linear-gradient(#000, #000);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: strip-beam-run 5.2s linear infinite;
+}
+/* กำลังเตะอยู่ = เร่งจังหวะไฟให้รู้สึกว่าเกมกำลังเดิน */
+.match-strip.is-live::before {
+  animation-duration: 2.4s;
+}
+@keyframes strip-beam-run {
+  to {
+    --strip-beam: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .match-strip::before {
+    animation: none;
+    background: rgba(218, 41, 28, 0.6);
+  }
+}
+
+/* เครื่องหมายลบหน้าเวลานับถอยหลัง — สีแดงเพื่อบอกว่ากำลังนับลง ไม่ใช่นับขึ้น */
+.count-label em {
+  font-style: normal;
+  color: #ff5a4a;
+  margin: 0 1px 0 3px;
+}
+
+.weather-venue {
+  color: #6b7078;
+  font:
+    600 8.5px/1.4 "Kanit",
+    sans-serif;
+}
+
+/* ── รายชื่อนักเตะวิ่ง ─────────────────────────────────────────────────── */
+.match-strip-squads {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line, #272a30);
+}
+.squad-run {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.squad-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  color: #c9ccd1;
+  font:
+    700 9.5px/1.3 "Kanit",
+    sans-serif;
+}
+.squad-run .marquee {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.squad-player {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-right: 16px;
+  color: #8a9099;
+  font:
+    500 9.5px/1.5 "Kanit",
+    sans-serif;
+  white-space: nowrap;
+}
+.squad-player b {
+  color: #da291c;
+  font:
+    800 10px/1 "Kanit",
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.squad-player small {
+  color: #565b63;
+  font-size: 8px;
+}
+.squad-run.empty p {
+  margin: 0;
+  color: #6b7078;
+  font:
+    500 8.5px/1.5 "Kanit",
+    sans-serif;
+}
