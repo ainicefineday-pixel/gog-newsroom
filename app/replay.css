@@ -16,6 +16,8 @@
   padding: clamp(18px, 3vw, 48px);
   box-sizing: border-box;
 }
+.newsroom-shell .replay-embedded{min-height:auto;background:#08090b}
+.replay-shell-back{display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;color:#91a1ab;cursor:pointer;font-size:9px;font-weight:800;letter-spacing:.08em}
 
 .replay-head-row { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .language-toggle { display:inline-flex; padding:3px; border:1px solid #ffffff24; background:#071019cc; border-radius:999px; }

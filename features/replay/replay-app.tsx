@@ -110,17 +110,17 @@ function LanguageToggle({
   );
 }
 
-export function ReplayLibrary() {
+export function ReplayLibrary({ embedded = false, onOpenMatch }: { embedded?: boolean; onOpenMatch?: (id:string)=>void }) {
   const [lang, setLang] = useState<ReplayLanguage>("th"),
     copy = ui[lang];
   return (
-    <main className="replay-site replay-library" lang={lang}>
+    <main className={`replay-site replay-library${embedded ? " replay-embedded" : ""}`} lang={lang}>
       <WavyBackground containerClassName="replay-hero-wave">
         <header className="replay-library-head">
           <div className="replay-head-row">
-            <a href="/" className="replay-back">
+            {!embedded&&<a href="/" className="replay-back">
               <ArrowLeft size={16} /> {copy.newsroom}
-            </a>
+            </a>}
             <LanguageToggle lang={lang} onChange={setLang} />
           </div>
           <span>{copy.lab}</span>
@@ -178,7 +178,7 @@ export function ReplayLibrary() {
                 </span>
               </div>
               <RainbowButton
-                onClick={() => (location.href = `/match/${match.id}`)}
+                onClick={() => onOpenMatch ? onOpenMatch(match.id) : (location.href = `/match/${match.id}`)}
               >
                 {copy.open} <ChevronRight size={16} />
               </RainbowButton>
@@ -453,7 +453,7 @@ function XgChart({ match, time }: { match: GeneratedMatch; time: number }) {
   );
 }
 
-export function ReplayMatch({ matchId }: { matchId: string }) {
+export function ReplayMatch({ matchId, embedded = false, onBack }: { matchId: string; embedded?: boolean; onBack?: ()=>void }) {
   const definition = MATCH_BY_ID[matchId];
   const match = useMemo(
     () => (definition ? reconstructMatch(definition) : null),
@@ -573,11 +573,13 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
     seek(timeOf(target));
   };
   return (
-    <main className="replay-site replay-match" lang={lang}>
+    <main className={`replay-site replay-match${embedded ? " replay-embedded" : ""}`} lang={lang}>
       <header className="replay-top">
-        <a href="/replay">
+        {onBack?<button className="replay-shell-back" onClick={onBack}>
           <ArrowLeft size={15} /> {copy.library}
-        </a>
+        </button>:<a href="/replay">
+          <ArrowLeft size={15} /> {copy.library}
+        </a>}
         <div>
           <span>{match.definition.competition}</span>
           <b>
@@ -598,9 +600,9 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
           <LanguageToggle lang={lang} onChange={setLang} />
         </div>
       </header>
-      <nav className="gog-broadcast-nav" aria-label="GOG sections">
+      {!embedded&&<nav className="gog-broadcast-nav" aria-label="GOG sections">
         <a href="/">NEWSROOM</a><a href="/replay" className="active">MATCH BROADCAST</a><a href="/data-lab">INSIGHTS</a><span>GOG SPORTS NETWORK · RECONSTRUCTED</span>
-      </nav>
+      </nav>}
       <DataNotice lang={lang} />
       <section className="replay-stage">
         <Lineup team={match.definition.home} match={match} time={time} lang={lang} />
