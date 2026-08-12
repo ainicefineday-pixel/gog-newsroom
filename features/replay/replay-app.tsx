@@ -3,15 +3,27 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  Activity,
   ArrowLeft,
+  BadgeCheck,
   BarChart3,
+  ChartNoAxesCombined,
   ChevronRight,
+  CircleDot,
+  Crosshair,
   Expand,
+  Goal,
+  ListTree,
+  Newspaper,
   Pause,
   Play,
+  Route,
   RotateCcw,
+  Shirt,
   SkipBack,
   SkipForward,
+  UserRound,
+  UsersRound,
 } from "lucide-react";
 import { MATCHES, MATCH_BY_ID } from "./data";
 import {
@@ -22,7 +34,7 @@ import {
   stateAt,
 } from "./engine";
 import type { DataStatus, GeneratedMatch, MatchEvent, Team } from "./types";
-import { eventCopy, ui, type ReplayLanguage } from "./i18n";
+import { eventCopy, playerName, ui, type ReplayLanguage } from "./i18n";
 import { RainbowButton } from "@/registry/magicui/rainbow-button";
 import { ShinyButton } from "@/registry/magicui/shiny-button";
 import { WavyBackground } from "@/components/ui/wavy-background";
@@ -38,6 +50,17 @@ const formatClock = (seconds: number) =>
 const eventClock = (event: MatchEvent) =>
   `${String(event.minute).padStart(2, "0")}:${String(event.second).padStart(2, "0")}`;
 const allPlayers = (team: Team) => [...team.starters, ...team.substitutes];
+
+function EventCopyRich({ event, match, lang }: { event: MatchEvent; match: GeneratedMatch; lang: ReplayLanguage }) {
+  const text = eventCopy(event, lang);
+  const names = [...match.definition.home.starters, ...match.definition.home.substitutes, ...match.definition.away.starters, ...match.definition.away.substitutes]
+    .flatMap((player) => [playerName(player, lang), player.name, player.shortName])
+    .filter((name, index, list) => name.length > 2 && list.indexOf(name) === index)
+    .sort((a, b) => b.length - a.length);
+  const pattern = new RegExp(`(${names.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "g");
+  const known = new Set(names);
+  return <>{text.split(pattern).map((part, index) => known.has(part) ? <strong className="player-inline" key={`${part}-${index}`}>{part}</strong> : part)}</>;
+}
 
 function StatusChip({
   status,
@@ -187,12 +210,14 @@ function Pitch({
   labels,
   trails,
   zones,
+  lang,
 }: {
   match: GeneratedMatch;
   time: number;
   labels: boolean;
   trails: boolean;
   zones: boolean;
+  lang: ReplayLanguage;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const timeRef = useRef(time);
@@ -285,9 +310,9 @@ function Pitch({
             context.fillStyle = "rgba(4,10,18,.86)";
             context.fillRect(x(pos.x) - 25, y(pos.y) + 12, 50, 13);
             context.fillStyle = "white";
-            context.font = "600 8px system-ui";
+            context.font = "700 8px Kanit, system-ui";
             context.fillText(
-              player.shortName.slice(0, 10),
+              playerName(player, lang, true).slice(0, 12),
               x(pos.x),
               y(pos.y) + 21,
             );
@@ -310,7 +335,7 @@ function Pitch({
     };
     draw();
     return () => cancelAnimationFrame(raf);
-  }, [match, labels, trails, zones]);
+  }, [match, labels, trails, zones, lang]);
   return (
     <canvas
       ref={canvasRef}
@@ -324,10 +349,12 @@ function Lineup({
   team,
   match,
   time,
+  lang,
 }: {
   team: Team;
   match: GeneratedMatch;
   time: number;
+  lang: ReplayLanguage;
 }) {
   const state = stateAt(match, time),
     active = new Set(state.active[team.id]);
@@ -348,9 +375,9 @@ function Lineup({
             key={player.id}
             className={active.has(player.id) ? "active" : "inactive"}
           >
-            <i>{player.number ?? "·"}</i>
+            <i>{player.number ?? <Shirt size={11} />}</i>
             <span>
-              {player.name}
+              <strong>{playerName(player, lang)}</strong>
               <small>
                 {player.position}
                 {player.captain ? " · C" : ""}
@@ -540,7 +567,7 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
       </header>
       <DataNotice lang={lang} />
       <section className="replay-stage">
-        <Lineup team={match.definition.home} match={match} time={time} />
+        <Lineup team={match.definition.home} match={match} time={time} lang={lang} />
         <div className="pitch-column">
           <div className="pitch-wrap">
             <Pitch
@@ -549,6 +576,7 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
               labels={labels}
               trails={trails}
               zones={zones}
+              lang={lang}
             />
             <button
               className="fullscreen-button"
@@ -563,7 +591,7 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
               <StatusChip status={current.dataStatus} lang={lang} />
               <span>
                 <b>{eventClock(current)}</b>
-                {eventCopy(current, lang)}
+                <EventCopyRich event={current} match={match} lang={lang} />
               </span>
             </div>
           </div>
@@ -595,7 +623,7 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
                   >
                     <time>{eventClock(event)}</time>
                     <span>
-                      <strong>{eventCopy(event, lang)}</strong>
+                      <strong><EventCopyRich event={event} match={match} lang={lang} /></strong>
                       <small>
                         {source
                           ? `${lang === "th" ? "อ้างอิง" : "Source"}: ${source.label}`
@@ -617,13 +645,14 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
             <button onClick={() => jump(-1)} aria-label="Previous event">
               <SkipBack />
             </button>
-            <RainbowButton
-              className="play"
+            <button
+              className="match-play-button"
               onClick={() => setPlaying((value) => !value)}
               aria-label={playing ? copy.pause : copy.play}
             >
-              {playing ? <Pause /> : <Play />}
-            </RainbowButton>
+              {playing ? <Pause fill="currentColor" /> : <Play fill="currentColor" />}
+              <span>{playing ? copy.pause : copy.play}</span>
+            </button>
             <button onClick={() => jump(1)} aria-label="Next event">
               <SkipForward />
             </button>
@@ -659,39 +688,39 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
               className={labels ? "on" : ""}
               onClick={() => setLabels((v) => !v)}
             >
-              {copy.labels}
+              <UserRound size={14} /> {copy.labels}
             </button>
             <button
               className={trails ? "on" : ""}
               onClick={() => setTrails((v) => !v)}
             >
-              {copy.trails}
+              <Route size={14} /> {copy.trails}
             </button>
             <button
               className={zones ? "on" : ""}
               onClick={() => setZones((v) => !v)}
             >
-              {copy.zones}
+              <CircleDot size={14} /> {copy.zones}
             </button>
             <ShinyButton onClick={() => seek(45 * 60)}>{copy.second}</ShinyButton>
           </div>
         </div>
-        <Lineup team={match.definition.away} match={match} time={time} />
+        <Lineup team={match.definition.away} match={match} time={time} lang={lang} />
       </section>
       <section className="replay-bottom">
         <nav>
           {[
-            ["timeline", copy.timeline],
-            ["stats", copy.stats],
-            ["analytics", copy.analytics],
-            ["report", copy.report],
-          ].map(([id, label]) => (
+            ["timeline", copy.timeline, ListTree],
+            ["stats", copy.stats, Activity],
+            ["analytics", copy.analytics, ChartNoAxesCombined],
+            ["report", copy.report, Newspaper],
+          ].map(([id, label, Icon]) => (
             <button
-              key={id}
+              key={id as string}
               className={tab === id ? "active" : ""}
-              onClick={() => setTab(id)}
+              onClick={() => setTab(id as string)}
             >
-              {label}
+              <Icon size={16} /> <span>{label as string}</span>
             </button>
           ))}
         </nav>
@@ -699,19 +728,19 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
           <div className="timeline-panel">
             <div className="event-filters">
               {[
-                ["all", copy.all],
-                ["goal", copy.goals],
-                ["shot", copy.shots],
-                ["yellow-card", copy.cards],
-                ["substitution", copy.subs],
-                ["confirmed", copy.confirmed],
-              ].map(([id, label]) => (
+                ["all", copy.all, UsersRound],
+                ["goal", copy.goals, Goal],
+                ["shot", copy.shots, Crosshair],
+                ["yellow-card", copy.cards, Shirt],
+                ["substitution", copy.subs, RotateCcw],
+                ["confirmed", copy.confirmed, BadgeCheck],
+              ].map(([id, label, Icon]) => (
                 <button
-                  key={id}
+                  key={id as string}
                   className={filter === id ? "active" : ""}
-                  onClick={() => setFilter(id)}
+                  onClick={() => setFilter(id as string)}
                 >
-                  {label}
+                  <Icon size={14} /> <span>{label as string}</span>
                 </button>
               ))}
             </div>
@@ -726,7 +755,7 @@ export function ReplayMatch({ matchId }: { matchId: string }) {
                 >
                   <b>{report.displayMinute}</b>
                   <StatusChip status={report.dataStatus} lang={lang} />
-                  <span>{eventCopy(match.events.find(event=>report.eventIds.includes(event.id))??match.events[0],lang)}</span>
+                  <span><EventCopyRich event={match.events.find(event=>report.eventIds.includes(event.id))??match.events[0]} match={match} lang={lang} /></span>
                 </button>
               ))}
             </div>
@@ -899,7 +928,7 @@ function PostMatch({
           <article key={goal.id}>
             <StatusChip status="confirmed" lang={lang} />
             <b>
-              {goal.displayMinute} {eventCopy(goal,lang)}
+              {goal.displayMinute} <EventCopyRich event={goal} match={match} lang={lang} />
             </b>
           </article>
         ))}

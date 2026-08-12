@@ -422,6 +422,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.replay-lineup li span > strong {
+  display: block;
+  overflow: hidden;
+  color: #f7fafc;
+  font-size: 10px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+}
 .replay-lineup li small {
   display: block;
   color: var(--r-muted);
@@ -475,6 +483,10 @@
 .current-event b {
   color: #fff;
   margin-right: 7px;
+}
+.player-inline {
+  color: #fff;
+  font-weight: 800;
 }
 .fullscreen-button {
   position: absolute;
@@ -570,7 +582,7 @@
 }
 .replay-controls {
   display: grid;
-  grid-template-columns: 38px 38px 48px 38px 38px minmax(100px, 1fr) 70px;
+  grid-template-columns: 38px 38px 74px 38px 38px minmax(100px, 1fr) 70px;
   gap: 7px;
   align-items: center;
   background: var(--r-panel);
@@ -591,10 +603,26 @@
 .replay-controls button svg {
   width: 16px;
 }
-.replay-controls button.play {
-  background: var(--r-red);
-  border: 0;
-  height: 44px;
+.replay-controls .match-play-button {
+  width: 74px;
+  height: 46px;
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 13px;
+  color: #fff;
+  background: linear-gradient(145deg, #f13b31, #a90f12);
+  box-shadow: 0 7px 20px rgba(218, 41, 28, 0.28), inset 0 1px rgba(255, 255, 255, 0.25);
+  font-size: 9px;
+  font-weight: 800;
+}
+.replay-controls .match-play-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(218, 41, 28, 0.38), inset 0 1px rgba(255, 255, 255, 0.3);
+}
+.replay-controls .match-play-button svg {
+  width: 15px;
 }
 .replay-controls input {
   width: 100%;
@@ -621,6 +649,14 @@
   border-radius: 99px;
   padding: 7px 10px;
   font-size: 9px;
+}
+.overlay-controls button,
+.event-filters button,
+.replay-bottom > nav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
 }
 .overlay-controls button.on,
 .event-filters button.active {
@@ -649,9 +685,18 @@
   font-size: 11px;
   font-weight: 800;
 }
+.replay-bottom > nav button svg {
+  flex: 0 0 auto;
+  opacity: 0.75;
+}
 .replay-bottom > nav button.active {
   color: #fff;
+  background: linear-gradient(180deg, rgba(218, 41, 28, 0.09), transparent);
   box-shadow: inset 0 -2px var(--r-red);
+}
+.replay-bottom > nav button.active svg {
+  color: #ff544c;
+  opacity: 1;
 }
 .timeline-panel {
   padding: 14px;
@@ -990,7 +1035,10 @@
     padding: 8px;
   }
   .replay-controls {
-    grid-template-columns: 32px 32px 42px 32px 32px 1fr;
+    grid-template-columns: 32px 32px 68px 32px 32px 1fr;
+  }
+  .replay-controls .match-play-button {
+    width: 68px;
   }
   .replay-controls select {
     display: none;
