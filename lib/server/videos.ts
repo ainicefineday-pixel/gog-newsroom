@@ -9,7 +9,7 @@
 
 import { listStories, type RuntimeEnv } from "@/lib/server/database";
 import {
-  fetchVideoMetadata, findChannelLive, FOOTBALL_GENIUS_CHANNEL_ID, refreshYouTubeLiveStatus, type VideoPlatform,
+  fetchVideoMetadata, findChannelLive, findChannelLiveCheap, FOOTBALL_GENIUS_CHANNEL_ID, refreshYouTubeLiveStatus, type VideoPlatform,
 } from "@/services/video";
 import { currentNavMatch, FULL_TIME_MINUTES, POST_MATCH_WINDOW_MINUTES } from "@/services/football/next-match";
 
@@ -184,20 +184,25 @@ export async function syncPostMatchLive(env: RuntimeEnv) {
   if (!env.YOUTUBE_API_KEY) return { searched: false, added: null as string | null, note: "ยังไม่ได้ตั้งค่า YOUTUBE_API_KEY" };
 
   const match = currentNavMatch();
-  if (!match) return { searched: false, added: null, note: "ไม่มีนัดในระบบ" };
+  const elapsedMinutes = match ? (Date.now() - new Date(match.kickoffUtc).getTime()) / 60_000 : Number.NaN;
+  const inPostMatchWindow = Number.isFinite(elapsedMinutes)
+    && elapsedMinutes >= FULL_TIME_MINUTES
+    && elapsedMinutes <= FULL_TIME_MINUTES + POST_MATCH_WINDOW_MINUTES;
 
-  const elapsedMinutes = (Date.now() - new Date(match.kickoffUtc).getTime()) / 60_000;
-  if (elapsedMinutes < FULL_TIME_MINUTES || elapsedMinutes > FULL_TIME_MINUTES + POST_MATCH_WINDOW_MINUTES) {
-    return { searched: false, added: null, note: "ยังไม่ถึงช่วงหลังเกม" };
+  // ทุกรอบครอนใช้ทางถูก 2 หน่วย จึงมองหาไลฟ์ได้ทั้งวันไม่ใช่เฉพาะหลังเกม
+  // ช่วงหลังเกมค่อยเสริมด้วย search ซึ่งไวกว่าแต่แพงกว่า 50 เท่า
+  // เพราะไลฟ์ที่เพิ่งกดเริ่มอาจยังไม่ทันโผล่ใน playlist อัปโหลด
+  let live = await findChannelLiveCheap(FOOTBALL_GENIUS_CHANNEL_ID, env.YOUTUBE_API_KEY).catch(() => null);
+  if (!live && inPostMatchWindow) {
+    live = await findChannelLive(FOOTBALL_GENIUS_CHANNEL_ID, env.YOUTUBE_API_KEY);
   }
-
-  const live = await findChannelLive(FOOTBALL_GENIUS_CHANNEL_ID, env.YOUTUBE_API_KEY);
   if (!live) return { searched: true, added: null, note: "ช่องยังไม่ได้เปิดไลฟ์" };
 
   const url = `https://www.youtube.com/watch?v=${live.videoId}`;
   try {
-    // คำค้นตั้งจากชื่อทีมทั้งสองฝั่ง ไลฟ์หลังเกมจะได้ผูกกับข่าวของนัดนั้นเอง
-    await addVideo(env, { url, keywords: `${match.home}, ${match.away}` });
+    // คำค้นตั้งจากชื่อทีมทั้งสองฝั่งของนัดที่กำลังพูดถึง ไลฟ์จะได้ผูกกับข่าวของนัดนั้นเอง
+    // ไม่มีนัดในระบบก็ยังเก็บคลิปไว้ แค่ไม่มีคำค้น ดีกว่าทิ้งไลฟ์ที่กำลังออกอากาศอยู่
+    await addVideo(env, { url, keywords: match ? `${match.home}, ${match.away}` : "" });
     return { searched: true, added: url, note: "" };
   } catch (error) {
     return { searched: true, added: null, note: error instanceof Error ? error.message.slice(0, 160) : "เพิ่มคลิปไลฟ์ไม่สำเร็จ" };

@@ -7839,3 +7839,54 @@ body { background:var(--ink); color:var(--text); font-family:"Kanit",Arial,sans-
   color: #565b63;
   font-size: 8px;
 }
+
+/* ── โหมดย่อ ─────────────────────────────────────────────────────────────
+   ย่อแล้วต้องเป็นแถบเดียวจบ อ่านซ้ายไปขวารวดเดียว: ทีม → สกอร์ → เวลา → ปุ่ม
+   ของเดิมแค่ซ่อนส่วนที่ไม่เอาออก แต่เส้นเวลายังกิน flex-basis 260px เท่าเดิม
+   เวลานับถอยหลังจึงลอยไปติดขอบขวาห่างจากชื่อทีมคนละมุม และปุ่มควบคุมที่วางลอย
+   ไว้มุมขวาบนก็ไปทับข้อความพอดีเพราะแถบเตี้ยลงมาก */
+.match-strip.collapsed {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 14px;
+  padding: 7px 12px;
+}
+.match-strip.collapsed .match-strip-teams {
+  flex: 0 1 auto;
+  min-width: 0;
+  gap: 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.match-strip.collapsed .match-strip-timeline {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+.match-strip.collapsed .match-strip-timeline header {
+  margin-bottom: 0;
+  gap: 0;
+}
+/* บรรทัดเวลาเตะสองโซนยาวเกินไปสำหรับแถบเดียว — เก็บไว้ให้ตอนขยาย */
+.match-strip.collapsed .match-strip-timeline header small {
+  display: none;
+}
+/* ปุ่มควบคุมเลิกลอย มาต่อท้ายแถวแทน จะได้ไม่ทับอะไร */
+.match-strip.collapsed .match-strip-controls {
+  position: static;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+/* ย่อแล้วสกอร์เล็กลงหน่อยให้สมดุลกับความสูงของแถบ */
+.match-strip.collapsed .match-score {
+  padding: 1px 6px;
+}
+.match-strip.collapsed .match-score b {
+  font-size: 11px;
+}
+@media (max-width: 640px) {
+  /* จอแคบ ย่อแล้วเหลือทีมกับเวลาพอ ชื่อทีมเต็มไม่มีที่ */
+  .match-strip.collapsed .match-strip-teams b {
+    display: none;
+  }
+}

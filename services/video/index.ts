@@ -173,3 +173,49 @@ export async function findChannelLive(channelId: string, apiKey: string) {
   if (!hit?.id?.videoId) return null;
   return { videoId: hit.id.videoId, title: hit.snippet?.title ?? "" };
 }
+
+/**
+ * playlist อัปโหลดของช่อง = id ช่องที่เปลี่ยน UC ขึ้นต้นเป็น UU
+ * เป็นกติกาของ YouTube เอง ไม่ต้องยิงถามเพื่อหา id นี้
+ */
+export function uploadsPlaylistId(channelId: string) {
+  return channelId.replace(/^UC/, "UU");
+}
+
+/**
+ * หาไลฟ์ของช่องแบบราคาถูก — 2 หน่วยต่อครั้ง แทนที่จะเป็น 100
+ *
+ * search.list ที่ eventType=live ได้คำตอบตรงที่สุดแต่กิน 100 หน่วย
+ * เรียกทุก 10 นาทีจะเป็น 14,400 หน่วยต่อวัน ซึ่งเกินโควตา 10,000 ไปเกือบครึ่ง
+ *
+ * ทางนี้ใช้สองคำสั่งที่คิดหน่วยละ 1 เท่านั้น
+ *   playlistItems.list  ดูคลิปล่าสุดของช่องจาก playlist อัปโหลด
+ *   videos.list         เช็กว่าในนั้นมีตัวไหนกำลังไลฟ์
+ * รวม 2 หน่วย เรียกได้ทุกรอบครอนทั้งวัน (144 รอบ = 288 หน่วย) ยังเหลือเฟือ
+ *
+ * ข้อแลกเปลี่ยน: ไลฟ์ที่เพิ่งเริ่มอาจใช้เวลาสักครู่กว่าจะโผล่ใน playlist อัปโหลด
+ * จึงยังเก็บ findChannelLive ไว้ใช้ในช่วงหลังเกมซึ่งเป็นเวลาที่ต้องการความไวจริง ๆ
+ */
+export async function findChannelLiveCheap(channelId: string, apiKey: string, lookback = 6) {
+  const listParams = new URLSearchParams({
+    part: "contentDetails",
+    playlistId: uploadsPlaylistId(channelId),
+    maxResults: String(lookback),
+    key: apiKey,
+  });
+  const listResponse = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?${listParams}`, {
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!listResponse.ok) return null;
+  const listPayload = await listResponse.json() as {
+    items?: Array<{ contentDetails?: { videoId?: string } }>;
+  };
+  const ids = (listPayload.items ?? [])
+    .map((item) => item.contentDetails?.videoId)
+    .filter((id): id is string => Boolean(id));
+  if (ids.length === 0) return null;
+
+  const items = await youtubeVideos(ids, apiKey);
+  const live = items.find((item) => item.snippet?.liveBroadcastContent === "live");
+  return live ? { videoId: live.id, title: live.snippet?.title ?? "" } : null;
+}
