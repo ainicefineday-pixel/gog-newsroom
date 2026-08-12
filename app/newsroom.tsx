@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, Check, ChevronDown, Copy, FileText, Languages, RefreshCw } from "lucide-react";
+import { BarChart3, CalendarDays, Check, ChevronDown, CirclePlay, Copy, FileText, Flag, Languages, MapPinned, Newspaper, Plane, RefreshCw, ShieldCheck, Swords, UsersRound } from "lucide-react";
 import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 import { AnthemPlayer } from "@/app/anthem-player";
@@ -46,6 +46,32 @@ const DEFAULT_CAPABILITIES: SourceCapabilities = {
 };
 
 type WorkspaceView = "news" | "fixtures" | "matchcenter" | "replay" | "data" | "trip" | "partners" | "map" | "tactics" | "team";
+
+const NAV_GROUPS = [
+  { title:"The Newsroom", subtitle:"Verified stories", icon:Newspaper, items:[{view:"news",label:"Latest Dispatch",hint:"ข่าวล่าสุด",icon:Newspaper}] },
+  { title:"Football Intelligence", subtitle:"Premier League HQ", icon:ShieldCheck, items:[
+    {view:"fixtures",label:"Season Command",hint:"โปรแกรมพรีเมียร์ลีก",icon:CalendarDays},
+    {view:"matchcenter",label:"Match Centre",hint:"ศูนย์วิเคราะห์แมตช์",icon:Flag},
+    {view:"replay",label:"Broadcast Replay",hint:"จำลองเกมย้อนหลัง",icon:CirclePlay},
+    {view:"data",label:"Performance Lab",hint:"ข้อมูลเชิงลึก",icon:BarChart3},
+    {view:"map",label:"Ground Atlas",hint:"แผนที่สนาม",icon:MapPinned},
+    {view:"tactics",label:"Tactical Board",hint:"แผนการเล่น",icon:Swords},
+  ]},
+  { title:"Matchday Journey", subtitle:"Beyond the ninety", icon:Plane, items:[
+    {view:"trip",label:"Away Day Planner",hint:"วางแผนทริป",icon:Plane},
+    {view:"partners",label:"GOG Alliance",hint:"เครือข่ายพาร์ทเนอร์",icon:UsersRound},
+    {view:"team",label:"The GOG Crew",hint:"ทีมงาน GOG",icon:ShieldCheck},
+  ]},
+] as const;
+
+function GroupedNavigation({activeView,onSelect,compact=false}:{activeView:WorkspaceView;onSelect:(view:WorkspaceView)=>void;compact?:boolean}){
+  return <nav className={`gog-dock${compact?" compact":""}`} aria-label="GOG navigation">{NAV_GROUPS.map(group=>{
+    const active=group.items.some(item=>item.view===activeView),GroupIcon=group.icon;
+    return <div className={`dock-group${active?" active":""}`} key={group.title}>
+      <button className="dock-trigger" type="button" aria-haspopup="menu"><GroupIcon/><span><b>{group.title}</b><small>{group.subtitle}</small></span><ChevronDown className="dock-chevron"/></button>
+      <div className="dock-menu" role="menu">{group.items.map(item=>{const Icon=item.icon;return <button type="button" role="menuitem" className={item.view===activeView?"active":""} onClick={()=>onSelect(item.view as WorkspaceView)} key={item.view}><Icon/><span><b>{item.label}</b><small>{item.hint}</small></span></button>})}</div>
+    </div>})}</nav>
+}
 
 const CATEGORY_META: Record<Category, { icon: string; label: string; className: string }> = {
   Transfer: { icon: "↔", label: "ตลาดนักเตะ", className: "transfer" },
@@ -565,18 +591,7 @@ export function Newsroom({ initialView = "news", initialMatchId = null }: { init
           <span className="brand-logo" aria-hidden="true" />
           <span><b>GOG</b> NEWSROOM<small>GENIUS ON THE GROUND · DM ENGINE™</small></span>
         </button>
-        <nav aria-label="เมนูหลัก">
-          <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}>ข่าวล่าสุด</button>
-          <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}>โปรแกรมพรีเมียร์ลีก</button>
-          <button type="button" className={activeView === "matchcenter" ? "active" : ""} onClick={() => switchView("matchcenter")}>Match Center</button>
-          <button type="button" className={activeView === "trip" ? "active" : ""} onClick={() => switchView("trip")}>วางแผนทริป</button>
-          <button type="button" className={activeView === "replay" ? "active" : ""} onClick={() => {setReplayMatchId(null);switchView("replay")}}>Replay</button>
-          <button type="button" className={activeView === "data" ? "active" : ""} onClick={() => switchView("data")}>ข้อมูลเชิงลึก</button>
-          <button type="button" className={activeView === "partners" ? "active" : ""} onClick={() => switchView("partners")}>เครือข่าย GOG</button>
-          <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}>แผนที่สนาม</button>
-          <button type="button" className={activeView === "tactics" ? "active" : ""} onClick={() => switchView("tactics")}>แผนการเล่น</button>
-          <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}>ทีม GOG</button>
-        </nav>
+        <GroupedNavigation activeView={activeView} onSelect={(view)=>{if(view==="replay")setReplayMatchId(null);switchView(view)}} compact />
         <div className="header-status">
           <span className="live-pill"><i /> LIVE</span>
           <div className="dual-clock" role="group" aria-label="เวลาไทยและเวลาอังกฤษ">
@@ -697,18 +712,7 @@ export function Newsroom({ initialView = "news", initialMatchId = null }: { init
           </ul>
         </section>
 
-        <nav className="workspace-tabs" aria-label="ส่วนหลักของเว็บไซต์">
-          <button type="button" className={activeView === "news" ? "active" : ""} onClick={() => switchView("news")}><span className="tab-icon tab-icon-news" aria-hidden="true" /><b>ข่าวล่าสุด</b><small>NEWS INTELLIGENCE</small></button>
-          <button type="button" className={activeView === "fixtures" ? "active" : ""} onClick={() => switchView("fixtures")}><span className="tab-icon tab-icon-calendar" aria-hidden="true" /><b>โปรแกรมพรีเมียร์ลีก</b><small>2026/27 · THAI TIME</small></button>
-          <button type="button" className={activeView === "matchcenter" ? "active" : ""} onClick={() => switchView("matchcenter")}><span className="tab-icon tab-icon-match" aria-hidden="true" /><b>Match Center</b><small>UNDERSTAND THE MATCH</small></button>
-          <button type="button" className={activeView === "replay" ? "active" : ""} onClick={() => {setReplayMatchId(null);switchView("replay")}}><span className="tab-icon tab-icon-replay" aria-hidden="true" /><b>Replay</b><small>MATCH BROADCAST</small></button>
-          <button type="button" className={activeView === "data" ? "active" : ""} onClick={() => switchView("data")}><span className="tab-icon tab-icon-data" aria-hidden="true" /><b>ข้อมูลเชิงลึก</b><small>PLAYER · SQUAD · MODEL</small></button>
-          <button type="button" className={activeView === "trip" ? "active" : ""} onClick={() => switchView("trip")}><span className="tab-icon tab-icon-trip" aria-hidden="true" /><b>วางแผนทริป</b><small>BKK → MATCHDAY</small></button>
-          <button type="button" className={activeView === "partners" ? "active" : ""} onClick={() => switchView("partners")}><span className="tab-icon tab-icon-partners" aria-hidden="true" /><b>เครือข่าย GOG</b><small>THAI PARTNERS · UK</small></button>
-          <button type="button" className={activeView === "map" ? "active" : ""} onClick={() => switchView("map")}><span className="tab-icon tab-icon-map" aria-hidden="true" /><b>แผนที่สนาม</b><small>20 GROUNDS · ENGLAND</small></button>
-          <button type="button" className={activeView === "tactics" ? "active" : ""} onClick={() => switchView("tactics")}><span className="tab-icon tab-icon-tactics" aria-hidden="true" /><b>แผนการเล่น</b><small>TACTICS · SQUAD XI</small></button>
-          <button type="button" className={activeView === "team" ? "active" : ""} onClick={() => switchView("team")}><span className="tab-icon tab-icon-team" aria-hidden="true" /><b>ทีม GOG</b><small>CREATORS · ANALYTICS</small></button>
-        </nav>
+        <div className="workspace-dock"><GroupedNavigation activeView={activeView} onSelect={(view)=>{if(view==="replay")setReplayMatchId(null);switchView(view)}} /></div>
 
         {activeView === "news" ? <>
         <section className="top-section" aria-labelledby="top-heading">

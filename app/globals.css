@@ -160,6 +160,30 @@ button {
   color: #9fa4ac;
   font-size: 13px;
 }
+
+/* GOG grouped floating dock */
+.gog-dock{display:flex;align-items:center;justify-content:center;gap:7px;padding:7px;border:1px solid rgba(255,255,255,.1);border-radius:18px;background:rgba(14,16,19,.86);box-shadow:0 18px 45px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.05);backdrop-filter:blur(18px)}
+.dock-group{position:relative}
+.dock-trigger{height:54px;display:flex;align-items:center;gap:10px;padding:0 14px;border:1px solid transparent;border-radius:13px;background:transparent;color:#8d939d;cursor:pointer;transition:.2s}
+.dock-trigger>svg:first-child{width:21px;height:21px;stroke-width:1.7}
+.dock-trigger span{display:flex;flex-direction:column;text-align:left;line-height:1.05}
+.dock-trigger b{font-size:11px;color:#d8dade;white-space:nowrap;letter-spacing:.02em}
+.dock-trigger small{margin-top:5px;font-size:7px;letter-spacing:.12em;text-transform:uppercase;color:#6f757e;white-space:nowrap}
+.dock-chevron{width:12px;height:12px;transition:.2s}
+.dock-group:hover .dock-trigger,.dock-group:focus-within .dock-trigger,.dock-group.active .dock-trigger{border-color:rgba(218,41,28,.38);background:linear-gradient(145deg,rgba(218,41,28,.16),rgba(255,255,255,.025));color:#f13b2e;transform:translateY(-2px)}
+.dock-group:hover .dock-chevron,.dock-group:focus-within .dock-chevron{transform:rotate(180deg)}
+.dock-menu{position:absolute;z-index:80;top:calc(100% + 10px);left:50%;width:270px;padding:8px;border:1px solid rgba(255,255,255,.12);border-radius:15px;background:rgba(9,10,12,.98);box-shadow:0 24px 60px rgba(0,0,0,.65);opacity:0;visibility:hidden;transform:translate(-50%,-8px);transition:.18s;backdrop-filter:blur(20px)}
+.dock-group:hover .dock-menu,.dock-group:focus-within .dock-menu{opacity:1;visibility:visible;transform:translate(-50%,0)}
+.dock-menu>button{width:100%;display:grid;grid-template-columns:34px 1fr;align-items:center;gap:10px;padding:10px;border:0;border-radius:10px;background:transparent;color:#a8adb5;cursor:pointer;text-align:left}
+.dock-menu>button:hover,.dock-menu>button.active{background:linear-gradient(90deg,rgba(218,41,28,.2),rgba(218,41,28,.03));color:#fff}
+.dock-menu>button>svg{width:18px;height:18px;justify-self:center;color:#d9aa49;stroke-width:1.8}
+.dock-menu span{display:flex;flex-direction:column}.dock-menu b{font-size:11px}.dock-menu small{margin-top:3px;color:#707680;font-size:8px}
+.gog-dock.compact{padding:4px;border-radius:14px;box-shadow:none;background:rgba(14,16,19,.55)}
+.gog-dock.compact .dock-trigger{height:42px;padding:0 10px}.gog-dock.compact .dock-trigger small{display:none}.gog-dock.compact .dock-trigger>svg:first-child{width:18px}
+.workspace-dock{position:sticky;z-index:38;top:84px;display:flex;justify-content:center;padding:10px 20px;background:linear-gradient(180deg,rgba(8,9,11,.96),rgba(8,9,11,.68),transparent)}
+
+@media(max-width:1100px){.dock-trigger span{display:none}.dock-trigger{width:48px;justify-content:center;padding:0}.dock-chevron{display:none}.gog-dock.compact .dock-trigger{width:42px}.dock-menu{left:auto;right:0;transform:translateY(-8px)}.dock-group:hover .dock-menu,.dock-group:focus-within .dock-menu{transform:translateY(0)}}
+@media(max-width:620px){.workspace-dock{top:64px;padding:8px;overflow:visible}.workspace-dock .gog-dock{width:100%;justify-content:space-around}.workspace-dock .dock-trigger{width:52px}.dock-menu{position:fixed;top:126px;left:12px!important;right:12px;width:auto;transform:translateY(-8px)!important}.dock-group:hover .dock-menu,.dock-group:focus-within .dock-menu{transform:translateY(0)!important}.site-header .gog-dock{display:none}}
 .site-header nav button {
   height: 100%;
   display: flex;

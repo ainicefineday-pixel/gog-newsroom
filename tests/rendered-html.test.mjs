@@ -27,11 +27,12 @@ test("server-renders the GOG Newsroom product shell", async () => {
   assert.match(html, /ทีม GOG/);
   assert.match(html, /GENIUS ON THE GROUND/);
   assert.match(html, /ระบบโดย DM ENGINE™/);
-  assert.match(html, /tab-icon-news/);
-  assert.match(html, /tab-icon-calendar/);
-  assert.match(html, /tab-icon-map/);
-  assert.match(html, /tab-icon-tactics/);
-  assert.match(html, /tab-icon-team/);
+  assert.match(html, /The Newsroom/);
+  assert.match(html, /Football Intelligence/);
+  assert.match(html, /Matchday Journey/);
+  assert.match(html, /Broadcast Replay/);
+  assert.match(html, /Ground Atlas/);
+  assert.match(html, /Tactical Board/);
   assert.match(html, /แผนที่สนาม/);
   assert.match(html, /แผนการเล่น/);
   assert.match(html, /dual-clock/);
