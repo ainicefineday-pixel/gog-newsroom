@@ -472,6 +472,8 @@ export function ReplayMatch({ matchId, embedded = false, onBack }: { matchId: st
     [filter, setFilter] = useState("all"),
     [tab, setTab] = useState("timeline"),
     [lang, setLang] = useState<ReplayLanguage>("th");
+  const [playerIntelligence,setPlayerIntelligence]=useState<Array<{canonical_name:string;metrics:Record<string,{value:number;confidence:number;minutes:number}>}>>([]);
+  useEffect(()=>{fetch("/api/intelligence/players").then(r=>r.json()).then(d=>setPlayerIntelligence(d.players??[])).catch(()=>undefined)},[]);
   const copy = ui[lang],
     last = useRef(0),
     timeRef = useRef(0);
@@ -564,6 +566,7 @@ export function ReplayMatch({ matchId, embedded = false, onBack }: { matchId: st
   const progress = (time / match.duration) * 100;
   const phaseLabel = time < 45*60 ? (lang==="th"?"ครึ่งแรก":"FIRST HALF") : time < match.duration ? (lang==="th"?"ครึ่งหลัง":"SECOND HALF") : (lang==="th"?"จบการแข่งขัน":"FULL TIME");
   const focused = focusedPlayer ? [...match.definition.home.starters,...match.definition.home.substitutes,...match.definition.away.starters,...match.definition.away.substitutes].find(p=>p.id===focusedPlayer) : null;
+  const focusedIntel=focused?playerIntelligence.find(p=>{const a=p.canonical_name.toLowerCase().replace(/[^a-z]/g,""),b=focused.name.toLowerCase().replace(/[^a-z]/g,"");return a===b||a.includes(b)||b.includes(a)}):null;
   const momentum=match.events.filter(e=>timeOf(e)<=time&&timeOf(e)>time-600).reduce((score,e)=>score+(e.teamId===match.definition.home.id?1:e.teamId===match.definition.away.id?-1:0)*(e.type==="goal"?4:e.type==="shot"?2:1),0);
   const goalSlowMotion=current.type==="goal"&&time>=timeOf(current)&&time<timeOf(current)+4;
   const jump = (dir: number) => {
@@ -639,7 +642,7 @@ export function ReplayMatch({ matchId, embedded = false, onBack }: { matchId: st
               </span>
             </div>
             <div className="ball-telemetry"><Gauge/><span>{current.type.toUpperCase()}</span><b>{current.start&&current.end?`${Math.round(Math.hypot(current.end.x-current.start.x,current.end.y-current.start.y)*2.4)} km/h`:"LIVE"}</b></div>
-            {focused&&<aside className="player-focus-card"><button onClick={()=>setFocusedPlayer(null)}>×</button><span>PLAYER FOCUS · {focused.position}</span><strong>{playerName(focused,lang)}</strong><small>{focused.name}</small><div><b>#{focused.number??"—"}</b><i>{state.active[match.definition.home.id].includes(focused.id)||state.active[match.definition.away.id].includes(focused.id)?(lang==="th"?"อยู่ในสนาม":"ON PITCH"):(lang==="th"?"ตัวสำรอง":"BENCH")}</i></div></aside>}
+            {focused&&<aside className="player-focus-card"><button onClick={()=>setFocusedPlayer(null)}>×</button><span>PLAYER FOCUS · {focused.position}</span><strong>{playerName(focused,lang)}</strong><small>{focused.name}</small><div><b>#{focused.number??"—"}</b><i>{state.active[match.definition.home.id].includes(focused.id)||state.active[match.definition.away.id].includes(focused.id)?(lang==="th"?"อยู่ในสนาม":"ON PITCH"):(lang==="th"?"ตัวสำรอง":"BENCH")}</i></div>{focusedIntel?<section className="focus-intelligence">{Object.entries(focusedIntel.metrics).slice(0,5).map(([key,m])=><span key={key}><small>{key.replace("gog_","").toUpperCase()}</small><b>{Math.round(m.value)}</b><i>{Math.round(m.confidence*100)}%</i></span>)}</section>:<p className="focus-awaiting">GOG INTELLIGENCE · WAITING FOR VERIFIED PLAYER MATCH</p>}</aside>}
           </div>
           <section className="broadcast-progress">
             <header><span><i className={playing?"live-dot":""}/>{playing?(lang==="th"?"กำลังเล่น":"PLAYING"):(lang==="th"?"หยุดชั่วคราว":"PAUSED")}</span><b>{phaseLabel} · {formatClock(time)}</b><small>{nextEvent?`${lang==="th"?"ถัดไป":"NEXT"} ${eventClock(nextEvent)}`:"FULL TIME"}</small></header>

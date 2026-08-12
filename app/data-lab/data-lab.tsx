@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Activity, ArrowLeft, ArrowUpRight, BarChart3, Database, Info, SlidersHorizontal, Sparkles, Users } from "lucide-react";
 
 type Player = { name: string; th: string; age: number; role: string; minutes: number; creation: number; threat: number; defence: number; form: number };
+type LivePlayer={id:string;canonical_name:string;short_name:string;position:string;updated_at:string;profile:{minutes?:number;total_points?:number;form?:string;status?:string;news?:string}|null;metrics:Record<string,{value:number;confidence:number;minutes:number;cohort:string;observedAt:string}>};
 const players: Player[] = [
   { name:"Bruno Fernandes",th:"บรูโน แฟร์นันด์ส",age:31,role:"AM",minutes:2790,creation:94,threat:82,defence:67,form:91 },
   { name:"Bryan Mbeumo",th:"ไบรอัน เอ็มเบอโม่",age:27,role:"RW",minutes:2510,creation:79,threat:91,defence:55,form:86 },
@@ -23,6 +24,8 @@ const metrics = [{key:"form",label:"ดัชนีรวม"},{key:"creation",l
 
 export function DataLab({ embedded = false }: { embedded?: boolean }){
   const [selected,setSelected]=useState(0); const [scenario,setScenario]=useState(0); const player=players[selected];
+  const [livePlayers,setLivePlayers]=useState<LivePlayer[]>([]),[health,setHealth]=useState<Record<string,unknown>|null>(null);
+  useEffect(()=>{fetch("/api/intelligence/players").then(r=>r.json()).then(data=>{setLivePlayers(data.players??[]);setHealth(data.health??null)}).catch(()=>undefined)},[]);
   const projected=useMemo(()=>({age:(26.4+scenario*.12).toFixed(1),youth:Math.max(18,34-scenario*3),prime:Math.min(60,38+scenario*4),exp:Math.max(12,28-scenario)}),[scenario]);
   const Shell = embedded ? "section" : "main";
   return <Shell className={`dl-shell${embedded ? " dl-embedded" : ""}`}>
@@ -31,6 +34,8 @@ export function DataLab({ embedded = false }: { embedded?: boolean }){
       <div><span className="dl-kicker"><Sparkles/> FOOTBALL INTELLIGENCE, EXPLAINED</span><h1>มองให้ลึกกว่า<br/><em>สกอร์บนสนาม</em></h1><p>ห้องทดลองข้อมูลฟุตบอลที่เปลี่ยนตัวเลขให้เป็นภาพ เปรียบเทียบผู้เล่น สำรวจโครงสร้างทีม และทดลองตลาดซื้อขาย — พร้อมบอกที่มาและสูตรทุกครั้ง</p></div>
       <div className="dl-hero-score"><small>GOG DATA SIGNAL</small><strong>04</strong><span>โมดูลวิเคราะห์</span><i>ข้อมูลจริง + ดัชนีโปร่งใส</i></div>
     </section>
+
+    <section className="intelligence-live"><header><div><span className="live-dot"/><b>GOG PLAYER INTELLIGENCE · LIVE WAREHOUSE</b></div><small>{livePlayers.length} PLAYERS · MODEL v1.0.0 · {health?"SYNC HEALTHY":"AWAITING FIRST SYNC"}</small></header>{livePlayers.length?<div className="intelligence-roster">{livePlayers.map(p=><article key={p.id}><span>{p.position}</span><b>{p.canonical_name}</b><small>{p.profile?.minutes??0} MIN · {p.profile?.total_points??0} PTS</small><div>{["gog_control","gog_threat","gog_output","gog_reliability","gog_momentum"].map(key=><i key={key} title={`${key} · confidence ${Math.round((p.metrics[key]?.confidence??0)*100)}%`}><em>{key.replace("gog_","").slice(0,3).toUpperCase()}</em><strong>{Math.round(p.metrics[key]?.value??0)}</strong></i>)}</div></article>)}</div>:<p className="intelligence-empty">ระบบกำลังรอ Snapshot แรกจากรอบอัตโนมัติ ข้อมูลตัวอย่างด้านล่างยังแยกสถานะออกจากคลังจริงอย่างชัดเจน</p>}</section>
 
     <section className="dl-section"><header><div><span>01 · PLAYER LENS</span><h2>เทียบผู้เล่นตัวรุก ยูไนเต็ด</h2></div><p>Percentile preview เทียบกลุ่มตำแหน่งเดียวกัน · ค่าต่อ 90 นาที</p></header>
       <div className="player-grid">{players.map((p,i)=><button className={i===selected?"active":""} onClick={()=>setSelected(i)} key={p.name}><span>{p.role}</span><b>{p.th}</b><small>{p.name} · อายุ {p.age}</small></button>)}</div>
