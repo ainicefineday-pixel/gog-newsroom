@@ -109,8 +109,10 @@ const worker = {
   async scheduled(_controller: unknown, env: Env, ctx: ExecutionContext) {
     ctx.waitUntil(
       runIngest(env)
-        // จัดกลุ่มข่าวซ้ำ — ตัดสินวันละ 3 ครั้ง (เรียกโมเดล) แต่บังคับใช้ทุกรอบ
-        // เพราะรอบซิงก์เพิ่งเขียนข่าวที่เคยยุบไปแล้วกลับเข้ามาใหม่
+        // ใช้คำตัดสินเดิมก่อน ไม่ให้ข่าวที่เคยยุบแล้วซึ่งเพิ่งถูกเขียนกลับมา
+        // หลุดเข้าไปเป็นตัวหลักของกลุ่มใหม่จนเกิดสาย A → B → C
+        .then(() => applyStoryMerges(env).catch(() => undefined))
+        // ตัดสินกลุ่มใหม่วันละ 3 ครั้ง แล้วใช้ผลรอบนี้ทันที
         .then(() => decideStoryMerges(env).catch(() => undefined))
         .then(() => applyStoryMerges(env).catch(() => undefined))
         .then(() => maybeGenerateMorningDigest(env))

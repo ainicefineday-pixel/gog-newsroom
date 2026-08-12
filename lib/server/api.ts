@@ -323,7 +323,11 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
       if (supplied !== env.CRON_SECRET) return json({ error: "Unauthorized" }, 401);
     }
     try {
-      return json({ ok: true, ...(await runIngest(env)) });
+      const ingest = await runIngest(env);
+      // ทุกการซิงก์เขียนข่าวที่เคยยุบกลับมาด้วย id เดิม จึงต้องใช้คำตัดสิน
+      // ที่เก็บไว้ทันที แม้รอบนี้มาจากปุ่มหน้าเว็บและไม่ได้เรียกโมเดล
+      const merges = await applyStoryMerges(env);
+      return json({ ok: true, ...ingest, merges });
     } catch (error) {
       return json({ ok: false, error: error instanceof Error ? error.message : "Ingestion failed" }, 502);
     }

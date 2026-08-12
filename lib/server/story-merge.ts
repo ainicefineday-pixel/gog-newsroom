@@ -20,6 +20,7 @@
 
 import { listStories, upsertStory, type RuntimeEnv } from "@/lib/server/database";
 import type { Story, StorySource } from "@/lib/types";
+import { isRoundupHeadline } from "@/services/news/story-merge-rules";
 
 const DEFAULT_MODEL = "claude-opus-5";
 const TIMEOUT_MS = 120_000;
@@ -54,18 +55,6 @@ const GROUP_SCHEMA = {
 function domainOf(url: string) {
   try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
 }
-
-/**
- * ข่าวรวมและบล็อกสด — ห้ามยุบรวมกับข่าวเดี่ยวเด็ดขาด
- *
- * prompt สั่งห้ามไว้แล้วแต่โมเดลยังหลุด (dry-run จริงเจอ "Transfer news LIVE"
- * ถูกดูดเข้ากลุ่มข่าว Lewis-Skelly) จึงกันด้วยโค้ดอีกชั้น
- *
- * ทำไมต้องกัน: ข่าวรวมชิ้นเดียวพูดถึงสิบเรื่อง ถ้าเอาไปรวมกับข่าวเดี่ยว
- * มันจะกลายเป็น "แหล่งที่สอง" ให้ทุกเรื่องที่มันเอ่ยถึง ทั้งที่ไม่ได้ยืนยันอะไร
- * และการลบมันทิ้งยังทำให้เสียข่าวรวมที่คนอ่านจริงไปด้วย
- */
-const ROUNDUP_PATTERN = /\blive\b|\bround-?up\b|rumour mill|gossip|as it happened|latest:|news:/i;
 
 /** ช่องเวลาปัจจุบันตามเวลาไทย เช่น "2026-08-12-13" — ใช้กันไม่ให้รันซ้ำในช่องเดียวกัน */
 export function currentSlot(now = new Date()) {
@@ -188,7 +177,7 @@ export async function decideStoryMerges(env: RuntimeEnv, force = false, dryRun =
       .filter((index) => Number.isInteger(index) && index >= 0 && index < stories.length)
       .map((index) => stories[index])
       // ตัดข่าวรวม/บล็อกสดออกจากทุกกลุ่ม ไม่ว่าโมเดลจะจัดมายังไง
-      .filter((story) => !ROUNDUP_PATTERN.test(story.titleEn));
+      .filter((story) => !isRoundupHeadline(story.titleEn));
     if (members.length < 2) continue;
 
     // ตรวจซ้ำฝั่งเรา ไม่เชื่อโมเดลอย่างเดียว:
