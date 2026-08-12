@@ -1,6 +1,6 @@
 import { MU_KEYWORDS } from "@/config/mu-keywords";
 import { fetchGuardian } from "@/services/news/guardian";
-import { RSS_NEWS_SOURCES } from "@/config/news-sources";
+import { declaredTierFor, RSS_NEWS_SOURCES, type SourceTier } from "@/config/news-sources";
 import type { Category, EditorialAngle, Story, StorySource } from "@/lib/types";
 import {
   ensureDatabase,
@@ -281,7 +281,30 @@ export function categorizeStory(title: string, description = ""): Category {
   return "Rumour";
 }
 
+/** คะแนนต่ำสุดที่แหล่งใน tier นั้นควรได้ ใช้ตอนไดเรกทอรีรู้จักแหล่งแต่ไม่มีกฎคะแนนของมัน */
+const TIER_SCORE_FLOOR: Record<SourceTier, number> = { 1: 90, 2: 78, 3: 55 };
+
+/**
+ * ความน่าเชื่อถือของแหล่งหนึ่งชิ้นข่าว
+ *
+ * เดิมกฎจับสตริงข้างล่างตัดสิน tier เองทั้งหมด จึงกลายเป็นรายชื่อแหล่งชุดที่สอง
+ * ที่เลื่อนออกจากไดเรกทอรีได้ และเลื่อนไปแล้วจริง ๆ กับ Sky Sports และ M.E.N.
+ * ตอนนี้เอา tier ที่ไดเรกทอรีประกาศไว้มาร่วมตัดสินด้วย
+ *
+ * เลือกอันที่น่าเชื่อถือกว่าเสมอ (เลข tier น้อยกว่า) ด้วยเหตุผลคนละข้อกัน
+ *   ฝั่งไดเรกทอรี  แหล่งใหม่ที่ประกาศไว้ tier 1 จะไม่ตกไปเป็น 3 เพราะลืมเขียนกฎ
+ *   ฝั่งกฎ         ไบไลน์อย่าง Ornstein น่าเชื่อถือของตัวเองไม่ว่าจะลงที่ไหน
+ * และเลือกทางนี้เพราะรับประกันว่าไม่มีแหล่งไหนถูกลดชั้นจากของเดิม
+ */
 function sourceAssessment(item: RawItem) {
+  const base = bylineAssessment(item);
+  const declared = declaredTierFor(item.url, item.handle);
+  if (declared === null) return base;
+  const tier = (Math.min(base.tier, declared) as SourceTier);
+  return { tier, score: Math.max(base.score, TIER_SCORE_FLOOR[tier]) };
+}
+
+function bylineAssessment(item: RawItem) {
   const identity = `${item.sourceName} ${item.author ?? ""} ${item.handle ?? ""}`.toLowerCase();
   const text = `${item.title} ${item.description}`.toLowerCase();
   if (identity.includes("ornstein")) return { tier: 1 as const, score: 98 };

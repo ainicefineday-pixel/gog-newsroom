@@ -20,6 +20,7 @@
 
 import { listStories, upsertStory, type RuntimeEnv } from "@/lib/server/database";
 import type { Story, StorySource } from "@/lib/types";
+import { declaredTierFor } from "@/config/news-sources";
 import { isRoundupHeadline } from "@/services/news/story-merge-rules";
 
 const DEFAULT_MODEL = "claude-opus-5";
@@ -259,8 +260,14 @@ export async function applyStoryMerges(env: RuntimeEnv) {
     if (merged.length === primary.sources.length) continue;
 
     // ยืนยันข้ามแหล่งด้วยกติกาเดิมเป๊ะ ๆ — โดเมนต่างกันตั้งแต่สองโดเมนที่ tier ≤ 2
+    //
+    // แต่คิด tier ใหม่จากไดเรกทอรี ไม่เชื่อค่าที่ติดมากับข่าวในคลัง
+    // เพราะ tier ถูกเขียนตอน ingest ข่าวที่เข้ามาก่อนแก้ค่าใน config จึงค้างของเก่า
+    // ตรวจคลังจริงเจอ M.E.N. 13 ชิ้นและ Sky 4 ชิ้นยังเป็น tier 3 อยู่
+    // ทั้งที่ประกาศไว้ 2 กับ 1 — ข่าวพวกนั้นเลยยืนยันไม่ผ่านทั้งที่ควรผ่าน
+    const tierOf = (source: StorySource) => declaredTierFor(source.url, source.handle) ?? source.tier;
     const independent = new Set(
-      merged.filter((source) => source.tier <= 2)
+      merged.filter((source) => tierOf(source) <= 2)
         .map((source) => (domainOf(source.url) === "x.com" ? source.handle ?? source.name : domainOf(source.url))),
     );
     const verified = independent.size >= 2;

@@ -143,3 +143,35 @@ export const NEWS_SOURCE_DIRECTORY: readonly NewsSourceDirectoryItem[] = [
     tier: xTier(handle),
   })),
 ];
+
+/**
+ * tier ที่ไดเรกทอรีนี้ "ประกาศไว้" สำหรับลิงก์หนึ่ง ๆ — null คือไม่รู้จักแหล่งนี้
+ *
+ * มีไว้ให้ท่อข่าวเรียกใช้แทนการพิมพ์รายชื่อแหล่งซ้ำไว้ในไฟล์ตัวเอง
+ * เดิม pipeline เดา tier จากการจับสตริงชื่อแหล่ง ซึ่งเป็นรายชื่อคนละชุดกับที่นี่
+ * สองชุดนั้นเลื่อนออกจากกันมาแล้วจริง ๆ — Sky Sports กับ M.E.N. เคยถูกเก็บเป็น
+ * tier 3 ทั้งที่ประกาศไว้ 1 กับ 2 และข่าวที่เก็บไปแล้วก็ค้าง tier ผิดถาวร
+ * เพราะ tier ถูกเขียนลงคลังตอน ingest ไม่ได้คิดใหม่ตอนอ่าน
+ *
+ * จับคู่ด้วยโดเมนจริงของลิงก์ ไม่ใช่ชื่อที่ฟีดประกาศมา เพราะชื่อเปลี่ยนได้
+ * ส่วน x.com ต้องดูราย handle เพราะโดเมนเดียวกันแต่คนละบัญชีคนละความน่าเชื่อถือ
+ */
+export function declaredTierFor(url: string, handle?: string): SourceTier | null {
+  let domain: string;
+  try {
+    domain = new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+
+  if (domain === "x.com" || domain === "twitter.com") {
+    if (!handle) return null;
+    const account = NEWS_SOURCE_DIRECTORY.find((source) =>
+      source.kind === "x" && source.id.toLowerCase() === handle.toLowerCase());
+    return account?.tier ?? null;
+  }
+
+  const entry = NEWS_SOURCE_DIRECTORY.find((source) =>
+    source.kind === "rss" && (domain === source.domain || domain.endsWith(`.${source.domain}`)));
+  return entry?.tier ?? null;
+}
