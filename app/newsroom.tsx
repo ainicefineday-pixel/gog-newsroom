@@ -8,6 +8,7 @@ import { AnthemPlayer } from "@/app/anthem-player";
 import { MatchCenter } from "@/app/match-center";
 import { AuroraText } from "@/app/aurora-text";
 import { NewsFlow } from "@/app/news-flow";
+import { MatchStrip } from "@/app/match-strip";
 import { AnimatedCircularProgressBar } from "@/app/circular-progress";
 import { GogHubBento } from "@/app/bento";
 
@@ -112,6 +113,19 @@ function formatClock(date: Date, timeZone: "Asia/Bangkok" | "Europe/London") {
     minute: "2-digit",
     second: "2-digit",
     hour12: false,
+  }).format(date);
+}
+
+/**
+ * วันที่ของแต่ละโซนเวลา — ต้องมีคู่กับนาฬิกาเพราะสองประเทศข้ามวันไม่พร้อมกัน
+ * ไทยเร็วกว่าอังกฤษ 6-7 ชั่วโมง ช่วงหัวค่ำของอังกฤษคือดึกของไทยที่ข้ามวันไปแล้ว
+ * โชว์แต่เวลาอย่างเดียวจึงอ่านผิดได้ง่ายเวลานัดดึก
+ */
+function formatDay(date: Date, timeZone: "Asia/Bangkok" | "Europe/London") {
+  return new Intl.DateTimeFormat("th-TH", {
+    timeZone,
+    day: "numeric",
+    month: "short",
   }).format(date);
 }
 
@@ -597,18 +611,20 @@ export function Newsroom({ initialView = "news", initialMatchId = null }: { init
           <div className="dual-clock" role="group" aria-label="เวลาไทยและเวลาอังกฤษ">
             <div className="clock clock-th">
               <b>{now ? formatClock(now, "Asia/Bangkok") : "--:--:--"}</b>
-              <small>ไทย · ICT</small>
+              <small>{now ? `${formatDay(now, "Asia/Bangkok")} · ` : ""}ไทย · ICT</small>
             </div>
             <span className="clock-divider" aria-hidden="true" />
             <div className="clock clock-uk" title="เวลาอังกฤษปรับ GMT และ BST อัตโนมัติ">
               <b>{now ? formatClock(now, "Europe/London") : "--:--:--"}</b>
-              <small>อังกฤษ · GMT/BST</small>
+              <small>{now ? `${formatDay(now, "Europe/London")} · ` : ""}อังกฤษ · GMT/BST</small>
             </div>
           </div>
           <button className="sync-button" type="button" onClick={() => void sync()} disabled={syncing} aria-label="ซิงก์ข่าวล่าสุด">
             <span className={syncing ? "spinning" : ""}>↻</span>
           </button>
         </div>
+        {/* แถบนัด — ใช้ now ตัวเดียวกับนาฬิกา ไม่ตั้งตัวจับเวลาซ้อนอีกตัว */}
+        <MatchStrip now={now} />
       </header>
 
       <main id="top">

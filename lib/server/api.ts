@@ -17,7 +17,8 @@ import {
   type PartnerStatus,
   type PricingModel,
 } from "@/lib/server/partners";
-import { fetchMatchWeather } from "@/services/weather";
+import { fetchMatchWeather, fetchVenueConditions } from "@/services/weather";
+import { currentNavMatch } from "@/services/football/next-match";
 import { gbpToThb } from "@/lib/server/fx";
 import {
   ensureFootballTables, getFixtures, getMatchBundle, getProviderHealth, getStandings, listFixtureChanges,
@@ -338,6 +339,18 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
   }
 
   // ── อากาศวันแข่ง (Open-Meteo · ฟรี ไม่ต้องใช้คีย์) ────────────────────
+  // ── แถบนัดถัดไปบน nav (นัดที่ควรโชว์ + อากาศสดที่สนามนั้น) ─────────────
+  // เบราว์เซอร์คิดเวลานับถอยหลังกับความคืบหน้าเกมเองจาก kickoffUtc ที่ส่งไป
+  // จึงไม่ต้องยิงถามทุกวินาที ที่ขอจากที่นี่คือค่าที่เบราว์เซอร์คิดเองไม่ได้เท่านั้น
+  // แคช 5 นาที เพราะ Open-Meteo ขยับค่าทุก 15 นาที ถามถี่กว่านั้นได้ค่าเดิม
+  if (url.pathname === "/api/match-strip" && request.method === "GET") {
+    const match = currentNavMatch();
+    const conditions = match && match.latitude !== null && match.longitude !== null
+      ? await fetchVenueConditions(match.latitude, match.longitude)
+      : null;
+    return json({ ok: true, match, conditions }, 200, { "cache-control": "public, max-age=300" });
+  }
+
   if (url.pathname === "/api/weather" && request.method === "GET") {
     const city = url.searchParams.get("city") ?? "";
     const date = url.searchParams.get("date") ?? "";
