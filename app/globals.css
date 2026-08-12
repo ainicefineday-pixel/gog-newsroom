@@ -1588,10 +1588,74 @@ main {
   opacity: 0.42;
   cursor: not-allowed;
 }
+/* ── ปุ่มแปลเป็นไทย ─────────────────────────────────────────────────────
+   เดิมเขียน background: var(--accent, #da291c) ซึ่งไม่เคยได้สีแดงเลยสักครั้ง
+   เพราะ --accent ถูกประกาศไว้ที่ต้นไฟล์เป็น oklch(0.97 0 0) คือเกือบขาว
+   ค่าสำรองหลังคอมมาจะถูกใช้ก็ต่อเมื่อ "ไม่มีการประกาศตัวแปร" เท่านั้น
+   ไม่ใช่เมื่อค่าที่ประกาศไว้ดูไม่เข้าท่า ผลคือพื้นขาวชนตัวอักษรขาว
+   ปุ่มจึงหายไปทั้งปุ่ม เขียนสีแบรนด์ตรง ๆ ไปเลย ไม่ต้องผ่านตัวแปรของชุดธีม */
 .story-action.primary {
-  background: var(--accent, #da291c);
+  background: #da291c;
   border-color: transparent;
   color: #fff;
+  position: relative;
+  isolation: isolate;
+}
+
+@property --story-beam {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* เส้นแสงวิ่งรอบปุ่ม — แนวคิดเดียวกับเส้นขอบวิ่งของการ์ด GOG VISA
+   แต่ทำด้วย pseudo-element ตัวเดียว จึงไม่ต้องเพิ่ม element ใน JSX
+   หมุน "มุมของ conic-gradient" ผ่าน @property แทนการหมุนทั้งอิลิเมนต์
+   ปุ่มไม่ใช่สี่เหลี่ยมจัตุรัส ถ้าหมุนทั้งอิลิเมนต์มุมจะโผล่ออกนอกกรอบ
+   เบราว์เซอร์ที่ไม่รู้จัก @property จะทิ้งบรรทัด background นี้ทั้งบรรทัด
+   เหลือปุ่มแดงอ่านออกตามปกติ แค่ไม่มีไฟวิ่ง ซึ่งยอมรับได้ */
+.story-action.primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--story-beam),
+    transparent 0deg,
+    transparent 208deg,
+    #ff5a4a 268deg,
+    #ffc9c2 312deg,
+    #fff 332deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#000, #000) content-box,
+    linear-gradient(#000, #000);
+  mask:
+    linear-gradient(#000, #000) content-box,
+    linear-gradient(#000, #000);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: story-beam-run 2.8s linear infinite;
+}
+/* กำลังแปลอยู่ = มีไอคอนหมุนบอกสถานะแล้ว ไฟวิ่งซ้อนเข้าไปอีกกลายเป็นรบกวน */
+.story-action.primary:disabled::before {
+  animation: none;
+  opacity: 0.35;
+}
+@keyframes story-beam-run {
+  to {
+    --story-beam: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* ไม่วิ่งแล้ว แต่ยังต้องเห็นขอบ ไม่ใช่หายไปเฉย ๆ */
+  .story-action.primary::before {
+    animation: none;
+    background: #ff8a7e;
+  }
 }
 .story-action.ghost {
   background: transparent;
@@ -1691,7 +1755,8 @@ main {
   display: block;
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, var(--accent, #da291c), #f0a500);
+  /* --accent เป็นสีเกือบขาว แถบความคืบหน้าจึงเคยไล่จากขาวไปทอง ไม่ใช่แดงไปทอง */
+  background: linear-gradient(90deg, #da291c, #f0a500);
   transition: width 0.12s linear;
 }
 .translate-bar::after {
