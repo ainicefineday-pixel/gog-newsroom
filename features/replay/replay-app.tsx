@@ -13,6 +13,7 @@ import {
   Crosshair,
   Gauge,
   Camera,
+  Download,
   Expand,
   Goal,
   ListTree,
@@ -824,6 +825,25 @@ export function ReplayMatch({ matchId, embedded = false, onBack }: { matchId: st
   );
 }
 
+function gogVerdict(match:GeneratedMatch,stats:ReturnType<typeof liveStats>){
+  const home=match.definition.home.id,away=match.definition.away.id,shotEdge=stats[home].shots-stats[away].shots,xgEdge=stats[home].xg-stats[away].xg;
+  if(shotEdge>=4&&xgEdge<0)return "VOLUME WITHOUT CONTROL · ยิงมากกว่า แต่คุณภาพโอกาสยังเป็นรอง";
+  if(xgEdge>.45)return "CHANCE AUTHORITY · คุมคุณภาพพื้นที่อันตรายได้ชัดเจน";
+  if(Math.abs(xgEdge)<.2)return "FINE MARGINS · เกมตัดสินกันที่รายละเอียดเล็กที่สุด";
+  return "TRANSITION BATTLE · จังหวะเปลี่ยนเกมสำคัญกว่าปริมาณการครองบอล";
+}
+
+async function downloadStatCard(match:GeneratedMatch,stats:ReturnType<typeof liveStats>){
+  const canvas=document.createElement("canvas");canvas.width=1600;canvas.height=900;const c=canvas.getContext("2d");if(!c)return;
+  const home=match.definition.home.id,away=match.definition.away.id,gradient=c.createLinearGradient(0,0,1600,900);gradient.addColorStop(0,"#08090b");gradient.addColorStop(.7,"#15181d");gradient.addColorStop(1,"#6d120e");c.fillStyle=gradient;c.fillRect(0,0,1600,900);
+  c.fillStyle="#da291c";c.fillRect(0,0,18,900);c.fillStyle="#d9aa49";c.fillRect(80,82,210,5);c.font="700 28px Kanit, sans-serif";c.fillText("GOG · MATCH INTELLIGENCE",80,64);c.fillStyle="#fff";c.font="700 60px Kanit, sans-serif";c.fillText(`${match.definition.home.shortName}  ${match.definition.finalScore[0]}–${match.definition.finalScore[1]}  ${match.definition.away.shortName}`,80,160);c.fillStyle="#8d939d";c.font="400 24px Kanit, sans-serif";c.fillText(`${match.definition.competition} · ${match.definition.venue}`,82,204);
+  const metrics=[["SHOTS",stats[home].shots,stats[away].shots],["ON TARGET",stats[home].onTarget,stats[away].onTarget],["xG",stats[home].xg.toFixed(2),stats[away].xg.toFixed(2)],["CORNERS",stats[home].corners,stats[away].corners]];
+  metrics.forEach((m,i)=>{const x=82+i*370;c.fillStyle="#111318";c.fillRect(x,280,330,220);c.strokeStyle="#ffffff18";c.strokeRect(x,280,330,220);c.fillStyle="#d9aa49";c.font="700 18px Kanit, sans-serif";c.fillText(String(m[0]),x+24,320);c.fillStyle="#fff";c.font="700 58px Kanit, sans-serif";c.fillText(`${m[1]}  :  ${m[2]}`,x+24,410);c.fillStyle="#707780";c.font="400 17px Kanit, sans-serif";c.fillText(`${match.definition.home.shortName}       ${match.definition.away.shortName}`,x+24,462)});
+  c.fillStyle="#da291c";c.fillRect(82,555,1438,4);c.fillStyle="#f4f4f2";c.font="700 32px Kanit, sans-serif";c.fillText("GOG READS THE GAME",82,620);c.fillStyle="#d9aa49";c.font="700 31px Kanit, sans-serif";c.fillText(gogVerdict(match,stats),82,672);c.fillStyle="#8d939d";c.font="400 18px Kanit, sans-serif";c.fillText("Confirmed match data is separated from reconstructed spatial layers · geniusontheground.com",82,830);
+  try{const logo=new Image();logo.src="/gog-logo-dark.png";await logo.decode();c.drawImage(logo,1370,50,150,150)}catch{}
+  const link=document.createElement("a");link.download=`gog-${match.definition.id}-stat-card.jpg`;link.href=canvas.toDataURL("image/jpeg",.94);link.click();
+}
+
 function StatsPanel({
   match,
   stats,
@@ -843,7 +863,7 @@ function StatsPanel({
     "xg",
   ] as const;
   return (
-    <div className="stat-grid">
+    <div className="stat-export-wrap"><header className="stat-story"><span>GOG MATCH SIGNAL</span><strong>{gogVerdict(match,stats)}</strong><button onClick={()=>void downloadStatCard(match,stats)}><Download/> DOWNLOAD JPEG</button></header><div className="stat-grid">
       {rows.map((key) => (
         <div key={key}>
           <b>{key === "onTarget" ? "Shots on target" : key.toUpperCase()}</b>
@@ -869,7 +889,7 @@ function StatsPanel({
           )}
         </div>
       ))}
-    </div>
+    </div></div>
   );
 }
 function AnalyticsPanel({
