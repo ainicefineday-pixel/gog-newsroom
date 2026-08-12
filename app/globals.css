@@ -7203,3 +7203,195 @@ body { background:var(--ink); color:var(--text); font-family:"Kanit",Arial,sans-
     500 8.5px/1.5 "Kanit",
     sans-serif;
 }
+
+/* ── ปุ่มควบคุมแถบนัด: ลาก ย่อ เสียง ───────────────────────────────────── */
+.match-strip-controls {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 3;
+}
+.match-strip-controls button {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #6b7078;
+}
+.match-strip-controls button:hover {
+  border-color: #3a3f47;
+  color: #c9ccd1;
+}
+.strip-grip {
+  cursor: grab;
+  touch-action: none;
+}
+.strip-grip:active {
+  cursor: grabbing;
+}
+.strip-sound.on {
+  color: #4ade80;
+}
+.match-strip.collapsed .strip-collapse svg {
+  transform: rotate(-90deg);
+}
+
+/* ย่อแล้วเหลือแค่บรรทัดทีมกับนาฬิกา — ส่วนที่คนเหลือบดูบ่อยที่สุด */
+.match-strip.collapsed .match-strip-meta,
+.match-strip.collapsed .match-strip-weather,
+.match-strip.collapsed .match-strip-squads,
+.match-strip.collapsed .match-strip-news,
+.match-strip.collapsed .match-strip-links,
+.match-strip.collapsed .match-progress,
+.match-strip.collapsed .match-progress-marks,
+.match-strip.collapsed .match-progress-hint {
+  display: none;
+}
+
+/* ลากออกมาแล้วลอยอยู่เหนือหน้าเว็บ ดับเบิลคลิกที่มือจับเพื่อกลับเข้าที่เดิม */
+.match-strip.floating {
+  position: fixed;
+  z-index: 60;
+  width: min(660px, calc(100vw - 16px));
+  margin-top: 0;
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.9);
+}
+
+/* ── สกอร์ ─────────────────────────────────────────────────────────────── */
+.match-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 7px;
+  background: #0b0d11;
+  border: 1px solid #272a30;
+  font-variant-numeric: tabular-nums;
+}
+.match-score b {
+  color: #c9ccd1;
+  font:
+    800 13px/1 "Kanit",
+    sans-serif;
+}
+.match-score i {
+  color: #565b63;
+  font-style: normal;
+}
+
+/* ── เวลาแต่ละจุดของเกม ทั้งสองโซนเวลา ─────────────────────────────────── */
+.match-progress-marks {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 5px;
+}
+.match-progress-marks span {
+  display: flex;
+  flex-direction: column;
+  color: #8a9099;
+  font:
+    600 8.5px/1.45 "Kanit",
+    sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+.match-progress-marks span:nth-child(2) {
+  align-items: center;
+}
+.match-progress-marks span:last-child {
+  align-items: flex-end;
+}
+.match-progress-marks em {
+  font-style: normal;
+  color: #565b63;
+  font-weight: 500;
+}
+.match-progress-hint {
+  margin: 4px 0 0;
+  color: #565b63;
+  font:
+    500 8px/1.4 "Kanit",
+    sans-serif;
+}
+
+/* ── ข่าวเข้าใหม่ ───────────────────────────────────────────────────────── */
+.match-strip-news {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding-top: 7px;
+  border-top: 1px solid var(--line, #272a30);
+}
+.news-flag {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #2a1a18;
+  color: #ff6a5e;
+  font:
+    700 8px/1.5 "Kanit",
+    sans-serif;
+}
+.match-strip-news b {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #e7e9ec;
+  font:
+    600 10px/1.4 "Kanit",
+    sans-serif;
+}
+.match-strip-news small {
+  flex: 0 0 auto;
+  color: #6b7078;
+  font-size: 8.5px;
+}
+
+/* ── ลิงก์ไลฟ์หลังเกม และนัดต่อไป ──────────────────────────────────────── */
+.match-strip-links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.strip-live-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: #da291c;
+  color: #fff;
+  text-decoration: none;
+  font:
+    700 9.5px/1.4 "Kanit",
+    sans-serif;
+}
+.strip-live-cta:hover {
+  background: #f13b2e;
+}
+.strip-next {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  color: #8a9099;
+  font:
+    600 9px/1.4 "Kanit",
+    sans-serif;
+}
+.strip-next small {
+  color: #565b63;
+  font-size: 8.5px;
+}

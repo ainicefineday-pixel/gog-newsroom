@@ -18,7 +18,7 @@ import {
   type PricingModel,
 } from "@/lib/server/partners";
 import { fetchMatchWeather, fetchVenueConditions } from "@/services/weather";
-import { currentNavMatch } from "@/services/football/next-match";
+import { allNavMatches, currentNavMatch } from "@/services/football/next-match";
 import { gbpToThb } from "@/lib/server/fx";
 import {
   ensureFootballTables, getFixtures, getMatchBundle, getProviderHealth, getStandings, listFixtureChanges,
@@ -348,7 +348,28 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
     const conditions = match && match.latitude !== null && match.longitude !== null
       ? await fetchVenueConditions(match.latitude, match.longitude)
       : null;
-    return json({ ok: true, match, conditions }, 200, { "cache-control": "public, max-age=300" });
+    // นัดถัดจากนัดที่กำลังโชว์ ไว้บอกว่า "ตามต่อวันไหน" ตั้งแต่ยังไม่จบนัดนี้
+    const nextMatch = match
+      ? allNavMatches().find((entry) => entry.kickoffUtc > match.kickoffUtc) ?? null
+      : null;
+    // ข่าวชิ้นล่าสุดในคลัง — ต้องมีชื่อสำนักข่าวติดไปด้วยเสมอ
+    // ดึงไม่ได้ก็ส่ง null ไม่ใช่ทำให้ทั้งแถบล้มเพราะข่าวชิ้นเดียว
+    let latestStory = null as null | { id: string; titleTh: string; source: string; publishedAt: string };
+    try {
+      const recent = await listStories(env.DB, { days: 2, minCredibility: 0 });
+      const top = recent[0];
+      if (top) {
+        latestStory = {
+          id: top.id,
+          titleTh: top.titleTh || top.titleEn,
+          source: top.sources[0]?.name ?? "ไม่ระบุแหล่ง",
+          publishedAt: top.publishedAt,
+        };
+      }
+    } catch {
+      latestStory = null;
+    }
+    return json({ ok: true, match, conditions, nextMatch, latestStory }, 200, { "cache-control": "public, max-age=300" });
   }
 
   if (url.pathname === "/api/weather" && request.method === "GET") {
