@@ -12,7 +12,7 @@
 // เครื่องหมายการค้าที่มีเจ้าของ การดึงไฟล์โลโก้จาก API มาแสดงไม่ได้แปลว่าได้สิทธิ์ใช้
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Bell, BellOff, ChevronDown, CloudSun, GripVertical, Radio, Tv, Wind } from "lucide-react";
+import { Bell, BellOff, ChevronDown, CloudSun, GripVertical, MapPin, Radio, Tv, Wind } from "lucide-react";
 import { Marquee } from "@/app/terminal";
 import { MU_FIRST_TEAM_SQUAD, type SquadPosition } from "@/config/mu-squad";
 import { TEAM_NAMES } from "@/services/football/thai";
@@ -283,7 +283,23 @@ export function MatchStrip({ now }: { now: Date | null }) {
         <span className={`match-tag ${match.competition}`}>
           {match.competition === "friendly" ? "อุ่นเครื่อง" : "พรีเมียร์ลีก"}
         </span>
-        <span>{match.stadium} · {match.city}</span>
+        {/* ลิงก์แผนที่ยิงด้วยพิกัดสนาม ไม่ใช่ค้นด้วยชื่อ เพราะชื่อสนามซ้ำกันได้
+            และหลายสนามเปลี่ยนชื่อตามสปอนเซอร์ ค้นด้วยชื่อจึงพาไปผิดที่ได้
+            ใช้รูปแบบ Google Maps URLs ที่เป็นทางการ ไม่ต้องใช้คีย์และไม่ผิดเงื่อนไข
+            สนามที่ไม่มีพิกัดในระบบจะเป็นข้อความเฉย ๆ ไม่ใช่ลิงก์ที่กดแล้วไปมั่ว */}
+        {match.latitude !== null && match.longitude !== null ? (
+          <a
+            className="match-venue-link"
+            href={`https://www.google.com/maps/search/?api=1&query=${match.latitude},${match.longitude}`}
+            target="_blank"
+            rel="noreferrer"
+            title={`เปิดแผนที่ ${match.stadium} ใน Google Maps`}
+          >
+            <MapPin size={11} aria-hidden="true" />{match.stadium} · {match.city}
+          </a>
+        ) : (
+          <span>{match.stadium} · {match.city}</span>
+        )}
         {match.broadcaster && <span className="match-broadcaster"><Radio size={11} aria-hidden="true" />{match.broadcaster}</span>}
       </div>
 

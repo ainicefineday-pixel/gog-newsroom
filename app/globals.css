@@ -7395,3 +7395,17 @@ body { background:var(--ink); color:var(--text); font-family:"Kanit",Arial,sans-
   color: #565b63;
   font-size: 8.5px;
 }
+
+/* ลิงก์ไปแผนที่สนาม — ยิงด้วยพิกัด ไม่ใช่ชื่อสนาม */
+.match-venue-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #8a9099;
+  text-decoration: none;
+  border-bottom: 1px dotted #3a3f47;
+}
+.match-venue-link:hover {
+  color: #f0cc78;
+  border-bottom-color: #f0cc78;
+}
