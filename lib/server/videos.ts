@@ -13,7 +13,7 @@ import {
   refreshYouTubeLiveStatus, type VideoMetadata, type VideoPlatform,
 } from "@/services/video";
 import { currentNavMatch, finishedNavMatch, FULL_TIME_MINUTES } from "@/services/football/next-match";
-import { TEAM_NAMES, thaiTeamShortName } from "@/services/football/thai";
+import { resolveOfficialName, TEAM_NAMES } from "@/services/football/thai";
 import { MU_KEYWORDS } from "@/config/mu-keywords";
 
 export type StoredVideo = {
@@ -213,15 +213,36 @@ export function keywordsFromTitle(title: string) {
   const haystack = title.toLowerCase();
   const found = new Set<string>();
 
-  for (const record of Object.values(TEAM_NAMES)) {
+  for (const [official, record] of Object.entries(TEAM_NAMES)) {
     const written = [record.th, record.short].some((form) => haystack.includes(form.toLowerCase()));
-    if (written) found.add(record.short);
+    if (written) for (const term of teamSearchTerms(official)) found.add(term);
   }
   for (const keyword of MU_KEYWORDS) {
     if (keyword.length >= 5 && haystack.includes(keyword)) found.add(keyword);
   }
 
   return [...found];
+}
+
+/**
+ * คำที่ใช้ตามหาข่าวของทีมนี้ในคลัง — ไทยสั้น ชื่อทางการ และชื่อย่อที่สำนักข่าวใช้จริง
+ *
+ * ต้องมีทั้งสามแบบเพราะพาดหัวในคลังยังเป็นอังกฤษเกือบทั้งหมด (titleTh ที่ยังไม่ได้แปล
+ * จะตกไปใช้พาดหัวอังกฤษ) คำค้นไทยอย่างเดียวจึงจับข่าวไม่ติดสักชิ้น
+ * และพาดหัวส่วนใหญ่เขียนชื่อย่ออย่าง "Man Utd beat Leeds" ไม่ใช่ชื่อเต็มของสโมสร
+ *
+ * ชื่อย่อเอาตัวที่สั้นที่สุดที่ยังยาวพอ ตัดรหัสสามตัวอักษรอย่าง LEE MUN ทิ้ง
+ * เพราะมันไปโผล่กลางคำอื่นในพาดหัวได้ง่าย
+ */
+function teamSearchTerms(name: string) {
+  // ชื่อที่ส่งเข้ามาอาจเป็นชื่อที่ผู้ให้บริการเขียนเอง ให้พจนานุกรมชี้กลับไปชื่อทางการก่อน
+  const official = resolveOfficialName(name) ?? name;
+  const record = TEAM_NAMES[official];
+  if (!record) return [official];
+  const shortAlias = record.aliases
+    .filter((alias) => alias.length >= 4)
+    .sort((a, b) => a.length - b.length)[0];
+  return [record.short, official, ...(shortAlias ? [shortAlias] : [])];
 }
 
 /**
@@ -314,12 +335,10 @@ export async function syncChannelVideos(env: RuntimeEnv, options: { force?: bool
 
     // คำค้นมาจากหัวข้อคลิปเป็นหลัก ส่วนคลิปที่ออกอากาศคาบเกี่ยวกับนัดที่เพิ่งจบ
     // เติมชื่อทีมของนัดนั้นให้ด้วย เพราะพาดหัวรีวิวหลังเกมมักไม่เขียนชื่อทีมตัวเอง
-    // ใส่ทั้งชื่ออังกฤษและชื่อไทยสั้น เพราะข่าวในคลังมีทั้งพาดหัวไทยและอังกฤษ
     const keywords = new Set(keywordsFromTitle(upload.title));
     if (match && Math.abs(onAir - new Date(match.kickoffUtc).getTime()) <= 12 * 3_600_000) {
       for (const team of [match.home, match.away]) {
-        keywords.add(team);
-        keywords.add(thaiTeamShortName(team));
+        for (const term of teamSearchTerms(team)) keywords.add(term);
       }
     }
 
