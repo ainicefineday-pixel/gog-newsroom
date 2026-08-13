@@ -9,9 +9,12 @@
 
 import { listStories, type RuntimeEnv } from "@/lib/server/database";
 import {
-  fetchVideoMetadata, findChannelLive, findChannelLiveCheap, FOOTBALL_GENIUS_CHANNEL_ID, refreshYouTubeLiveStatus, type VideoPlatform,
+  fetchVideoMetadata, findChannelLive, FOOTBALL_GENIUS_CHANNEL_ID, listChannelUploads, pickLive,
+  refreshYouTubeLiveStatus, type VideoMetadata, type VideoPlatform,
 } from "@/services/video";
-import { currentNavMatch, FULL_TIME_MINUTES, POST_MATCH_WINDOW_MINUTES } from "@/services/football/next-match";
+import { currentNavMatch, finishedNavMatch, FULL_TIME_MINUTES } from "@/services/football/next-match";
+import { TEAM_NAMES, thaiTeamShortName } from "@/services/football/thai";
+import { MU_KEYWORDS } from "@/config/mu-keywords";
 
 export type StoredVideo = {
   id: string;
@@ -113,6 +116,15 @@ export type AddVideoInput = {
 
 export async function addVideo(env: RuntimeEnv, input: AddVideoInput) {
   const meta = await fetchVideoMetadata(input.url, env.YOUTUBE_API_KEY);
+  const id = await saveVideo(env, meta, input);
+  // ใส่กลับมาเองแปลว่าเปลี่ยนใจแล้ว ลบหมายเหตุที่เคยเอาออกทิ้ง
+  // ไม่งั้นครอนรอบหน้าจะยังคิดว่าคลิปนี้ถูกปฏิเสธไว้และไม่ยอมอัปเดตให้
+  await env.DB!.prepare("DELETE FROM video_dismissals WHERE id = ?").bind(id).run();
+  return { id, ...meta };
+}
+
+/** เขียนคลิปลงคลัง — แยกออกมาเพราะฝั่งครอนมี metadata อยู่แล้ว ไม่ต้องยิงถามซ้ำ */
+async function saveVideo(env: RuntimeEnv, meta: VideoMetadata, input: Omit<AddVideoInput, "url"> = {}) {
   const id = `${meta.platform}:${meta.videoId}`;
   const now = new Date().toISOString();
 
@@ -133,11 +145,19 @@ export async function addVideo(env: RuntimeEnv, input: AddVideoInput) {
     )
     .run();
 
-  return { id, ...meta };
+  return id;
 }
 
+/**
+ * เอาคลิปออกจากหน้าข่าว
+ * บันทึกไว้ด้วยว่าคลิปนี้ถูกเอาออก เพราะครอนดึงคลิปใหม่จากช่องทุกรอบ
+ * ถ้าไม่จำไว้ คลิปที่เพิ่งกดลบจะกลับขึ้นหน้าเว็บเองภายในสิบนาที
+ */
 export async function removeVideo(env: RuntimeEnv, id: string) {
   const result = await env.DB!.prepare("DELETE FROM videos WHERE id = ?").bind(id).run();
+  await env.DB!.prepare("INSERT OR REPLACE INTO video_dismissals (id, dismissed_at) VALUES (?, ?)")
+    .bind(id, new Date().toISOString())
+    .run();
   return { removed: result.meta?.changes ?? 0 };
 }
 
@@ -172,39 +192,144 @@ export async function refreshVideoLiveStatus(env: RuntimeEnv) {
   return { checked: rows.length, live, note: "" };
 }
 
+/** มองย้อนไปกี่คลิปใน playlist อัปโหลด — ช่องลงวันละไม่กี่ตัว หกตัวครอบคลุมสองสามวัน */
+const UPLOAD_LOOKBACK = 6;
+/** เก่ากว่านี้ไม่ต้องดึงขึ้นเอง — คลิปเก่าเป็นเรื่องของบรรณาธิการที่จะเลือกใส่เอง */
+const FRESH_DAYS = 3;
+/** กันรอบแรกหลังเปิดใช้งานไม่ให้เทคลิปทั้ง playlist ขึ้นหน้าเว็บทีเดียว */
+const MAX_ADDS_PER_RUN = 3;
+
 /**
- * หาไลฟ์หลังเกมของช่องแล้วเอาขึ้นแถบคลิปให้เอง
+ * ตั้งคำค้นจากหัวข้อคลิป
  *
- * ยิงเฉพาะช่วงครึ่งชั่วโมงหลังเกมจบ ซึ่งเป็นเวลาที่ช่องไลฟ์จริง
- * เพราะ search.list กินโควตาครั้งละ 100 หน่วยจากวันละ 10,000
- * ครอนวิ่งทุก 10 นาที ในหน้าต่างนี้จึงยิงแค่ 3 ครั้งต่อนัด = 300 หน่วย
- * ถ้ายิงทั้งวันจะเป็น 14,400 หน่วย ซึ่งเกินโควตาไปเกือบครึ่ง
+ * คำค้นคือสิ่งที่ใช้จับคลิปเข้ากับข่าวในคลัง จึงต้องเป็นคำที่โผล่ในพาดหัวข่าวจริง
+ * หัวข้อคลิปของช่องเป็นภาษาไทย ("ผีอุ่นเสมอลีดส์ 1-1") จึงเทียบกับชื่อทีมภาษาไทย
+ * ในพจนานุกรมเป็นหลัก แล้วค่อยเสริมด้วยคำอังกฤษสำหรับหัวข้อที่เขียนชื่อฝรั่งไว้
+ *
+ * ไทยไม่เว้นวรรคระหว่างคำ การหาแบบ substring จึงเป็นวิธีที่ถูกต้องที่นี่
+ * ส่วนคำอังกฤษเอาเฉพาะที่ยาวพอ (ตั้งแต่ห้าตัวอักษร) กันไปโดนคำทั่วไปเข้า
  */
-export async function syncPostMatchLive(env: RuntimeEnv) {
-  if (!env.YOUTUBE_API_KEY) return { searched: false, added: null as string | null, note: "ยังไม่ได้ตั้งค่า YOUTUBE_API_KEY" };
+export function keywordsFromTitle(title: string) {
+  const haystack = title.toLowerCase();
+  const found = new Set<string>();
 
-  const match = currentNavMatch();
-  const elapsedMinutes = match ? (Date.now() - new Date(match.kickoffUtc).getTime()) / 60_000 : Number.NaN;
-  const inPostMatchWindow = Number.isFinite(elapsedMinutes)
-    && elapsedMinutes >= FULL_TIME_MINUTES
-    && elapsedMinutes <= FULL_TIME_MINUTES + POST_MATCH_WINDOW_MINUTES;
-
-  // ทุกรอบครอนใช้ทางถูก 2 หน่วย จึงมองหาไลฟ์ได้ทั้งวันไม่ใช่เฉพาะหลังเกม
-  // ช่วงหลังเกมค่อยเสริมด้วย search ซึ่งไวกว่าแต่แพงกว่า 50 เท่า
-  // เพราะไลฟ์ที่เพิ่งกดเริ่มอาจยังไม่ทันโผล่ใน playlist อัปโหลด
-  let live = await findChannelLiveCheap(FOOTBALL_GENIUS_CHANNEL_ID, env.YOUTUBE_API_KEY).catch(() => null);
-  if (!live && inPostMatchWindow) {
-    live = await findChannelLive(FOOTBALL_GENIUS_CHANNEL_ID, env.YOUTUBE_API_KEY);
+  for (const record of Object.values(TEAM_NAMES)) {
+    const written = [record.th, record.short].some((form) => haystack.includes(form.toLowerCase()));
+    if (written) found.add(record.short);
   }
-  if (!live) return { searched: true, added: null, note: "ช่องยังไม่ได้เปิดไลฟ์" };
-
-  const url = `https://www.youtube.com/watch?v=${live.videoId}`;
-  try {
-    // คำค้นตั้งจากชื่อทีมทั้งสองฝั่งของนัดที่กำลังพูดถึง ไลฟ์จะได้ผูกกับข่าวของนัดนั้นเอง
-    // ไม่มีนัดในระบบก็ยังเก็บคลิปไว้ แค่ไม่มีคำค้น ดีกว่าทิ้งไลฟ์ที่กำลังออกอากาศอยู่
-    await addVideo(env, { url, keywords: match ? `${match.home}, ${match.away}` : "" });
-    return { searched: true, added: url, note: "" };
-  } catch (error) {
-    return { searched: true, added: null, note: error instanceof Error ? error.message.slice(0, 160) : "เพิ่มคลิปไลฟ์ไม่สำเร็จ" };
+  for (const keyword of MU_KEYWORDS) {
+    if (keyword.length >= 5 && haystack.includes(keyword)) found.add(keyword);
   }
+
+  return [...found];
+}
+
+/**
+ * ช่วงเวลาไปดูว่าช่องลงคลิปหลังเกมหรือยัง นับจากเวลาจบเกมของนัดในปฏิทิน
+ *
+ * ช่องจะขึ้นไลฟ์วิเคราะห์ราว 30–60 นาทีหลังจบเกม เผื่อหน้าเผื่อหลังอีก 30
+ * หน้าต่างที่เฝ้าจริงจึงเป็นตั้งแต่จบเกมถึงชั่วโมงครึ่ง
+ *
+ * ส่วนหางยาวถึงสองชั่วโมงครึ่งเพราะไลฟ์ที่จบแล้วเข้า playlist อัปโหลดช้ากว่าที่คิด
+ * นัดกับลีดส์ 12 ส.ค. จบเกม 20:15 UTC ไลฟ์ขึ้น 20:33 แต่คลิปเพิ่งโผล่ใน playlist
+ * ตอน 21:49 คือ 94 นาทีหลังจบเกม ถ้าปิดหน้าต่างที่ 90 นาทีก็พลาดคลิปนั้นพอดี
+ */
+const POST_MATCH_WATCH_MINUTES = 90;
+const POST_MATCH_TAIL_MINUTES = 150;
+/** ระยะห่างขั้นต่ำระหว่างการยิง search.list ในหน้าต่างเฝ้า — ครอนวิ่งทุก 10 นาที */
+const LIVE_SEARCH_EVERY_MINUTES = 30;
+
+/**
+ * รอบเฝ้าประจำวันนอกช่วงหลังเกม — ทุก 6 ชั่วโมง (ตี 1, 7 โมง, บ่ายโมง, 1 ทุ่ม UTC)
+ * ครอนวิ่งทุก 10 นาที เงื่อนไขนาที < 10 จึงตรงรอบเดียวต่อชั่วโมงนั้น
+ * ไว้เก็บคลิปที่ช่องลงตามผังปกติซึ่งไม่ผูกกับนัดไหน ตกวันละ 4 รอบ = 8 หน่วย
+ */
+function isDailySweep(now: Date) {
+  return now.getUTCHours() % 6 === 1 && now.getUTCMinutes() < 10;
+}
+
+/**
+ * ดึงคลิปใหม่ของช่องขึ้นแถบคลิปให้เอง
+ *
+ * เดิมตัวนี้รับเฉพาะคลิปที่ "กำลังไลฟ์อยู่ ณ วินาทีที่ครอนวิ่ง" ซึ่งพลาดของจริงเกือบหมด
+ * ไลฟ์ที่จบแล้ว YouTube จะเปลี่ยน liveBroadcastContent กลับเป็น none ทันที
+ * ไลฟ์ที่เริ่มและจบระหว่างรอบครอน หรือรอบที่ยิงพลาดไป จึงหายไปเลยไม่มีวันกลับมา
+ * และคลิปปกติที่ช่องลงตามผังก็ไม่เคยถูกดึงขึ้นเลยสักตัวเพราะไม่ใช่ไลฟ์
+ *
+ * รอบนี้ดูจาก playlist อัปโหลดของช่องแทน — คลิปใหม่ทุกแบบอยู่ในนั้นหมด
+ * ทั้งไลฟ์สด ไลฟ์ที่จบแล้ว และคลิปที่อัดมาลง
+ *
+ * โควตาต่อวัน 10,000 หน่วย ตัวนี้ใช้:
+ *   นอกช่วงหลังเกม  4 รอบ × 2 หน่วย                       =   8
+ *   ในช่วงหลังเกม   15 รอบ × 2 หน่วย                      =  30
+ *   ยิง search หาไลฟ์ทุกครึ่งชั่วโมงในหน้าต่างเฝ้า 3 ครั้ง × 100 = 300
+ * วันที่มีนัดจึงตกราว 340 หน่วย วันที่ไม่มีนัด 8 หน่วย
+ */
+export async function syncChannelVideos(env: RuntimeEnv, options: { force?: boolean } = {}) {
+  const added: string[] = [];
+  if (!env.YOUTUBE_API_KEY) return { searched: false, added, note: "ยังไม่ได้ตั้งค่า YOUTUBE_API_KEY" };
+
+  const now = new Date();
+  // นัดที่เพิ่งจบเป็นตัวตั้งเวลา ไม่ใช่ currentNavMatch ซึ่งกระโดดไปชี้นัดถัดไปตั้งแต่นาทีที่ 120
+  const match = finishedNavMatch(POST_MATCH_TAIL_MINUTES, now.getTime());
+  const sinceFullTime = match
+    ? (now.getTime() - new Date(match.kickoffUtc).getTime()) / 60_000 - FULL_TIME_MINUTES
+    : Number.NaN;
+  const watching = Number.isFinite(sinceFullTime) && sinceFullTime <= POST_MATCH_WATCH_MINUTES;
+
+  // ไม่ใช่ช่วงหลังเกมและไม่ใช่รอบกวาดประจำวัน = ไม่ต้องไปกวน YouTube เลยสักหน่วย
+  // ยกเว้นแอดมินสั่งเอง ซึ่งเป็นการกดครั้งเดียวไม่ใช่ทุกสิบนาที
+  if (!options.force && !match && !isDailySweep(now)) {
+    return { searched: false, added, note: "ยังไม่ถึงช่วงหลังเกมและยังไม่ถึงรอบกวาดประจำวัน" };
+  }
+
+  const uploads = await listChannelUploads(FOOTBALL_GENIUS_CHANNEL_ID, env.YOUTUBE_API_KEY, UPLOAD_LOOKBACK)
+    .catch(() => [] as VideoMetadata[]);
+
+  // ไลฟ์ที่เพิ่งกดเริ่มยังไม่ทันเข้า playlist — ในหน้าต่างเฝ้ายอมจ่าย 100 หน่วยเพื่อความไว
+  // แต่ยิงห่างกันครึ่งชั่วโมง ไม่ใช่ทุกรอบครอน ไม่งั้นนัดเดียวก็ 900 หน่วยแล้ว
+  const searchSlot = watching && sinceFullTime % LIVE_SEARCH_EVERY_MINUTES < 10;
+  if (searchSlot && !pickLive(uploads)) {
+    const live = await findChannelLive(FOOTBALL_GENIUS_CHANNEL_ID, env.YOUTUBE_API_KEY).catch(() => null);
+    if (live && !uploads.some((upload) => upload.videoId === live.videoId)) {
+      const meta = await fetchVideoMetadata(`https://www.youtube.com/watch?v=${live.videoId}`, env.YOUTUBE_API_KEY)
+        .catch(() => null);
+      if (meta) uploads.unshift(meta);
+    }
+  }
+  if (uploads.length === 0) return { searched: true, added, note: "อ่านคลิปของช่องไม่ได้" };
+
+  const known = new Set([
+    ...((await env.DB!.prepare("SELECT id FROM videos").all<{ id: string }>()).results ?? []).map((row) => row.id),
+    ...((await env.DB!.prepare("SELECT id FROM video_dismissals").all<{ id: string }>()).results ?? []).map((row) => row.id),
+  ]);
+  const freshBefore = Date.now() - FRESH_DAYS * 86_400_000;
+
+  for (const upload of uploads) {
+    if (added.length >= MAX_ADDS_PER_RUN) break;
+    const id = `${upload.platform}:${upload.videoId}`;
+    if (known.has(id)) continue;
+    const onAir = upload.onAirAt ? new Date(upload.onAirAt).getTime() : Number.NaN;
+    if (!Number.isFinite(onAir) || onAir < freshBefore) continue;
+
+    // คำค้นมาจากหัวข้อคลิปเป็นหลัก ส่วนคลิปที่ออกอากาศคาบเกี่ยวกับนัดที่เพิ่งจบ
+    // เติมชื่อทีมของนัดนั้นให้ด้วย เพราะพาดหัวรีวิวหลังเกมมักไม่เขียนชื่อทีมตัวเอง
+    // ใส่ทั้งชื่ออังกฤษและชื่อไทยสั้น เพราะข่าวในคลังมีทั้งพาดหัวไทยและอังกฤษ
+    const keywords = new Set(keywordsFromTitle(upload.title));
+    if (match && Math.abs(onAir - new Date(match.kickoffUtc).getTime()) <= 12 * 3_600_000) {
+      for (const team of [match.home, match.away]) {
+        keywords.add(team);
+        keywords.add(thaiTeamShortName(team));
+      }
+    }
+
+    try {
+      await saveVideo(env, upload, { keywords: [...keywords].join(", ") });
+      added.push(upload.url);
+    } catch {
+      // คลิปเดียวเขียนไม่ลงไม่ควรทำให้ทั้งรอบล้ม ตัวถัดไปยังมีสิทธิ์ขึ้น
+    }
+  }
+
+  return { searched: true, added, note: added.length === 0 ? "ไม่มีคลิปใหม่ของช่อง" : "" };
 }

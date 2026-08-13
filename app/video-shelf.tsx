@@ -11,7 +11,7 @@
 // และผู้อ่านจะถูกติดตามทั้งที่ยังไม่ได้ดูอะไรเลย
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Play, Plus, Radio, Trash2, X } from "lucide-react";
+import { Loader2, Play, Plus, Radio, RefreshCw, Trash2, X } from "lucide-react";
 
 type RelatedStory = { id: string; title: string; source: string; url: string };
 
@@ -204,6 +204,8 @@ export function VideoShelf() {
   const [secret, setSecret] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncNote, setSyncNote] = useState("");
 
   const load = useCallback(() => {
     fetch("/api/videos")
@@ -236,9 +238,35 @@ export function VideoShelf() {
         </div>
         <div className="video-shelf-actions">
           {secret ? (
-            <button type="button" className="video-add" onClick={() => setShowForm((value) => !value)}>
-              <Plus size={13} aria-hidden="true" />เพิ่มคลิป
-            </button>
+            <>
+              {/* ปกติครอนดึงคลิปใหม่ของช่องให้เองในช่วงหลังเกม ปุ่มนี้ไว้สั่งเดี๋ยวนี้
+                  ตอนช่องลงคลิปนอกเวลาที่คาด — กดหนึ่งครั้งใช้โควตา 2 หน่วย */}
+              <button
+                type="button"
+                className="video-add ghost"
+                disabled={syncing}
+                onClick={() => {
+                  setSyncing(true);
+                  setSyncNote("");
+                  fetch("/api/videos/sync", { method: "POST", headers: { authorization: `Bearer ${secret}` } })
+                    .then((response) => response.json())
+                    .then((payload: { ok?: boolean; added?: string[]; note?: string }) => {
+                      const count = payload.added?.length ?? 0;
+                      setSyncNote(count > 0 ? `ดึงคลิปใหม่มา ${count} คลิป` : payload.note || "ไม่มีคลิปใหม่ของช่อง");
+                      if (count > 0) load();
+                    })
+                    .catch(() => setSyncNote("ต่อกับเซิร์ฟเวอร์ไม่ได้"))
+                    .finally(() => setSyncing(false));
+                }}
+              >
+                {syncing
+                  ? <><Loader2 size={13} className="spin" aria-hidden="true" />กำลังดึง…</>
+                  : <><RefreshCw size={13} aria-hidden="true" />ดึงคลิปใหม่จากช่อง</>}
+              </button>
+              <button type="button" className="video-add" onClick={() => setShowForm((value) => !value)}>
+                <Plus size={13} aria-hidden="true" />เพิ่มคลิป
+              </button>
+            </>
           ) : (
             <button type="button" className="video-add ghost" onClick={() => setShowSecret((value) => !value)}>
               โหมดแอดมิน
@@ -264,6 +292,8 @@ export function VideoShelf() {
           <small>กด Enter เพื่อยืนยัน · รหัสเก็บไว้เฉพาะแท็บนี้ ปิดแท็บแล้วหาย</small>
         </div>
       )}
+
+      {syncNote && <p className="video-empty">{syncNote}</p>}
 
       {showForm && secret && (
         <AddVideoForm secret={secret} onAdded={load} onClose={() => setShowForm(false)} />

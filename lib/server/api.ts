@@ -19,7 +19,7 @@ import {
 } from "@/lib/server/partners";
 import { fetchMatchWeather, fetchVenueConditions } from "@/services/weather";
 import { allNavMatches, currentNavMatch } from "@/services/football/next-match";
-import { addVideo, listVideos, refreshVideoLiveStatus, removeVideo, type AddVideoInput } from "@/lib/server/videos";
+import { addVideo, listVideos, refreshVideoLiveStatus, removeVideo, syncChannelVideos, type AddVideoInput } from "@/lib/server/videos";
 import { gbpToThb } from "@/lib/server/fx";
 import {
   ensureFootballTables, getFixtures, getMatchBundle, getProviderHealth, getStandings, listFixtureChanges,
@@ -368,6 +368,13 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
     const denied = adminAuthorizationError(request, env);
     if (denied) return denied;
     return json({ ok: true, ...(await refreshVideoLiveStatus(env)) });
+  }
+  // สั่งดึงคลิปใหม่ของช่องเดี๋ยวนี้ ไม่ต้องรอรอบครอน — 2 หน่วยต่อการกดหนึ่งครั้ง
+  // มีไว้ตอนช่องลงคลิปนอกเวลาที่คาด หรือตอนอยากได้คลิปขึ้นทันทีโดยไม่ต้องรอ
+  if (url.pathname === "/api/videos/sync" && request.method === "POST") {
+    const denied = adminAuthorizationError(request, env);
+    if (denied) return denied;
+    return json({ ok: true, ...(await syncChannelVideos(env, { force: true })) });
   }
 
   // ── แถบนัดถัดไปบน nav (นัดที่ควรโชว์ + อากาศสดที่สนามนั้น) ─────────────

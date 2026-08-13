@@ -183,39 +183,55 @@ export function uploadsPlaylistId(channelId: string) {
 }
 
 /**
- * หาไลฟ์ของช่องแบบราคาถูก — 2 หน่วยต่อครั้ง แทนที่จะเป็น 100
+ * คลิปล่าสุดของช่องพร้อม metadata ครบ — 2 หน่วยต่อครั้ง แทนที่จะเป็น 100
  *
- * search.list ที่ eventType=live ได้คำตอบตรงที่สุดแต่กิน 100 หน่วย
- * เรียกทุก 10 นาทีจะเป็น 14,400 หน่วยต่อวัน ซึ่งเกินโควตา 10,000 ไปเกือบครึ่ง
+ * search.list ได้คำตอบตรงที่สุดแต่กิน 100 หน่วย เรียกทุก 10 นาทีจะเป็น
+ * 14,400 หน่วยต่อวัน ซึ่งเกินโควตา 10,000 ไปเกือบครึ่ง
  *
  * ทางนี้ใช้สองคำสั่งที่คิดหน่วยละ 1 เท่านั้น
  *   playlistItems.list  ดูคลิปล่าสุดของช่องจาก playlist อัปโหลด
- *   videos.list         เช็กว่าในนั้นมีตัวไหนกำลังไลฟ์
+ *   videos.list         ขอ metadata ของทั้งชุดในครั้งเดียว (50 id ก็ยัง 1 หน่วย)
  * รวม 2 หน่วย เรียกได้ทุกรอบครอนทั้งวัน (144 รอบ = 288 หน่วย) ยังเหลือเฟือ
  *
- * ข้อแลกเปลี่ยน: ไลฟ์ที่เพิ่งเริ่มอาจใช้เวลาสักครู่กว่าจะโผล่ใน playlist อัปโหลด
- * จึงยังเก็บ findChannelLive ไว้ใช้ในช่วงหลังเกมซึ่งเป็นเวลาที่ต้องการความไวจริง ๆ
+ * คืน metadata เต็มไม่ใช่แค่ id เพราะฝั่งที่เรียกจะเอาไปบันทึกต่อได้เลย
+ * ไม่ต้องยิง videos.list ซ้ำอีกรอบเพื่อถามเรื่องเดิม
+ *
+ * เรียงตาม playlist อัปโหลดคือใหม่สุดอยู่หน้าสุด
  */
-export async function findChannelLiveCheap(channelId: string, apiKey: string, lookback = 6) {
+export async function listChannelUploads(channelId: string, apiKey: string, lookback = 6) {
   const listParams = new URLSearchParams({
     part: "contentDetails",
     playlistId: uploadsPlaylistId(channelId),
-    maxResults: String(lookback),
+    maxResults: String(Math.min(lookback, 50)),
     key: apiKey,
   });
   const listResponse = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?${listParams}`, {
     signal: AbortSignal.timeout(10_000),
   });
-  if (!listResponse.ok) return null;
+  if (!listResponse.ok) return [];
   const listPayload = await listResponse.json() as {
     items?: Array<{ contentDetails?: { videoId?: string } }>;
   };
   const ids = (listPayload.items ?? [])
     .map((item) => item.contentDetails?.videoId)
     .filter((id): id is string => Boolean(id));
-  if (ids.length === 0) return null;
+  if (ids.length === 0) return [];
 
+  // videos.list ไม่รับประกันว่าจะคืนมาตามลำดับที่ส่งไป จึงเรียงกลับตามลำดับ playlist เอง
   const items = await youtubeVideos(ids, apiKey);
-  const live = items.find((item) => item.snippet?.liveBroadcastContent === "live");
-  return live ? { videoId: live.id, title: live.snippet?.title ?? "" } : null;
+  const byId = new Map(items.map((item) => [item.id, item] as const));
+  return ids
+    .map((id) => byId.get(id))
+    .filter((item): item is YouTubeItem => Boolean(item))
+    .map(toMetadata);
+}
+
+/**
+ * หาไลฟ์ของช่องแบบราคาถูก — ใช้ผลของ listChannelUploads ที่ดึงมาแล้ว
+ *
+ * ข้อแลกเปลี่ยน: ไลฟ์ที่เพิ่งเริ่มอาจใช้เวลาสักครู่กว่าจะโผล่ใน playlist อัปโหลด
+ * จึงยังเก็บ findChannelLive ไว้ใช้ในช่วงหลังเกมซึ่งเป็นเวลาที่ต้องการความไวจริง ๆ
+ */
+export function pickLive(uploads: VideoMetadata[]) {
+  return uploads.find((upload) => upload.isLive) ?? null;
 }

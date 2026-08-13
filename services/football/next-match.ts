@@ -8,6 +8,7 @@
 import { MU_PREMIER_LEAGUE_FIXTURES, type MuFixture } from "@/config/mu-fixtures";
 import { MU_FRIENDLIES } from "@/config/mu-friendlies";
 import { STADIUM_LOCATIONS } from "@/config/stadium-locations";
+import { pickFinishedMatch } from "@/services/football/post-match";
 
 /**
  * นาทีหลังเขี่ยบอลที่ยังถือว่าเกมยังไม่จบ
@@ -97,12 +98,19 @@ export function currentNavMatch(now = Date.now()): NavMatch | null {
 }
 
 /**
- * นาทีที่ครึ่งหลังควรจบ นับจากเขี่ยบอล — 45 + 15 พักครึ่ง + 45
- * และหน้าต่างหลังเกมที่ถือว่ายังเป็น "ช่วงหลังเกม" ของนัดนั้น
- *
- * อยู่ที่นี่เพราะทั้งแถบบน nav และตัวหาไลฟ์หลังเกมฝั่งเซิร์ฟเวอร์ใช้ค่าเดียวกัน
- * ถ้าต่างคนต่างเขียนไว้เอง วันหนึ่งมันจะเลื่อนออกจากกันแล้วปุ่มไลฟ์บนหน้าเว็บ
- * กับการไปหาไลฟ์จริงจะทำงานคนละช่วงเวลา
+ * เส้นเวลาหลังเกมอยู่ที่ services/football/post-match — ส่งต่อจากที่นี่เหมือนเดิม
+ * เพื่อไม่ต้องไล่แก้ที่เรียกใช้ทุกจุด และให้ทั้งระบบยังใช้ค่าชุดเดียวกันอยู่
  */
-export const FULL_TIME_MINUTES = 105;
-export const POST_MATCH_WINDOW_MINUTES = 30;
+export { FULL_TIME_MINUTES, POST_MATCH_WINDOW_MINUTES } from "@/services/football/post-match";
+
+/**
+ * นัดที่เพิ่งจบไปภายในกี่นาทีก็ตามที่ขอมา — คืน null เมื่อไม่มีนัดไหนอยู่ในช่วงนั้น
+ *
+ * currentNavMatch ใช้ตอบเรื่องนี้ไม่ได้ เพราะมันเลิกชี้ที่นัดเดิมตั้งแต่นาทีที่ 120
+ * แล้วข้ามไปชี้นัดถัดไปทันที ใครเอาไปคิด "ผ่านมากี่นาทีตั้งแต่เขี่ยบอล" ในช่วงหลังเกม
+ * จะได้ค่าติดลบของนัดหน้าโดยไม่รู้ตัว หน้าต่างหลังเกมจึงปิดตั้งแต่นาทีที่ 120
+ * ทั้งที่ตั้งใจให้ยาวถึง 135 — งานหลังเกมที่พึ่งค่านี้จึงพลาดของจริงไปเงียบ ๆ
+ */
+export function finishedNavMatch(windowMinutes: number, now = Date.now()): NavMatch | null {
+  return pickFinishedMatch(allNavMatches(), windowMinutes, now);
+}

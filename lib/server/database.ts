@@ -167,6 +167,12 @@ export async function ensureDatabase(db: D1Database) {
       created_at TEXT NOT NULL
     )`),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_videos_created ON videos(created_at DESC)"),
+    // คลิปที่แอดมินกดเอาออก — ครอนไปดึงคลิปใหม่จากช่องทุกช่วงหลังเกม
+    // ถ้าไม่จำไว้ว่าตัวไหนถูกปฏิเสธ คลิปที่เพิ่งลบจะกลับขึ้นหน้าเว็บเองในรอบถัดไป
+    db.prepare(`CREATE TABLE IF NOT EXISTS video_dismissals (
+      id TEXT PRIMARY KEY,
+      dismissed_at TEXT NOT NULL
+    )`),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_story_merges_primary ON story_merges(primary_id)"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_source_runs_started ON source_runs(run_started_at)"),
     db.prepare(`CREATE TABLE IF NOT EXISTS x_posts (
