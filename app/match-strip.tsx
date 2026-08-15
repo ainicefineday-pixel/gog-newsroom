@@ -16,6 +16,7 @@ import { Bell, BellOff, ChevronDown, CloudSun, GripVertical, MapPin, Radio, Tv, 
 import { Marquee } from "@/app/terminal";
 import { MU_FIRST_TEAM_SQUAD, type SquadPosition } from "@/config/mu-squad";
 import { TEAM_NAMES } from "@/services/football/thai";
+import { usePersistedState } from "@/lib/persisted-state";
 import {
   FIRST_HALF_END, FULL_TIME_MINUTES, MATCH_WINDOW_MINUTES, POST_MATCH_WINDOW_MINUTES, SECOND_HALF_START, type NavMatch,
 } from "@/services/football/next-match";
@@ -27,6 +28,11 @@ const FOOTBALL_GENIUS_STREAMS = "https://www.youtube.com/@FootballGeniusAG/strea
 const PREMATCH_ALERT_MINUTES = 5;
 
 const STORAGE_KEY = "gog.match-strip";
+
+/** ค่าที่ผู้ใช้ตั้งไว้กับแถบนัด — จำไว้ทั้งก้อนใต้คีย์เดียว */
+type StripPrefs = { collapsed: boolean; sound: boolean; floating: { x: number; y: number } | null };
+/** ต้องเป็นค่าคงที่นอกคอมโพเนนต์ เพราะ usePersistedState ใช้เป็น snapshot ฝั่งเซิร์ฟเวอร์ */
+const DEFAULT_PREFS: StripPrefs = { collapsed: false, sound: false, floating: null };
 
 type LatestStory = { id: string; titleTh: string; source: string; publishedAt: string } | null;
 type StripData = {
@@ -116,35 +122,18 @@ function useChime(enabled: boolean) {
 
 export function MatchStrip({ now }: { now: Date | null }) {
   const [data, setData] = useState<StripData | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
-  const [sound, setSound] = useState(false);
+  // จำค่าที่ผู้ใช้ตั้งไว้ ไม่ต้องมาย่อและลากใหม่ทุกครั้งที่เปิดเว็บ
+  const [prefs, setPrefs] = usePersistedState<StripPrefs>(STORAGE_KEY, DEFAULT_PREFS);
+  const collapsed = Boolean(prefs.collapsed);
+  const sound = Boolean(prefs.sound);
   /** ตำแหน่งที่ผู้ใช้ลากไปวาง — null คือยังอยู่ที่เดิมใน header */
-  const [floating, setFloating] = useState<{ x: number; y: number } | null>(null);
+  const floating = prefs.floating ?? null;
+  const setCollapsed = (value: boolean) => setPrefs((prev) => ({ ...prev, collapsed: value }));
+  const setSound = (value: boolean) => setPrefs((prev) => ({ ...prev, sound: value }));
+  const setFloating = (value: { x: number; y: number } | null) => setPrefs((prev) => ({ ...prev, floating: value }));
   const dragRef = useRef<{ dx: number; dy: number } | null>(null);
   const firedRef = useRef(new Set<string>());
   const chime = useChime(sound);
-
-  // จำค่าที่ผู้ใช้ตั้งไว้ ไม่ต้องมาย่อและลากใหม่ทุกครั้งที่เปิดเว็บ
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null") as
-        { collapsed?: boolean; sound?: boolean; floating?: { x: number; y: number } | null } | null;
-      if (!saved) return;
-      setCollapsed(Boolean(saved.collapsed));
-      setSound(Boolean(saved.sound));
-      setFloating(saved.floating ?? null);
-    } catch {
-      // ค่าที่จำไว้เสียหายก็เริ่มจากค่าเริ่มต้น ไม่ต้องทำอะไร
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ collapsed, sound, floating }));
-    } catch {
-      // เบราว์เซอร์ปิด storage ไว้ — แถบยังทำงานได้ แค่ไม่จำค่า
-    }
-  }, [collapsed, sound, floating]);
 
   useEffect(() => {
     let alive = true;
@@ -262,7 +251,7 @@ export function MatchStrip({ now }: { now: Date | null }) {
         <button
           type="button"
           className={`strip-sound${sound ? " on" : ""}`}
-          onClick={() => { setSound((value) => !value); if (!sound) chime([880]); }}
+          onClick={() => { setSound(!sound); if (!sound) chime([880]); }}
           title={sound ? "ปิดเสียงเตือน" : "เปิดเสียงเตือนก่อนเตะ พักครึ่ง และจบเกม"}
           aria-pressed={sound}
         >
@@ -271,7 +260,7 @@ export function MatchStrip({ now }: { now: Date | null }) {
         <button
           type="button"
           className="strip-collapse"
-          onClick={() => setCollapsed((value) => !value)}
+          onClick={() => setCollapsed(!collapsed)}
           aria-expanded={!collapsed}
           title={collapsed ? "ขยายแถบ" : "ย่อแถบ"}
         >

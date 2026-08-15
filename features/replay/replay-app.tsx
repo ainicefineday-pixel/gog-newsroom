@@ -843,7 +843,7 @@ async function downloadStatCard(match:GeneratedMatch,stats:ReturnType<typeof liv
   const metrics=[["SHOTS",stats[home].shots,stats[away].shots],["ON TARGET",stats[home].onTarget,stats[away].onTarget],["xG",stats[home].xg.toFixed(2),stats[away].xg.toFixed(2)],["CORNERS",stats[home].corners,stats[away].corners]];
   metrics.forEach((m,i)=>{const x=82+i*370;c.fillStyle="#111318";c.fillRect(x,280,330,220);c.strokeStyle="#ffffff18";c.strokeRect(x,280,330,220);c.fillStyle="#d9aa49";c.font="700 18px Kanit, sans-serif";c.fillText(String(m[0]),x+24,320);c.fillStyle="#fff";c.font="700 58px Kanit, sans-serif";c.fillText(`${m[1]}  :  ${m[2]}`,x+24,410);c.fillStyle="#707780";c.font="400 17px Kanit, sans-serif";c.fillText(`${match.definition.home.shortName}       ${match.definition.away.shortName}`,x+24,462)});
   c.fillStyle="#da291c";c.fillRect(82,555,1438,4);c.fillStyle="#f4f4f2";c.font="700 32px Kanit, sans-serif";c.fillText("GOG READS THE GAME",82,620);c.fillStyle="#d9aa49";c.font="700 31px Kanit, sans-serif";c.fillText(gogVerdict(match,stats),82,672);c.fillStyle="#8d939d";c.font="400 18px Kanit, sans-serif";c.fillText("Confirmed match data is separated from reconstructed spatial layers · geniusontheground.com",82,830);
-  try{const logo=new Image();logo.src="/gog-logo-dark.png";await logo.decode();c.drawImage(logo,1370,50,150,150)}catch{}
+  try{const logo=new Image();logo.src="/gog-logo-dark.png";await logo.decode();c.drawImage(logo,1370,50,150,150)}catch{/* โหลดโลโก้ไม่ได้ก็ออกการ์ดโดยไม่มีโลโก้ ดีกว่าไม่ได้การ์ดเลย */}
   const link=document.createElement("a");link.download=`gog-${match.definition.id}-stat-card.jpg`;link.href=canvas.toDataURL("image/jpeg",.94);link.click();
 }
 

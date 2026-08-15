@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Play, Plus, Radio, RefreshCw, Trash2, X } from "lucide-react";
+import { usePersistedState } from "@/lib/persisted-state";
 
 type RelatedStory = { id: string; title: string; source: string; url: string };
 
@@ -201,7 +202,8 @@ function AddVideoForm({ secret, onAdded, onClose }: {
 
 export function VideoShelf() {
   const [videos, setVideos] = useState<Video[] | null>(null);
-  const [secret, setSecret] = useState("");
+  /** เก็บเฉพาะแท็บนี้ ปิดแท็บแล้วต้องกรอกใหม่ — ไม่ทิ้งกุญแจไว้บนเครื่องข้ามวัน */
+  const [secret, saveSecret] = usePersistedState(SECRET_KEY, "", "session");
   const [showForm, setShowForm] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -218,13 +220,7 @@ export function VideoShelf() {
 
   useEffect(() => {
     load();
-    try { setSecret(window.sessionStorage.getItem(SECRET_KEY) ?? ""); } catch { /* ปิด storage ไว้ก็ไม่เป็นไร */ }
   }, [load]);
-
-  const saveSecret = (value: string) => {
-    setSecret(value);
-    try { window.sessionStorage.setItem(SECRET_KEY, value); } catch { /* ไม่จำก็ยังใช้งานได้ในแท็บนี้ */ }
-  };
 
   const youtube = (videos ?? []).filter((video) => video.platform === "youtube");
   const tiktok = (videos ?? []).filter((video) => video.platform === "tiktok");
