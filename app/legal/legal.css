@@ -1,0 +1,341 @@
+/* หน้าเอกสารทางกฎหมาย — /terms และ /privacy
+   ==========================================================================
+   ใช้โทเคนสีและฟอนต์ชุดเดียวกับทั้งเว็บ (globals.css) ไม่เพิ่มไลบรารีใหม่
+   ความกว้างคอนเทนต์จำกัดที่ 820px เพื่อให้ความยาวบรรทัดอ่านสบาย แต่ยังวางอยู่
+   ในคอนเทนเนอร์ 1440px ตัวเดียวกับหน้าอื่น จึงไม่หลุดจากกริดของเว็บ */
+
+.legal-header {
+  /* ใช้ .site-header ร่วมด้วย — ตรงนี้ทับเฉพาะกริดเพราะมีแค่ 2 บล็อก ไม่มีนาฬิกา/ปุ่มซิงก์ */
+  grid-template-columns: 1fr auto;
+  gap: 20px;
+}
+.legal-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 22px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.legal-nav a {
+  color: var(--muted);
+  padding: 6px 0;
+  border-bottom: 1px solid transparent;
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+.legal-nav a:hover,
+.legal-nav a:focus-visible {
+  color: var(--text);
+  border-bottom-color: var(--red);
+}
+.legal-nav a[aria-current="page"] {
+  color: var(--text);
+  border-bottom-color: var(--red);
+}
+
+.legal-main {
+  /* main ตัวกลางของเว็บมี max-width 1440px + padding อยู่แล้ว ตรงนี้เติมเฉพาะหัวท้าย */
+  padding-top: 46px;
+}
+.legal-doc {
+  max-width: 820px;
+  margin: 0 auto;
+  color: #c9ced6;
+  font:
+    300 15px/1.85 "Kanit",
+    sans-serif;
+}
+
+.legal-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gold);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  margin: 0 0 18px;
+}
+.legal-eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 2px;
+  background: var(--red);
+}
+.legal-doc h1 {
+  color: var(--text);
+  font:
+    700 clamp(28px, 5vw, 42px) / 1.25 "Kanit",
+    sans-serif;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.legal-thai-title {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 400;
+  margin: 8px 0 0;
+}
+.legal-updated {
+  margin: 20px 0 0;
+  padding-bottom: 26px;
+  border-bottom: 1px solid var(--line);
+  color: #7c828c;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.legal-updated time {
+  color: #b3b9c2;
+  font-weight: 500;
+}
+
+/* กล่องสรุปย่อภาษาไทยด้านบน — เนื้อหาเต็มเป็นภาษาอังกฤษเพื่อให้ทีมรีวิวของ
+   แพลตฟอร์มอ่านได้ ส่วนกล่องนี้บอกใจความสำคัญให้ผู้อ่านชาวไทยก่อน */
+.legal-summary {
+  margin: 28px 0 0;
+  padding: 20px 22px;
+  background: linear-gradient(180deg, rgba(218, 41, 28, 0.07), rgba(218, 41, 28, 0.02));
+  border: 1px solid rgba(218, 41, 28, 0.22);
+  border-left: 3px solid var(--red);
+  border-radius: 4px;
+}
+.legal-summary h2 {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+.legal-summary p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #b8bec7;
+}
+
+.legal-toc {
+  margin: 34px 0 0;
+  padding: 22px 24px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.legal-toc h2 {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+}
+.legal-toc ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  columns: 2;
+  column-gap: 30px;
+}
+.legal-toc li {
+  margin: 0 0 8px;
+  break-inside: avoid;
+  font-size: 13px;
+}
+.legal-toc a {
+  color: #a6acb5;
+  transition: color 0.18s ease;
+}
+.legal-toc a:hover,
+.legal-toc a:focus-visible {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.legal-section {
+  margin: 42px 0 0;
+  scroll-margin-top: 96px;
+}
+.legal-section h2 {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 12px;
+  margin: 0 0 14px;
+  color: var(--text);
+  font:
+    600 20px/1.4 "Kanit",
+    sans-serif;
+}
+.legal-num {
+  color: var(--red);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.legal-section h2 em {
+  grid-column: 2;
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 400;
+  margin-top: 2px;
+}
+.legal-section h3 {
+  margin: 24px 0 10px;
+  color: #dfe3e8;
+  font:
+    500 15px/1.5 "Kanit",
+    sans-serif;
+}
+.legal-section p {
+  margin: 0 0 14px;
+}
+.legal-section ul {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+.legal-section li {
+  position: relative;
+  padding-left: 20px;
+  margin-bottom: 9px;
+}
+.legal-section li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 12px;
+  width: 5px;
+  height: 5px;
+  background: var(--red);
+  border-radius: 50%;
+}
+.legal-section a {
+  color: var(--gold-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.legal-section a:hover,
+.legal-section a:focus-visible {
+  color: var(--gold);
+}
+.legal-section strong {
+  color: #e6eaef;
+  font-weight: 600;
+}
+.legal-section code {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 12.5px;
+  color: var(--gold-soft);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* ตารางสรุปข้อมูล/บริการภายนอก */
+.legal-table-wrap {
+  overflow-x: auto;
+  margin: 0 0 16px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+.legal-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.legal-table caption {
+  text-align: left;
+  padding: 12px 16px;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--line);
+}
+.legal-table th,
+.legal-table td {
+  text-align: left;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.legal-table th {
+  color: #dfe3e8;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.02);
+}
+.legal-table tbody tr:last-child th,
+.legal-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* กล่องเน้นข้อความสำคัญ เช่น "ไม่ได้สังกัดสโมสร" หรือ "ไม่เก็บข้อมูลผู้ใช้ TikTok" */
+.legal-callout {
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--gold);
+  border-radius: 4px;
+  font-size: 14px;
+}
+.legal-callout.is-strong {
+  border-left-color: var(--green);
+  background: rgba(63, 196, 141, 0.06);
+  border-color: rgba(63, 196, 141, 0.24);
+}
+
+/* ป้ายเตือนเมื่อยังไม่ได้กรอกอีเมลติดต่อใน config/contact.ts */
+.legal-todo {
+  display: inline-block;
+  padding: 3px 10px;
+  background: rgba(232, 168, 62, 0.14);
+  border: 1px dashed var(--amber);
+  border-radius: 3px;
+  color: var(--amber);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.legal-foot-note {
+  margin: 48px 0 0;
+  padding: 22px 0 0;
+  border-top: 1px solid var(--line);
+  color: #6f757e;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+@media (max-width: 860px) {
+  .legal-toc ol {
+    columns: 1;
+  }
+  .legal-main {
+    padding-top: 30px;
+  }
+  .legal-doc {
+    font-size: 14.5px;
+  }
+  .legal-section h2 {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 590px) {
+  .legal-header {
+    height: auto;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .legal-nav {
+    gap: 16px;
+    font-size: 10px;
+  }
+  .legal-summary,
+  .legal-toc {
+    padding: 16px 16px;
+  }
+}

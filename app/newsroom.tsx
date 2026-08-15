@@ -11,6 +11,7 @@ import { NewsFlow } from "@/app/news-flow";
 import { MatchStrip } from "@/app/match-strip";
 import { VideoShelf } from "@/app/video-shelf";
 import { AnimatedCircularProgressBar } from "@/app/circular-progress";
+import { SiteFooter } from "@/app/site-footer";
 import { GogHubBento } from "@/app/bento";
 
 /** ค้างพาดหัวไว้กี่มิลลิวินาทีก่อนสลับ — ความยาวการเฟดคุมด้วย CSS ฝั่ง .hero-rotator-slide */
@@ -978,11 +979,7 @@ export function Newsroom({ initialView = "news", initialMatchId = null }: { init
         ) : activeView === "partners" ? <PartnerNetwork /> : activeView === "map" ? <StadiumMapPanel /> : activeView === "tactics" ? <TacticBoardPanel /> : <GogTeamPanel />}
       </main>
 
-      <footer>
-        <div className="footer-brand"><span className="brand-logo" aria-hidden="true" /><div><b>GOG NEWSROOM</b><small>GENIUS ON THE GROUND | ภารกิจบุกถิ่นผี</small></div></div>
-        <p>นำเสนอเฉพาะพาดหัวและสรุปสั้นเพื่อการติดตามข่าว · ลิขสิทธิ์บทความเป็นของแหล่งข่าวต้นฉบับ<strong>ระบบโดย DM ENGINE™</strong></p>
-        <div><span><i /> ระบบออนไลน์</span><a href="#top">กลับด้านบน ↑</a></div>
-      </footer>
+      <SiteFooter />
 
       <AnthemPlayer />
     </div>
