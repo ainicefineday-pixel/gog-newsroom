@@ -11,8 +11,9 @@
 // และผู้อ่านจะถูกติดตามทั้งที่ยังไม่ได้ดูอะไรเลย
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Play, Plus, Radio, RefreshCw, Trash2, X } from "lucide-react";
+import { Loader2, Pin, Play, Plus, Radio, RefreshCw, Trash2, X } from "lucide-react";
 import { usePersistedState } from "@/lib/persisted-state";
+import { FEATURED_CLIP } from "@/config/featured-clip";
 
 type RelatedStory = { id: string; title: string; source: string; url: string };
 
@@ -200,6 +201,59 @@ function AddVideoForm({ secret, onAdded, onClose }: {
   );
 }
 
+/**
+ * คลิปปักหมุด
+ *
+ * เล่นด้วย <video> ตรง ๆ เพราะเป็นไฟล์ของเราเอง ไม่ต้องฝัง iframe ของใคร และ
+ * ยังไม่โหลดตัวไฟล์จนกว่าจะกดเล่น — คลิปแนวตั้งหนักกว่ารูปมาก คนที่เปิดหน้าข่าว
+ * ด้วยเน็ตมือถือไม่ควรโดนดูดเน็ตทั้งที่ยังไม่ได้ดู ภาพปกเป็นไฟล์ 23 KB ที่แยกไว้
+ * ต่างหาก จึงเห็นว่าคลิปคืออะไรก่อนตัดสินใจกด
+ */
+function FeaturedClipCard() {
+  const [playing, setPlaying] = useState(false);
+  if (!FEATURED_CLIP) return null;
+
+  const minutes = Math.floor(FEATURED_CLIP.durationSec / 60);
+  const seconds = FEATURED_CLIP.durationSec % 60;
+  const length =
+    minutes > 0
+      ? `${minutes}:${String(seconds).padStart(2, "0")} นาที`
+      : `${seconds} วินาที`;
+
+  return (
+    <article className="featured-clip">
+      <div className="featured-frame">
+        {playing ? (
+          // eslint-disable-next-line jsx-a11y/media-has-caption
+          <video
+            src={FEATURED_CLIP.src}
+            poster={FEATURED_CLIP.poster}
+            controls
+            autoPlay
+            playsInline
+            preload="auto"
+          />
+        ) : (
+          <button type="button" className="featured-cover" onClick={() => setPlaying(true)}>
+            <img src={FEATURED_CLIP.poster} alt="" loading="lazy" />
+            <span className="featured-play" aria-hidden="true"><Play size={20} /></span>
+            <span className="sr-only">เล่นคลิป {FEATURED_CLIP.title}</span>
+          </button>
+        )}
+        <span className="featured-badge">
+          <Pin size={10} aria-hidden="true" />
+          {FEATURED_CLIP.badge}
+        </span>
+      </div>
+      <div className="featured-body">
+        <b>{FEATURED_CLIP.title}</b>
+        <span className="featured-meta">{length} · แนวตั้ง 9:16</span>
+        <p>{FEATURED_CLIP.description}</p>
+      </div>
+    </article>
+  );
+}
+
 export function VideoShelf() {
   const [videos, setVideos] = useState<Video[] | null>(null);
   /** เก็บเฉพาะแท็บนี้ ปิดแท็บแล้วต้องกรอกใหม่ — ไม่ทิ้งกุญแจไว้บนเครื่องข้ามวัน */
@@ -295,8 +349,12 @@ export function VideoShelf() {
         <AddVideoForm secret={secret} onAdded={load} onClose={() => setShowForm(false)} />
       )}
 
+      {/* ปักหมุดไว้หัวแถบเสมอ ไม่ปะปนกับคลิปที่ครอนดึงเข้ามา และไม่หายไปเมื่อ
+          มีคลิปใหม่จากช่อง — นั่นคือความหมายของการปักหมุด */}
+      <FeaturedClipCard />
+
       {videos === null && <p className="video-empty">กำลังโหลดคลิป…</p>}
-      {videos !== null && videos.length === 0 && (
+      {videos !== null && videos.length === 0 && !FEATURED_CLIP && (
         <p className="video-empty">ยังไม่มีคลิปในระบบ — เข้าโหมดแอดมินแล้วกดเพิ่มคลิปได้เลย</p>
       )}
 

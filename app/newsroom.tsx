@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, CalendarDays, Check, ChevronDown, CirclePlay, Copy, FileText, Flag, Languages, MapPinned, Newspaper, Plane, RefreshCw, ShieldCheck, Swords, UsersRound } from "lucide-react";
+import { BarChart3, CalendarDays, Check, ChevronDown, CirclePlay, Copy, FileText, Flag, Languages, MapPinned, Newspaper, Plane, RadioTower, RefreshCw, ShieldCheck, Swords, UsersRound } from "lucide-react";
 import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 import { AnthemPlayer } from "@/app/anthem-player";
@@ -66,14 +66,22 @@ const NAV_GROUPS = [
     {view:"partners",label:"GOG Alliance",hint:"เครือข่ายพาร์ทเนอร์",icon:UsersRound},
     {view:"team",label:"The GOG Crew",hint:"ทีมงาน GOG",icon:ShieldCheck},
   ]},
+  // GROUND CALL เป็นคนละแอปคนละเครื่อง จึงเป็นลิงก์ ไม่ใช่มุมมองในหน้านี้
+  { title:"Admin", subtitle:"Studio & tools", icon:RadioTower, items:[
+    {href:"/ground-call",label:"GROUND CALL",hint:"คลิปจากสตูดิโอ",icon:RadioTower},
+  ]},
 ] as const;
 
 function GroupedNavigation({activeView,onSelect,compact=false}:{activeView:WorkspaceView;onSelect:(view:WorkspaceView)=>void;compact?:boolean}){
   return <nav className={`gog-dock${compact?" compact":""}`} aria-label="GOG navigation">{NAV_GROUPS.map(group=>{
-    const active=group.items.some(item=>item.view===activeView),GroupIcon=group.icon;
+    const active=group.items.some(item=>"view" in item&&item.view===activeView),GroupIcon=group.icon;
     return <div className={`dock-group${active?" active":""}`} key={group.title}>
       <button className="dock-trigger" type="button" aria-haspopup="menu"><GroupIcon/><span><b>{group.title}</b><small>{group.subtitle}</small></span><ChevronDown className="dock-chevron"/></button>
-      <div className="dock-menu" role="menu">{group.items.map(item=>{const Icon=item.icon;return <button type="button" role="menuitem" className={item.view===activeView?"active":""} onClick={()=>onSelect(item.view as WorkspaceView)} key={item.view}><Icon/><span><b>{item.label}</b><small>{item.hint}</small></span></button>})}</div>
+      <div className="dock-menu" role="menu">{group.items.map(item=>{
+        const Icon=item.icon;
+        // รายการที่มี href พาออกไปหน้าอื่นจริง ๆ ไม่ใช่สลับมุมมองในหน้านี้
+        if("href" in item)return <a role="menuitem" href={item.href} key={item.href}><Icon/><span><b>{item.label}</b><small>{item.hint}</small></span></a>;
+        return <button type="button" role="menuitem" className={item.view===activeView?"active":""} onClick={()=>onSelect(item.view as WorkspaceView)} key={item.view}><Icon/><span><b>{item.label}</b><small>{item.hint}</small></span></button>})}</div>
     </div>})}</nav>
 }
 

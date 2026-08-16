@@ -27,12 +27,19 @@ const FOOTBALL_GENIUS_STREAMS = "https://www.youtube.com/@FootballGeniusAG/strea
 /** เตือนล่วงหน้ากี่นาทีก่อนเขี่ยบอล */
 const PREMATCH_ALERT_MINUTES = 5;
 
-const STORAGE_KEY = "gog.match-strip";
+// ขึ้นเลข 2 ตอนเปลี่ยนค่าตั้งต้นเป็นแบบพับไว้ คนที่เคยเปิดเว็บมาก่อนมีค่าเดิม
+// เก็บอยู่แล้ว ถ้าใช้คีย์เดิมพวกเขาจะไม่มีวันเห็นค่าตั้งต้นใหม่เลย
+const STORAGE_KEY = "gog.match-strip.v2";
 
 /** ค่าที่ผู้ใช้ตั้งไว้กับแถบนัด — จำไว้ทั้งก้อนใต้คีย์เดียว */
 type StripPrefs = { collapsed: boolean; sound: boolean; floating: { x: number; y: number } | null };
-/** ต้องเป็นค่าคงที่นอกคอมโพเนนต์ เพราะ usePersistedState ใช้เป็น snapshot ฝั่งเซิร์ฟเวอร์ */
-const DEFAULT_PREFS: StripPrefs = { collapsed: false, sound: false, floating: null };
+/**
+ * ต้องเป็นค่าคงที่นอกคอมโพเนนต์ เพราะ usePersistedState ใช้เป็น snapshot ฝั่งเซิร์ฟเวอร์
+ *
+ * เปิดเว็บมาให้พับไว้ก่อน คนเข้ามาเพื่ออ่านข่าว ไม่ได้เข้ามาเพื่อดูแถบนัด กดขยาย
+ * เมื่อไหร่ก็ได้และระบบจะจำไว้ให้ตั้งแต่นั้น
+ */
+const DEFAULT_PREFS: StripPrefs = { collapsed: true, sound: false, floating: null };
 
 type LatestStory = { id: string; titleTh: string; source: string; publishedAt: string } | null;
 type StripData = {

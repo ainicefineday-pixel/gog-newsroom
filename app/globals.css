@@ -8181,3 +8181,167 @@ body { background:var(--ink); color:var(--text); font-family:"Kanit",Arial,sans-
   color: #fff;
   background: #2b2f36;
 }
+
+/* คลิปปักหมุดหัวแถบ ---------------------------------------------------------
+   วางเป็นแนวนอน: คลิปแนวตั้งอยู่ซ้าย คำอธิบายอยู่ขวา ถ้าเอาคลิป 9:16 มาวางเต็ม
+   ความกว้างหน้าจอ มันจะสูงจนดันทุกอย่างที่เหลือตกจอไปหมด */
+.featured-clip {
+  display: grid;
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #16181d;
+  border: 1px solid var(--line, #272a30);
+}
+@media (max-width: 560px) {
+  .featured-clip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.featured-frame {
+  position: relative;
+  aspect-ratio: 9 / 16;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #000;
+}
+.featured-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.featured-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+.featured-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.featured-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  pointer-events: none;
+}
+.featured-play svg {
+  padding: 12px;
+  border-radius: 50%;
+  background: rgba(218, 41, 28, 0.92);
+  box-shadow: 0 6px 22px -6px rgba(0, 0, 0, 0.9);
+  box-sizing: content-box;
+}
+.featured-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(11, 13, 17, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #e7e9ec;
+  pointer-events: none;
+  font:
+    800 8px/1.4 "Kanit",
+    sans-serif;
+}
+.featured-body {
+  display: grid;
+  gap: 7px;
+}
+.featured-body > b {
+  color: #e7e9ec;
+  font:
+    700 14px/1.45 "Kanit",
+    sans-serif;
+}
+.featured-meta {
+  color: #6b7078;
+  font:
+    500 9px/1.4 "Kanit",
+    sans-serif;
+}
+.featured-body p {
+  margin: 0;
+  color: #8a9099;
+  font:
+    500 10.5px/1.65 "Kanit",
+    sans-serif;
+}
+
+/* หน้ารวมคลิป GROUND CALL --------------------------------------------------- */
+.gc-index-head {
+  margin: 22px 0 18px;
+  display: grid;
+  gap: 6px;
+}
+.gc-index-head h1 {
+  margin: 0;
+  color: #e7e9ec;
+  font:
+    800 22px/1.35 "Kanit",
+    sans-serif;
+}
+.gc-index-head p {
+  margin: 0;
+  color: #8a9099;
+  font:
+    500 11.5px/1.7 "Kanit",
+    sans-serif;
+}
+.gc-index-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+.gc-index-card {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #16181d;
+  border: 1px solid var(--line, #272a30);
+  transition: border-color 0.18s ease;
+}
+.gc-index-card:hover {
+  border-color: var(--red, #da291c);
+}
+.gc-index-frame {
+  aspect-ratio: 9 / 16;
+  border-radius: 9px;
+  overflow: hidden;
+  background: #0b0d11;
+  margin-bottom: 4px;
+}
+.gc-index-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gc-index-card > b {
+  color: #e7e9ec;
+  font:
+    700 11.5px/1.45 "Kanit",
+    sans-serif;
+}
+.gc-index-card p {
+  margin: 0;
+  color: #8a9099;
+  font:
+    500 9.5px/1.6 "Kanit",
+    sans-serif;
+}
