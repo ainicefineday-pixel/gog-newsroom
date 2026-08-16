@@ -32,3 +32,10 @@ GUARDIAN_API_KEY=
 # GROUND CALL — คีย์ที่สตูดิโอใช้ยิงคลิปที่เผยแพร่แล้วเข้ามาที่ /api/ground-call/clips
 # ต้องตรงกับ GOG_NEWS_API_KEY ฝั่ง ground-call ไม่ใส่ = ปิดปลายทางรับคลิป (ตอบ 503)
 GROUND_CALL_INGEST_KEY=
+
+# บัญชีแอดมินสำหรับหน้า /admin — ไม่ตั้ง = ล็อกอินไม่ได้เลย (ไม่ใช่ปล่อยผ่าน)
+# ขึ้น production ใส่เป็น secret: npx wrangler secret put ADMIN_USERNAME --config dist/server/wrangler.json
+ADMIN_USERNAME=
+ADMIN_PASSWORD=
+# ความลับที่ใช้เซ็นตั๋วล็อกอิน ไม่ตั้งก็ใช้ CRON_SECRET แทน
+ADMIN_SESSION_SECRET=

@@ -62,6 +62,22 @@ import {
   updateXAccount,
 } from "@/lib/server/x/collector";
 import { getXProviderStatus, X_USERNAME_PATTERN } from "@/lib/server/x/providers";
+import {
+  ADMIN_COOKIE,
+  clearedCookie,
+  login as adminLogin,
+  readCookie,
+  SESSION_MAX_AGE_SEC,
+  sessionCookie,
+  verifySession,
+} from "@/lib/server/admin-auth";
+import {
+  clearFeaturedClip,
+  getFeaturedClip,
+  parseFeaturedClip,
+  setFeaturedClip,
+  SettingsError,
+} from "@/lib/server/site-settings";
 
 function json(data: unknown, status = 200, headers: HeadersInit = {}) {
   return Response.json(data, {
@@ -74,7 +90,16 @@ function noDatabase() {
   return json({ error: "Story storage is not configured." }, 503);
 }
 
-function adminAuthorizationError(request: Request, env: RuntimeEnv) {
+/**
+ * ประตูของทุก endpoint ที่แก้ของจริง
+ *
+ * รับสองแบบ: ตั๋วล็อกอินจากหน้า /admin (คุกกี้ httpOnly) หรือ bearer CRON_SECRET
+ * แบบเดิมสำหรับครอนและสคริปต์ คนที่นั่งหน้าเว็บจึงไม่ต้องถือความลับของครอนอีก
+ * ต่อไป ส่วนงานอัตโนมัติก็ไม่ต้องล็อกอิน
+ */
+async function adminAuthorizationError(request: Request, env: RuntimeEnv) {
+  if (await verifySession(env, readCookie(request, ADMIN_COOKIE))) return null;
+
   if (!env.CRON_SECRET) {
     return json({ error: "admin_not_configured", message: "Set CRON_SECRET before using X collector mutation endpoints." }, 503);
   }
@@ -173,7 +198,7 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
   await ensureDatabase(env.DB);
 
   if(url.pathname==="/api/intelligence/players"&&request.method==="GET")return json(await getPlayerIntelligence(env));
-  if(url.pathname==="/api/intelligence/sync"&&request.method==="POST"){const denied=adminAuthorizationError(request,env);if(denied)return denied;return json(await syncManchesterUnitedPlayers(env));}
+  if(url.pathname==="/api/intelligence/sync"&&request.method==="POST"){const denied=await adminAuthorizationError(request,env);if(denied)return denied;return json(await syncManchesterUnitedPlayers(env));}
 
   if (url.pathname === "/api/stories" && request.method === "GET") {
     const category = url.searchParams.get("category") ?? undefined;
@@ -194,7 +219,7 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
   // สั่งจัดกลุ่มข่าวซ้ำด้วยมือ — ปกติครอนทำให้วันละ 3 ครั้ง
   // ต้องมี CRON_SECRET เพราะเรียกโมเดลซึ่งมีค่าใช้จ่าย และแก้คลังข่าวจริง
   if (url.pathname === "/api/stories/merge" && request.method === "POST") {
-    const denied = adminAuthorizationError(request, env);
+    const denied = await adminAuthorizationError(request, env);
     if (denied) return denied;
     const force = url.searchParams.get("force") === "1";
     // dry=1 คือลองดูเฉย ๆ ไม่บันทึกและไม่ลบข่าว — ควรรันก่อนเสมอ
@@ -229,7 +254,7 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
   if (url.pathname === "/api/x/accounts") {
     if (request.method === "GET") return json({ accounts: await listXAccounts(env.DB) });
     if (request.method === "POST") {
-      const authError = adminAuthorizationError(request, env);
+      const authError = await adminAuthorizationError(request, env);
       if (authError) return authError;
       try {
         const body = await request.json() as { username?: string; collection_interval_minutes?: number };
@@ -249,14 +274,14 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
   }
 
   if (url.pathname === "/api/x/collect-all" && request.method === "POST") {
-    const authError = adminAuthorizationError(request, env);
+    const authError = await adminAuthorizationError(request, env);
     if (authError) return authError;
     return json(await collectXWatchlist(env));
   }
 
   const xCollectMatch = url.pathname.match(/^\/api\/x\/collect\/([A-Za-z0-9_]+)$/);
   if (xCollectMatch && request.method === "POST") {
-    const authError = adminAuthorizationError(request, env);
+    const authError = await adminAuthorizationError(request, env);
     if (authError) return authError;
     const username = xCollectMatch[1];
     if (!X_USERNAME_PATTERN.test(username)) return json({ error: "Invalid X username." }, 400);
@@ -277,7 +302,7 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
       const account = await getXAccount(env.DB, username);
       return account ? json({ account }) : json({ error: "account_not_found", message: "X account was not found." }, 404);
     }
-    const authError = adminAuthorizationError(request, env);
+    const authError = await adminAuthorizationError(request, env);
     if (authError) return authError;
     if (request.method === "DELETE") {
       const account = await deactivateXAccount(env.DB, username);
@@ -356,7 +381,7 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
     return json({ ok: true, videos: await listVideos(env) });
   }
   if (url.pathname === "/api/videos" && request.method === "POST") {
-    const denied = adminAuthorizationError(request, env);
+    const denied = await adminAuthorizationError(request, env);
     if (denied) return denied;
     const body = await request.json().catch(() => null) as AddVideoInput | null;
     if (!body?.url) return json({ ok: false, error: "ต้องส่งลิงก์คลิปมาด้วย" }, 400);
@@ -367,23 +392,80 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
     }
   }
   if (url.pathname.startsWith("/api/videos/") && request.method === "DELETE") {
-    const denied = adminAuthorizationError(request, env);
+    const denied = await adminAuthorizationError(request, env);
     if (denied) return denied;
     const id = decodeURIComponent(url.pathname.slice("/api/videos/".length));
     return json({ ok: true, ...(await removeVideo(env, id)) });
   }
   // รีเฟรชป้าย LIVE — 1 หน่วยโควตาต่อการเรียกหนึ่งครั้งไม่ว่าจะมีกี่คลิป
   if (url.pathname === "/api/videos/refresh" && request.method === "POST") {
-    const denied = adminAuthorizationError(request, env);
+    const denied = await adminAuthorizationError(request, env);
     if (denied) return denied;
     return json({ ok: true, ...(await refreshVideoLiveStatus(env)) });
   }
   // สั่งดึงคลิปใหม่ของช่องเดี๋ยวนี้ ไม่ต้องรอรอบครอน — 2 หน่วยต่อการกดหนึ่งครั้ง
   // มีไว้ตอนช่องลงคลิปนอกเวลาที่คาด หรือตอนอยากได้คลิปขึ้นทันทีโดยไม่ต้องรอ
   if (url.pathname === "/api/videos/sync" && request.method === "POST") {
-    const denied = adminAuthorizationError(request, env);
+    const denied = await adminAuthorizationError(request, env);
     if (denied) return denied;
     return json({ ok: true, ...(await syncChannelVideos(env, { force: true })) });
+  }
+
+  // ── บัญชีแอดมิน ───────────────────────────────────────────────────────
+  if (url.pathname === "/api/admin/login" && request.method === "POST") {
+    const body = (await request.json().catch(() => null)) as
+      | { username?: string; password?: string }
+      | null;
+    const result = await adminLogin(env, body?.username ?? "", body?.password ?? "");
+    if (!result.ok) {
+      return json({ ok: false, error: result.error, message: result.message }, result.status);
+    }
+    // ตั๋วไปอยู่ในคุกกี้ ไม่ได้ส่งคืนใน body — สคริปต์บนหน้าเว็บจะได้ไม่มีทาง
+    // อ่านมันได้เลย แม้แต่ของเราเอง
+    return json(
+      { ok: true, username: env.ADMIN_USERNAME, expiresAt: result.expiresAt },
+      200,
+      { "set-cookie": sessionCookie(result.token, SESSION_MAX_AGE_SEC) },
+    );
+  }
+
+  if (url.pathname === "/api/admin/logout" && request.method === "POST") {
+    return json({ ok: true }, 200, { "set-cookie": clearedCookie() });
+  }
+
+  if (url.pathname === "/api/admin/session" && request.method === "GET") {
+    const signedIn = await verifySession(env, readCookie(request, ADMIN_COOKIE));
+    return json({
+      ok: true,
+      signedIn,
+      username: signedIn ? env.ADMIN_USERNAME : null,
+      configured: Boolean(env.ADMIN_USERNAME && env.ADMIN_PASSWORD),
+    });
+  }
+
+  // ── คลิปปักหมุดบนหน้าแรก ──────────────────────────────────────────────
+  // อ่านได้สาธารณะเพราะหน้าแรกต้องใช้ แก้ได้เฉพาะแอดมิน
+  if (url.pathname === "/api/featured-clip" && request.method === "GET") {
+    return json({ ok: true, clip: await getFeaturedClip(env) });
+  }
+  if (url.pathname === "/api/featured-clip" && request.method === "PUT") {
+    const denied = await adminAuthorizationError(request, env);
+    if (denied) return denied;
+    try {
+      const clip = parseFeaturedClip(await request.json().catch(() => null));
+      return json({ ok: true, clip: await setFeaturedClip(env, clip) });
+    } catch (error) {
+      if (error instanceof SettingsError) {
+        return json({ ok: false, error: "invalid_clip", message: error.message }, 422);
+      }
+      throw error;
+    }
+  }
+  if (url.pathname === "/api/featured-clip" && request.method === "DELETE") {
+    const denied = await adminAuthorizationError(request, env);
+    if (denied) return denied;
+    await clearFeaturedClip(env);
+    return json({ ok: true, clip: null });
   }
 
   // ── คลิปจากสตูดิโอ GROUND CALL ────────────────────────────────────────
@@ -566,7 +648,7 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
   // สั่งปล่อยรายงานผลบอลด้วยมือ (STEP 45) — ปกติ cron ทำให้ทุก 10 นาที
   // ต้องมี CRON_SECRET เพราะเขียนข่าวลงคลังจริง
   if (url.pathname === "/api/football/match-reports" && request.method === "POST") {
-    const denied = adminAuthorizationError(request, env);
+    const denied = await adminAuthorizationError(request, env);
     if (denied) return denied;
     if (env.DB) await ensureFootballTables(env.DB);
     return json({ ok: true, ...(await publishFinishedMatchReports(env)) });
@@ -574,7 +656,7 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
 
   // สุขภาพผู้ให้บริการ — ต้องมี CRON_SECRET เพราะเผยรายละเอียดภายใน (STEP 93, 118)
   if (url.pathname === "/api/football/health" && request.method === "GET") {
-    const denied = adminAuthorizationError(request, env);
+    const denied = await adminAuthorizationError(request, env);
     if (denied) return denied;
     return json({ ok: true, ...(await getProviderHealth(env)) });
   }
@@ -654,14 +736,14 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
 
   // หน้าตรวจสอบของทีมงาน — ต้องมี CRON_SECRET
   if (url.pathname === "/api/partners/admin" && request.method === "GET") {
-    const denied = adminAuthorizationError(request, env);
+    const denied = await adminAuthorizationError(request, env);
     if (denied) return denied;
     return json({ ok: true, partners: await listAllPartners(env.DB) });
   }
 
   const partnerStatusMatch = url.pathname.match(/^\/api\/partners\/(ptn_[a-z0-9]+)\/status$/);
   if (partnerStatusMatch && request.method === "POST") {
-    const denied = adminAuthorizationError(request, env);
+    const denied = await adminAuthorizationError(request, env);
     if (denied) return denied;
     let body: { status?: unknown } = {};
     try { body = (await request.json()) as typeof body; } catch { return json({ error: "invalid_body" }, 400); }

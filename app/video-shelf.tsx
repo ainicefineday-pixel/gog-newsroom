@@ -13,9 +13,19 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Pin, Play, Plus, Radio, RefreshCw, Trash2, X } from "lucide-react";
 import { usePersistedState } from "@/lib/persisted-state";
-import { FEATURED_CLIP } from "@/config/featured-clip";
+
 
 type RelatedStory = { id: string; title: string; source: string; url: string };
+
+/** คลิปปักหมุด — รูปร่างเดียวกับที่ /api/featured-clip ส่งกลับมา */
+type FeaturedClip = {
+  src: string;
+  poster: string;
+  title: string;
+  description: string;
+  durationSec: number;
+  badge: string;
+};
 
 type Video = {
   id: string;
@@ -211,10 +221,23 @@ function AddVideoForm({ secret, onAdded, onClose }: {
  */
 function FeaturedClipCard() {
   const [playing, setPlaying] = useState(false);
-  if (!FEATURED_CLIP) return null;
+  const [clip, setClip] = useState<FeaturedClip | null>(null);
 
-  const minutes = Math.floor(FEATURED_CLIP.durationSec / 60);
-  const seconds = FEATURED_CLIP.durationSec % 60;
+  // อ่านจากฐานข้อมูลผ่าน API ทุกครั้งที่เปิดหน้า บรรณาธิการเปลี่ยนคลิปที่หน้า
+  // /admin แล้วคนอ่านเห็นของใหม่ทันทีโดยไม่ต้อง deploy
+  useEffect(() => {
+    fetch("/api/featured-clip")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload: { ok?: boolean; clip?: FeaturedClip | null } | null) => {
+        setClip(payload?.ok ? (payload.clip ?? null) : null);
+      })
+      .catch(() => setClip(null));
+  }, []);
+
+  if (!clip) return null;
+
+  const minutes = Math.floor(clip.durationSec / 60);
+  const seconds = clip.durationSec % 60;
   const length =
     minutes > 0
       ? `${minutes}:${String(seconds).padStart(2, "0")} นาที`
@@ -226,8 +249,8 @@ function FeaturedClipCard() {
         {playing ? (
           // eslint-disable-next-line jsx-a11y/media-has-caption
           <video
-            src={FEATURED_CLIP.src}
-            poster={FEATURED_CLIP.poster}
+            src={clip.src}
+            poster={clip.poster}
             controls
             autoPlay
             playsInline
@@ -235,20 +258,20 @@ function FeaturedClipCard() {
           />
         ) : (
           <button type="button" className="featured-cover" onClick={() => setPlaying(true)}>
-            <img src={FEATURED_CLIP.poster} alt="" loading="lazy" />
+            <img src={clip.poster} alt="" loading="lazy" />
             <span className="featured-play" aria-hidden="true"><Play size={20} /></span>
-            <span className="sr-only">เล่นคลิป {FEATURED_CLIP.title}</span>
+            <span className="sr-only">เล่นคลิป {clip.title}</span>
           </button>
         )}
         <span className="featured-badge">
           <Pin size={10} aria-hidden="true" />
-          {FEATURED_CLIP.badge}
+          {clip.badge}
         </span>
       </div>
       <div className="featured-body">
-        <b>{FEATURED_CLIP.title}</b>
+        <b>{clip.title}</b>
         <span className="featured-meta">{length} · แนวตั้ง 9:16</span>
-        <p>{FEATURED_CLIP.description}</p>
+        <p>{clip.description}</p>
       </div>
     </article>
   );
@@ -354,8 +377,10 @@ export function VideoShelf() {
       <FeaturedClipCard />
 
       {videos === null && <p className="video-empty">กำลังโหลดคลิป…</p>}
-      {videos !== null && videos.length === 0 && !FEATURED_CLIP && (
-        <p className="video-empty">ยังไม่มีคลิปในระบบ — เข้าโหมดแอดมินแล้วกดเพิ่มคลิปได้เลย</p>
+      {videos !== null && videos.length === 0 && (
+        <p className="video-empty">
+          ยังไม่มีคลิปจากช่องในระบบ — เพิ่มได้ที่นี่ หรือปักหมุดคลิปของเราเองที่หน้า /admin
+        </p>
       )}
 
       {youtube.length > 0 && (

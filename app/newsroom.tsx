@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, CalendarDays, Check, ChevronDown, CirclePlay, Copy, FileText, Flag, Languages, MapPinned, Newspaper, Plane, RadioTower, RefreshCw, ShieldCheck, Swords, UsersRound } from "lucide-react";
+import { BarChart3, CalendarDays, Check, ChevronDown, CirclePlay, Copy, FileText, Flag, Languages, MapPinned, LockKeyhole, Newspaper, Plane, RadioTower, RefreshCw, ShieldCheck, Swords, UsersRound } from "lucide-react";
 import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 import { AnthemPlayer } from "@/app/anthem-player";
@@ -68,6 +68,7 @@ const NAV_GROUPS = [
   ]},
   // GROUND CALL เป็นคนละแอปคนละเครื่อง จึงเป็นลิงก์ ไม่ใช่มุมมองในหน้านี้
   { title:"Admin", subtitle:"Studio & tools", icon:RadioTower, items:[
+    {href:"/admin",label:"ห้องควบคุม",hint:"เข้าสู่ระบบเพื่อแก้เว็บ",icon:LockKeyhole},
     {href:"/ground-call",label:"GROUND CALL",hint:"คลิปจากสตูดิโอ",icon:RadioTower},
   ]},
 ] as const;
