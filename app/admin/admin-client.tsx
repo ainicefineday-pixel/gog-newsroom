@@ -39,6 +39,8 @@ export function AdminClient() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const [studioUrl, setStudioUrl] = useState("");
+  const [studioNote, setStudioNote] = useState("");
   const [clip, setClip] = useState<FeaturedClip>(EMPTY_CLIP);
   const [clipNote, setClipNote] = useState("");
   const [hasClip, setHasClip] = useState(false);
@@ -66,10 +68,37 @@ export function AdminClient() {
       .catch(() => undefined);
   }, []);
 
+  const loadStudio = useCallback(() => {
+    fetch("/api/site-settings")
+      .then((response) => response.json())
+      .then((payload: { studioUrl?: string }) => setStudioUrl(payload.studioUrl ?? ""))
+      .catch(() => undefined);
+  }, []);
+
   useEffect(() => {
     loadSession();
     loadClip();
-  }, [loadSession, loadClip]);
+    loadStudio();
+  }, [loadSession, loadClip, loadStudio]);
+
+  const saveStudio = (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    setStudioNote("");
+    fetch("/api/site-settings", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ studioUrl }),
+    })
+      .then((response) => response.json().then((payload) => ({ response, payload })))
+      .then(({ response, payload }) =>
+        setStudioNote(
+          response.ok ? "บันทึกแล้ว — เมนูจะพาไปที่อยู่ใหม่ทันที" : (payload.message ?? "บันทึกไม่สำเร็จ"),
+        ),
+      )
+      .catch(() => setStudioNote("ต่อกับเซิร์ฟเวอร์ไม่ได้"))
+      .finally(() => setBusy(false));
+  };
 
   const signIn = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -266,10 +295,43 @@ export function AdminClient() {
             </div>
           </form>
 
+          <form className="admin-card" onSubmit={saveStudio}>
+            <h2>ที่อยู่ของสตูดิโอ GROUND CALL</h2>
+            <p className="admin-hint">
+              สตูดิโอเป็นคนละแอปคนละเครื่อง เมนู Admin บนหน้าข่าวจะพาไปที่อยู่นี้ ย้ายเครื่องหรือ
+              ขึ้นโดเมนจริงเมื่อไหร่ก็แก้ตรงนี้ ไม่ต้อง deploy ใหม่
+            </p>
+            <label>
+              ที่อยู่ (ไม่ต้องมี / ท้าย)
+              <input
+                value={studioUrl}
+                onChange={(event) => setStudioUrl(event.target.value)}
+                placeholder="http://localhost:3003"
+                required
+              />
+            </label>
+            {studioNote !== "" && <p className="admin-note">{studioNote}</p>}
+            <div className="admin-actions">
+              <button type="submit" className="admin-submit" disabled={busy}>
+                <Save size={13} aria-hidden="true" />บันทึก
+              </button>
+              {studioUrl !== "" && (
+                <a
+                  className="admin-ghost"
+                  href={`${studioUrl}/login`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  เปิดหน้าเข้าสู่ระบบสตูดิโอ
+                </a>
+              )}
+            </div>
+          </form>
+
           <div className="admin-card">
             <h2>ทางลัด</h2>
             <div className="admin-links">
-              <Link href="/ground-call">คลิปจากสตูดิโอ GROUND CALL</Link>
+              <Link href="/ground-call">คลิปที่เผยแพร่แล้ว</Link>
               <Link href="/">หน้าข่าว</Link>
             </div>
           </div>

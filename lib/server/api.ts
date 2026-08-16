@@ -74,9 +74,11 @@ import {
 import {
   clearFeaturedClip,
   getFeaturedClip,
+  getStudioUrl,
   parseFeaturedClip,
   setFeaturedClip,
   SettingsError,
+  setStudioUrl,
 } from "@/lib/server/site-settings";
 
 function json(data: unknown, status = 200, headers: HeadersInit = {}) {
@@ -441,6 +443,25 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
       username: signedIn ? env.ADMIN_USERNAME : null,
       configured: Boolean(env.ADMIN_USERNAME && env.ADMIN_PASSWORD),
     });
+  }
+
+  // ── ที่อยู่ของแอดมิน GROUND CALL ──────────────────────────────────────
+  // อ่านได้สาธารณะเพราะแถบนำทางต้องใช้ทำลิงก์ ตั้งค่าได้เฉพาะแอดมิน
+  if (url.pathname === "/api/site-settings" && request.method === "GET") {
+    return json({ ok: true, studioUrl: await getStudioUrl(env) });
+  }
+  if (url.pathname === "/api/site-settings" && request.method === "PUT") {
+    const denied = await adminAuthorizationError(request, env);
+    if (denied) return denied;
+    const body = (await request.json().catch(() => null)) as { studioUrl?: unknown } | null;
+    try {
+      return json({ ok: true, studioUrl: await setStudioUrl(env, body?.studioUrl) });
+    } catch (error) {
+      if (error instanceof SettingsError) {
+        return json({ ok: false, error: "invalid_settings", message: error.message }, 422);
+      }
+      throw error;
+    }
   }
 
   // ── คลิปปักหมุดบนหน้าแรก ──────────────────────────────────────────────

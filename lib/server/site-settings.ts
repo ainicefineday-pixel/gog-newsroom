@@ -39,6 +39,39 @@ const SEED_CLIP: FeaturedClip = {
 };
 
 const FEATURED_CLIP_KEY = "featured_clip";
+const STUDIO_URL_KEY = "studio_url";
+
+/**
+ * ที่อยู่ของแอดมิน GROUND CALL
+ *
+ * สตูดิโอเป็นคนละแอปคนละเครื่อง ที่อยู่จึงต่างกันไปตามเครื่องที่รันอยู่ และจะ
+ * เปลี่ยนอีกครั้งเมื่อวันหนึ่งมันถูก deploy ขึ้นโดเมนจริง เก็บไว้ในฐานข้อมูลให้
+ * แก้จากหน้าเว็บได้ ดีกว่าฝังไว้ในโค้ดแล้วต้อง deploy ใหม่ทุกครั้งที่ย้ายเครื่อง
+ */
+const DEFAULT_STUDIO_URL = "http://localhost:3003";
+
+export async function getStudioUrl(env: RuntimeEnv): Promise<string> {
+  return (await readSetting<string>(env, STUDIO_URL_KEY)) ?? DEFAULT_STUDIO_URL;
+}
+
+export async function setStudioUrl(env: RuntimeEnv, value: unknown): Promise<string> {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new SettingsError("ที่อยู่สตูดิโอต้องไม่ว่าง");
+  }
+  // ตัด / ท้ายออก เพราะเมนูต่อ path เข้าไปเอง ไม่งั้นจะได้ //login
+  const trimmed = value.trim().replace(/\/+$/, "");
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    throw new SettingsError("ที่อยู่สตูดิโอไม่ใช่ลิงก์ที่ใช้ได้");
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    throw new SettingsError("ที่อยู่สตูดิโอต้องเป็น http หรือ https");
+  }
+  await writeSetting(env, STUDIO_URL_KEY, trimmed);
+  return trimmed;
+}
 
 export async function ensureSettingsTable(db: D1Database) {
   await db

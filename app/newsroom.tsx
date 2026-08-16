@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, CalendarDays, Check, ChevronDown, CirclePlay, Copy, FileText, Flag, Languages, MapPinned, LockKeyhole, Newspaper, Plane, RadioTower, RefreshCw, ShieldCheck, Swords, UsersRound } from "lucide-react";
+import { BarChart3, CalendarDays, Check, ChevronDown, CirclePlay, Copy, FileText, Flag, Languages, MapPinned, LockKeyhole, Newspaper, Plane, RadioTower, RefreshCw, Settings, ShieldCheck, Swords, UsersRound } from "lucide-react";
 import { NEWS_SOURCE_DIRECTORY, type NewsSourceDirectoryItem } from "@/config/news-sources";
 import { CATEGORIES, type Category, type Digest, type Story } from "@/lib/types";
 import { AnthemPlayer } from "@/app/anthem-player";
@@ -67,13 +67,20 @@ const NAV_GROUPS = [
     {view:"team",label:"The GOG Crew",hint:"ทีมงาน GOG",icon:ShieldCheck},
   ]},
   // GROUND CALL เป็นคนละแอปคนละเครื่อง จึงเป็นลิงก์ ไม่ใช่มุมมองในหน้านี้
+  // studio: true = ที่อยู่มาจากค่าที่ตั้งไว้ในฐานข้อมูล เพราะสตูดิโอย้ายเครื่องได้
   { title:"Admin", subtitle:"Studio & tools", icon:RadioTower, items:[
-    {href:"/admin",label:"ห้องควบคุม",hint:"เข้าสู่ระบบเพื่อแก้เว็บ",icon:LockKeyhole},
-    {href:"/ground-call",label:"GROUND CALL",hint:"คลิปจากสตูดิโอ",icon:RadioTower},
+    {studio:"/login",label:"เข้าสู่ระบบสตูดิโอ",hint:"แอดมิน GROUND CALL",icon:LockKeyhole},
+    {studio:"/rehearsal",label:"ซ้อมคนเดียว",hint:"ลองกล้อง ฟิลเตอร์ การ์ดนักเตะ",icon:CirclePlay},
+    {href:"/ground-call",label:"คลิปที่เผยแพร่แล้ว",hint:"คลิปจากสตูดิโอบนหน้าข่าว",icon:RadioTower},
+    {href:"/admin",label:"ตั้งค่าหน้าเว็บ",hint:"คลิปปักหมุด และที่อยู่สตูดิโอ",icon:Settings},
   ]},
 ] as const;
 
 function GroupedNavigation({activeView,onSelect,compact=false}:{activeView:WorkspaceView;onSelect:(view:WorkspaceView)=>void;compact?:boolean}){
+  // ที่อยู่สตูดิโอมาจากฐานข้อมูล ไม่ได้ฝังไว้ในโค้ด — ย้ายเครื่องหรือขึ้นโดเมนจริง
+  // ก็แก้จากหน้าตั้งค่าได้เลย ระหว่างที่ยังโหลดไม่เสร็จใช้ค่าตั้งต้นไปก่อน
+  const [studioUrl,setStudioUrl]=useState("http://localhost:3003");
+  useEffect(()=>{fetch("/api/site-settings").then(r=>r.ok?r.json():null).then((p:{studioUrl?:string}|null)=>{if(p?.studioUrl)setStudioUrl(p.studioUrl)}).catch(()=>undefined)},[]);
   return <nav className={`gog-dock${compact?" compact":""}`} aria-label="GOG navigation">{NAV_GROUPS.map(group=>{
     const active=group.items.some(item=>"view" in item&&item.view===activeView),GroupIcon=group.icon;
     return <div className={`dock-group${active?" active":""}`} key={group.title}>
@@ -81,6 +88,7 @@ function GroupedNavigation({activeView,onSelect,compact=false}:{activeView:Works
       <div className="dock-menu" role="menu">{group.items.map(item=>{
         const Icon=item.icon;
         // รายการที่มี href พาออกไปหน้าอื่นจริง ๆ ไม่ใช่สลับมุมมองในหน้านี้
+        if("studio" in item)return <a role="menuitem" href={`${studioUrl}${item.studio}`} target="_blank" rel="noreferrer" key={item.studio}><Icon/><span><b>{item.label}</b><small>{item.hint}</small></span></a>;
         if("href" in item)return <a role="menuitem" href={item.href} key={item.href}><Icon/><span><b>{item.label}</b><small>{item.hint}</small></span></a>;
         return <button type="button" role="menuitem" className={item.view===activeView?"active":""} onClick={()=>onSelect(item.view as WorkspaceView)} key={item.view}><Icon/><span><b>{item.label}</b><small>{item.hint}</small></span></button>})}</div>
     </div>})}</nav>
