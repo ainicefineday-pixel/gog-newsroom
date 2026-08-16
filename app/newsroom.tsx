@@ -10,6 +10,7 @@ import { AuroraText } from "@/app/aurora-text";
 import { NewsFlow } from "@/app/news-flow";
 import { MatchStrip } from "@/app/match-strip";
 import { VideoShelf } from "@/app/video-shelf";
+import { GroundCallShelf } from "@/app/ground-call-shelf";
 import { AnimatedCircularProgressBar } from "@/app/circular-progress";
 import { SiteFooter } from "@/app/site-footer";
 import { GogHubBento } from "@/app/bento";
@@ -763,6 +764,8 @@ export function Newsroom({ initialView = "news", initialMatchId = null }: { init
             document.getElementById("news")?.scrollIntoView({ behavior: "smooth", block: "start" });
           }}
         />
+
+        <GroundCallShelf />
 
         <VideoShelf />
 

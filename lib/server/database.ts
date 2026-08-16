@@ -19,6 +19,8 @@ export type RuntimeEnv = {
   X_MAX_ACCOUNTS_PER_RUN?: string;
   X_REQUEST_TIMEOUT_SECONDS?: string;
   CRON_SECRET?: string;
+  /** คีย์ที่สตูดิโอ GROUND CALL ใช้ยิงคลิปเข้ามา — ไม่ตั้ง = ปิดปลายทางรับคลิป */
+  GROUND_CALL_INGEST_KEY?: string;
   // ── GOG FOOTBALL MATCH CENTER (STEP 119) — ไม่ใส่คีย์ = ทำงานในโหมดสาธิต
   API_FOOTBALL_KEY?: string;
   FOOTBALL_DATA_KEY?: string;

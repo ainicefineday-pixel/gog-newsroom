@@ -7913,3 +7913,271 @@ body { background:var(--ink); color:var(--text); font-family:"Kanit",Arial,sans-
   color: var(--text);
   border-bottom-color: var(--red);
 }
+
+/* แถบคลิปจากสตูดิโอ GROUND CALL ------------------------------------------
+   คลิปแนวตั้ง 9:16 ที่เรนเดอร์เองแล้วส่งเข้ามา เล่นด้วย <video> ตรง ๆ
+   จึงไม่มีกรอบ iframe ให้จัดการเหมือนแถบ YouTube/TikTok ด้านบน */
+.gc-shelf {
+  margin-top: 26px;
+}
+.gc-track {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scroll-snap-type: x proximity;
+}
+.gc-track > * {
+  scroll-snap-align: start;
+}
+.gc-card {
+  display: flex;
+  flex: 0 0 210px;
+  flex-direction: column;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #16181d;
+  border: 1px solid var(--line, #272a30);
+}
+.gc-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  background: #0b0d11;
+}
+.gc-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+.gc-cover {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+.gc-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gc-cover-blank {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: #565b63;
+  letter-spacing: 0.14em;
+  font:
+    800 9.5px/1.4 "Kanit",
+    sans-serif;
+}
+.gc-play {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  pointer-events: none;
+}
+.gc-play svg {
+  padding: 10px;
+  border-radius: 50%;
+  background: rgba(218, 41, 28, 0.92);
+  box-shadow: 0 6px 22px -6px rgba(0, 0, 0, 0.9);
+  box-sizing: content-box;
+}
+.gc-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(11, 13, 17, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #e7e9ec;
+  letter-spacing: 0.08em;
+  font:
+    800 7.5px/1.4 "Kanit",
+    sans-serif;
+  pointer-events: none;
+}
+.gc-body {
+  display: grid;
+  gap: 6px;
+  padding: 11px 12px 13px;
+}
+.gc-body > b {
+  color: #e7e9ec;
+  font:
+    700 11px/1.45 "Kanit",
+    sans-serif;
+}
+.gc-meta,
+.gc-speakers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: #6b7078;
+  font:
+    500 8.5px/1.4 "Kanit",
+    sans-serif;
+}
+.gc-meta em {
+  font-style: normal;
+  color: #8a9099;
+  font-weight: 600;
+}
+.gc-body p {
+  margin: 0;
+  color: #8a9099;
+  font:
+    500 9.5px/1.55 "Kanit",
+    sans-serif;
+}
+.gc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.gc-tags span {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #22252b;
+  color: #c9ccd1;
+  font:
+    600 8px/1.5 "Kanit",
+    sans-serif;
+}
+
+/* หน้าคลิปเดี่ยวของ GROUND CALL --------------------------------------------- */
+.gc-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 18px 60px;
+}
+.gc-page-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #8a9099;
+  font:
+    600 10px/1.4 "Kanit",
+    sans-serif;
+}
+.gc-page-back:hover {
+  color: var(--text, #e7e9ec);
+}
+.gc-page-note {
+  margin-top: 30px;
+  color: #8a9099;
+  font:
+    500 11px/1.6 "Kanit",
+    sans-serif;
+}
+.gc-page-clip {
+  display: grid;
+  grid-template-columns: minmax(0, 260px) minmax(0, 1fr);
+  gap: 22px;
+  margin-top: 18px;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .gc-page-clip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.gc-page-frame {
+  aspect-ratio: 9 / 16;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--line, #272a30);
+}
+.gc-page-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.gc-page-body {
+  display: grid;
+  gap: 10px;
+}
+.gc-page-body h1 {
+  margin: 0;
+  color: #e7e9ec;
+  font:
+    800 20px/1.35 "Kanit",
+    sans-serif;
+}
+.gc-page-summary {
+  margin: 0;
+  color: #c9ccd1;
+  font:
+    500 12px/1.7 "Kanit",
+    sans-serif;
+}
+.gc-page-text {
+  white-space: pre-wrap;
+  color: #8a9099;
+  font:
+    400 11.5px/1.85 "Kanit",
+    sans-serif;
+}
+.gc-page-sources {
+  display: grid;
+  gap: 5px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: #16181d;
+  border: 1px solid var(--line, #272a30);
+}
+.gc-page-sources b {
+  color: #c9ccd1;
+  font:
+    700 9.5px/1.5 "Kanit",
+    sans-serif;
+}
+.gc-page-sources ul {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 3px;
+}
+.gc-page-sources li,
+.gc-page-sources a {
+  color: #8a9099;
+  overflow-wrap: anywhere;
+  font:
+    500 9.5px/1.6 "Kanit",
+    sans-serif;
+}
+.gc-page-sources a:hover {
+  color: var(--red, #da291c);
+}
+.gc-page-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.gc-page-files a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 8px;
+  background: #22252b;
+  color: #c9ccd1;
+  font:
+    600 9.5px/1.4 "Kanit",
+    sans-serif;
+}
+.gc-page-files a:hover {
+  color: #fff;
+  background: #2b2f36;
+}

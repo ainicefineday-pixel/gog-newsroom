@@ -37,6 +37,15 @@ import type { BudgetStyle } from "@/services/trip/types";
 import type { GOGFixture } from "@/services/football/types";
 import type { Story } from "@/lib/types";
 import { getPlayerIntelligence, syncManchesterUnitedPlayers } from "@/lib/server/player-intelligence";
+import {
+  getGroundCallClip,
+  groundCallAuthorizationError,
+  ingestGroundCallClip,
+  listGroundCallClips,
+  parsePublication,
+  unpublishGroundCallClip,
+  ValidationError,
+} from "@/lib/server/ground-call";
 
 import { DEFAULT_COMPETITION_ID, DEFAULT_SEASON } from "@/services/football/competitions";
 import { generateDailyDigest, runIngest, translateStories } from "@/lib/server/pipeline";
@@ -375,6 +384,54 @@ export async function handleApi(request: Request, env: RuntimeEnv) {
     const denied = adminAuthorizationError(request, env);
     if (denied) return denied;
     return json({ ok: true, ...(await syncChannelVideos(env, { force: true })) });
+  }
+
+  // ── คลิปจากสตูดิโอ GROUND CALL ────────────────────────────────────────
+  // อ่านได้สาธารณะ ส่งเข้ามาได้เฉพาะผู้ถือ GROUND_CALL_INGEST_KEY
+  if (url.pathname === "/api/ground-call/clips" && request.method === "GET") {
+    const limit = numberParam(url, "limit") ?? 20;
+    return json({ ok: true, clips: await listGroundCallClips(env, limit) });
+  }
+  if (url.pathname === "/api/ground-call/clips" && request.method === "POST") {
+    const denied = groundCallAuthorizationError(request, env);
+    if (denied) return json(denied.body, denied.status);
+
+    // กุญแจกันซ้ำมาจาก header ตามธรรมเนียม Stripe/GitHub ฝั่งสตูดิโอคำนวณจาก
+    // clipId + เวอร์ชันของคลิป การกดเผยแพร่ซ้ำจึงได้คลิปเดิมกลับไปเสมอ
+    const idempotencyKey = request.headers.get("idempotency-key")?.trim();
+    if (!idempotencyKey) {
+      return json({ ok: false, error: "missing_idempotency_key", message: "ต้องส่ง header Idempotency-Key" }, 400);
+    }
+
+    const raw = await request.json().catch(() => null);
+    try {
+      const payload = parsePublication(raw);
+      const { clip, replayed } = await ingestGroundCallClip(env, payload, idempotencyKey);
+      return json({
+        ok: true,
+        replayed,
+        externalId: clip.externalId,
+        url: new URL(`/ground-call/${clip.slug}`, url.origin).toString(),
+        publishedAt: clip.publishedAt,
+      }, replayed ? 200 : 201);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return json({ ok: false, error: "invalid_payload", message: error.message }, 422);
+      }
+      return json({ ok: false, error: "ingest_failed", message: error instanceof Error ? error.message : "รับคลิปไม่สำเร็จ" }, 500);
+    }
+  }
+  if (url.pathname.startsWith("/api/ground-call/clips/") && request.method === "GET") {
+    const slug = decodeURIComponent(url.pathname.slice("/api/ground-call/clips/".length));
+    const clip = await getGroundCallClip(env, slug);
+    if (!clip) return json({ ok: false, error: "clip_not_found" }, 404);
+    return json({ ok: true, clip });
+  }
+  const groundCallClipMatch = url.pathname.match(/^\/api\/ground-call\/clips\/([A-Za-z0-9_.-]+)$/);
+  if (groundCallClipMatch && request.method === "DELETE") {
+    const denied = groundCallAuthorizationError(request, env);
+    if (denied) return json(denied.body, denied.status);
+    return json({ ok: true, ...(await unpublishGroundCallClip(env, groundCallClipMatch[1])) });
   }
 
   // ── แถบนัดถัดไปบน nav (นัดที่ควรโชว์ + อากาศสดที่สนามนั้น) ─────────────

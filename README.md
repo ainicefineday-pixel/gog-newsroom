@@ -66,3 +66,40 @@ Mutation endpoints require `Authorization: Bearer <CRON_SECRET>` and are disable
 ## Storage
 
 The logical `DB` D1 binding is declared in `.openai/hosting.json`. Runtime initialization uses single-statement prepared queries, while Drizzle owns the checked-in migration history in `drizzle/`.
+
+## GROUND CALL clips
+
+GROUND CALL is the studio that records a remote conversation between the host and the analyst and
+renders it as a vertical clip. It runs in a separate repository because it needs Postgres, an SFU
+and FFmpeg workers, none of which run on Workers. This is the receiving end of that seam.
+
+- `POST /api/ground-call/clips` accepts a published clip. Requires `Authorization: Bearer
+  <GROUND_CALL_INGEST_KEY>` and an `Idempotency-Key` header. Answers `201` for a new clip and `200`
+  with `replayed: true` for a repeat of the same key, so a retry after a dropped connection cannot
+  create a second clip. A payload that does not match the contract is rejected with `422` before
+  anything is stored.
+- `GET /api/ground-call/clips` lists published clips for the shelf on the news page. Public.
+- `GET /api/ground-call/clips/{slug}` is one clip, served at `/ground-call/{slug}`.
+- `DELETE /api/ground-call/clips/{externalId}` withdraws a clip. The row stays so the idempotency
+  key stays taken — otherwise the studio's next retry would put the withdrawn clip straight back.
+
+Leave `GROUND_CALL_INGEST_KEY` unset and the ingest endpoint answers `503`: the path is closed
+unless someone deliberately opens it. The key is separate from `CRON_SECRET` so access can be
+revoked for the studio alone.
+
+### Setting the ingest key
+
+Local (`.dev.vars`, gitignored):
+
+```
+GROUND_CALL_INGEST_KEY=<same value as GOG_NEWS_API_KEY in ground-call>
+```
+
+Deployed:
+
+```sh
+npx wrangler secret put GROUND_CALL_INGEST_KEY --config dist/server/wrangler.json
+```
+
+The studio and the newsroom must hold the same value. Rotating it is one `wrangler secret put` plus
+one edit to `GOG_NEWS_API_KEY` on the studio side; nothing else refers to it.

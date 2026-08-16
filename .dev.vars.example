@@ -28,3 +28,7 @@ THESPORTSDB_KEY=
 # ใช้ดึงข่าวแมนยูจาก The Guardian แทนฟีด The Telegraph ที่ถูกระบบกันบอทของเขาบล็อก
 # ไม่ใส่คีย์ก็รันได้ ระบบจะข้ามแหล่งนี้แล้วรายงานในผังสายข่าวว่ายังไม่ได้ตั้งค่า
 GUARDIAN_API_KEY=
+
+# GROUND CALL — คีย์ที่สตูดิโอใช้ยิงคลิปที่เผยแพร่แล้วเข้ามาที่ /api/ground-call/clips
+# ต้องตรงกับ GOG_NEWS_API_KEY ฝั่ง ground-call ไม่ใส่ = ปิดปลายทางรับคลิป (ตอบ 503)
+GROUND_CALL_INGEST_KEY=
