@@ -52,8 +52,8 @@ const DEFAULT_CAPABILITIES: SourceCapabilities = {
 type WorkspaceView = "news" | "fixtures" | "matchcenter" | "replay" | "data" | "trip" | "partners" | "map" | "tactics" | "team";
 
 const NAV_GROUPS = [
-  { title:"The Newsroom", subtitle:"Verified stories", icon:Newspaper, items:[{view:"news",label:"Latest Dispatch",hint:"ข่าวล่าสุด",icon:Newspaper}] },
-  { title:"Football Intelligence", subtitle:"Premier League HQ", icon:ShieldCheck, items:[
+  { title:"The Newsroom", icon:Newspaper, items:[{view:"news",label:"Latest Dispatch",hint:"ข่าวล่าสุด",icon:Newspaper}] },
+  { title:"Football Intelligence", icon:ShieldCheck, items:[
     {view:"fixtures",label:"Season Command",hint:"โปรแกรมพรีเมียร์ลีก",icon:CalendarDays},
     {view:"matchcenter",label:"Match Centre",hint:"ศูนย์วิเคราะห์แมตช์",icon:Flag},
     {view:"replay",label:"Broadcast Replay",hint:"จำลองเกมย้อนหลัง",icon:CirclePlay},
@@ -61,14 +61,14 @@ const NAV_GROUPS = [
     {view:"map",label:"Ground Atlas",hint:"แผนที่สนาม",icon:MapPinned},
     {view:"tactics",label:"Tactical Board",hint:"แผนการเล่น",icon:Swords},
   ]},
-  { title:"Matchday Journey", subtitle:"Beyond the ninety", icon:Plane, items:[
+  { title:"Matchday Journey", icon:Plane, items:[
     {view:"trip",label:"Away Day Planner",hint:"วางแผนทริป",icon:Plane},
     {view:"partners",label:"GOG Alliance",hint:"เครือข่ายพาร์ทเนอร์",icon:UsersRound},
     {view:"team",label:"The GOG Crew",hint:"ทีมงาน GOG",icon:ShieldCheck},
   ]},
   // GROUND CALL เป็นคนละแอปคนละเครื่อง จึงเป็นลิงก์ ไม่ใช่มุมมองในหน้านี้
   // studio: true = ที่อยู่มาจากค่าที่ตั้งไว้ในฐานข้อมูล เพราะสตูดิโอย้ายเครื่องได้
-  { title:"Admin", subtitle:"Studio & tools", icon:RadioTower, items:[
+  { title:"Admin", icon:RadioTower, items:[
     {studio:"/login",label:"เข้าสู่ระบบสตูดิโอ",hint:"แอดมิน GROUND CALL",icon:LockKeyhole},
     {studio:"/rehearsal",label:"ซ้อมคนเดียว",hint:"ลองกล้อง ฟิลเตอร์ การ์ดนักเตะ",icon:CirclePlay},
     {href:"/ground-call",label:"คลิปที่เผยแพร่แล้ว",hint:"คลิปจากสตูดิโอบนหน้าข่าว",icon:RadioTower},
@@ -84,7 +84,10 @@ function GroupedNavigation({activeView,onSelect,compact=false}:{activeView:Works
   return <nav className={`gog-dock${compact?" compact":""}`} aria-label="GOG navigation">{NAV_GROUPS.map(group=>{
     const active=group.items.some(item=>"view" in item&&item.view===activeView),GroupIcon=group.icon;
     return <div className={`dock-group${active?" active":""}`} key={group.title}>
-      <button className="dock-trigger" type="button" aria-haspopup="menu"><GroupIcon/><span><b>{group.title}</b><small>{group.subtitle}</small></span><ChevronDown className="dock-chevron"/></button>
+      {/* บรรทัดเดียว — คำโปรยใต้ชื่อกลุ่ม ("Verified stories", "Premier League HQ")
+          ถูกตัดออก มันทำให้ปุ่มสูง 54px ทั้งที่ชื่อกลุ่มบอกครบอยู่แล้ว
+          และเนื้อหาจริงของแต่ละกลุ่มอยู่ในเมนูที่กางออกมาอยู่ดี */}
+      <button className="dock-trigger" type="button" aria-haspopup="menu"><GroupIcon/><span><b>{group.title}</b></span><ChevronDown className="dock-chevron"/></button>
       <div className="dock-menu" role="menu">{group.items.map(item=>{
         const Icon=item.icon;
         // รายการที่มี href พาออกไปหน้าอื่นจริง ๆ ไม่ใช่สลับมุมมองในหน้านี้
